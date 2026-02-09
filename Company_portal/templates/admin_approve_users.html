@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>User Management</h2>
+
+<table border="1" cellpadding="6">
+<tr>
+    <th>ID</th>
+    <th>Username</th>
+    <th>Approved</th>
+    <th>Role</th>
+    <th>Action</th>
+</tr>
+
+{% for user in users %}
+<tr>
+    <td>{{ user.id }}</td>
+    <td>{{ user.username }}</td>
+
+    <td>
+        {% if user.is_approved %}
+            ✅ Approved
+        {% else %}
+            ❌ Pending
+        {% endif %}
+    </td>
+
+    <td>
+        {% if user.is_admin %}
+            Admin
+        {% else %}
+            User
+        {% endif %}
+    </td>
+
+    <td>
+        {% if not user.is_approved %}
+            <a href="/admin/approve/{{ user.id }}">Approve</a>
+        {% endif %}
+
+        {% if not user.is_admin %}
+            | <a href="/admin/delete/{{ user.id }}"
+                 onclick="return confirm('Delete this user?')">
+                 Delete
+              </a>
+        {% endif %}
+    </td>
+</tr>
+{% endfor %}
+</table>
+
+{% endblock %}

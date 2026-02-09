@@ -9,7 +9,9 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(200))
     role = db.Column(db.String(50), default="user")
-
+    is_approved = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    
 class LoginLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)

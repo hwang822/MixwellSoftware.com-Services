@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, abort, flash, render_template, request, redirect
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -28,7 +28,9 @@ def create_admin():
         admin = User(
             username="admin",
             password=generate_password_hash("admin123"),
-            role="admin"
+            role="admin",
+            is_approved = True,
+            is_admin = True
         )
         db.session.add(admin)
         db.session.commit()
@@ -67,17 +69,20 @@ def login():
 @app.route("/signup", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
+        username = request.form["username"]
+        password = generate_password_hash(request.form["password"])
+        role = "user"
 
-        user = User(
-            username=request.form["username"],
-            password=generate_password_hash(request.form["password"])
-        )
-
-        db.session.add(user)
-        db.session.commit()
-
+        # 创建用户，但默认未批准
+        new_user = User(username=username, password=password, role=role, is_approved=False, is_admin=False)
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash("Signup successful! Waiting for admin approval.")
+        except:
+            db.session.rollback()
+            flash("Username already exists.")
         return redirect("/login")
-
     return render_template("signup.html")
 
 @app.route("/service")
@@ -107,7 +112,24 @@ def dashboard():
         {"name": "Email", "url": "http://localhost:8000"}
 
     ]
+
+    if current_user.is_admin:
+        services.append({"name": "Admin", "url": "/service/admin"})
+
     return render_template("dashboard.html", services=services)
+
+@app.route("/service/admin")
+@login_required
+def admin_service():
+
+    if not current_user.is_admin:
+        abort(403)
+
+    users = User.query.all()
+    return render_template(
+        "admin_approve_users.html",
+        users=users
+    )
 
 @app.route("/service/<name>")
 @login_required
@@ -132,6 +154,36 @@ def handle_message(data):
 
     emit("receive_message", data, broadcast=True)
 
+@app.route("/admin/approve/<int:user_id>")
+@login_required
+def approve_user(user_id):
+
+    if not current_user.is_admin:
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+    user.is_approved = True
+    db.session.commit()
+
+    return redirect("/service/admin")
+
+@app.route("/admin/delete/<int:user_id>")
+@login_required
+def delete_user(user_id):
+
+    if not current_user.is_admin:
+        abort(403)
+
+    user = User.query.get_or_404(user_id)
+
+    # 防止删除自己
+    if user.id == current_user.id:
+        return "Cannot delete yourself"
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return redirect("/service/admin")
 
 if __name__ == "__main__":
     with app.app_context():

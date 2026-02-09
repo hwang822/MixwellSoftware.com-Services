@@ -2,5 +2,7 @@
 *.pdf
 *.zip
 *.log
+*.db
+*.csv
 __pycache__/
 .env
