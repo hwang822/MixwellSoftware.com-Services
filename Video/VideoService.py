@@ -1,6 +1,8 @@
+from base64 import b64decode
 from flask import Flask, send_from_directory, request, abort, render_template_string
-import os
-
+from flask_login import current_user
+import jwt
+SECRET_KEY = "MixwellSSOSecretMixwellSSOSecret"
 # ---------------- 配置 ----------------
 VIDEO_FOLDER = "C:\Workarea\MixwellSoftware.com-Services\Travel\Videos"   # 视频文件夹路径（可用绝对路径）
 PASSWORD = "huaizhong"    # 自定义访问密码
@@ -36,6 +38,7 @@ HTML_LIST = """
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    #verify_token()
     if request.method == "POST":
         if request.form.get("pw") == PASSWORD:
             try:
@@ -46,6 +49,21 @@ def index():
         else:
             return "密码错误"
     return HTML_PASSWORD
+
+def verify_token():
+
+    token = request.args.get("token")
+    print("token: " + token)
+
+    if not token:
+        abort(401)
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], )        
+        return
+    except Exception as e:
+        print(e)
+        abort(401)
 
 @app.route("/video/<path:filename>")
 def serve_video(filename):

@@ -5,6 +5,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
 from models import db, User, LoginLog, ChatMessage
+import jwt
+import datetime
+SECRET_KEY = "MixwellSuperSecretKeyMixwellSuperSecretKey"
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -15,6 +18,18 @@ socketio = SocketIO(app)
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
+
+def generate_token(user):
+    payload = {
+        "user_id": user.id,
+        "username": user.username,
+        "is_admin": user.is_admin,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+    }
+
+    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    
+    return token
 
 
 @login_manager.user_loader
@@ -92,6 +107,8 @@ def service_page():
 
     service_name = request.args.get("name")
     service_url = request.args.get("url")
+    token = generate_token(current_user)            
+    service_url = service_url + "?token=" + token 
 
     return render_template(
         "service.html",
@@ -103,18 +120,17 @@ def service_page():
 @login_required
 def dashboard():
     services = [
-        {"name": "AI Service", "url": "http://localhost:8000"},
-        {"name": "Video Service", "url": "http://localhost:8000"},
+        {"name": "AI Service", "url": f"http://localhost:8000"},
+        {"name": "Video Service", "url": "http://localhost:8080"},
         {"name": "Data API", "url": "http://localhost:8000"},
         {"name": "Travel", "url": "http://localhost:8000"},
-        {"name": "Cam", "url": "http://localhost:8000"},
+        {"name": "Cam", "url": "http://localhost:8000?"},
         {"name": "Rdp", "url": "http://localhost"},
         {"name": "Email", "url": "http://localhost:8000"}
-
     ]
 
     if current_user.is_admin:
-        services.append({"name": "Admin", "url": "/service/admin"})
+        services.append({"name": "Admin", "url": "http://localhost:5000/service/admin"})
 
     return render_template("dashboard.html", services=services)
 
@@ -134,7 +150,7 @@ def admin_service():
 @app.route("/service/<name>")
 @login_required
 def service(name):
-    return render_template("service.html", service=name)
+    return render_template("service.hml", service=name)
 
 
 @app.route("/logout")
