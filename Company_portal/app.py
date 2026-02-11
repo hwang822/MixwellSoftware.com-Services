@@ -1,13 +1,10 @@
-from flask import Flask, abort, flash, render_template, request, redirect
+from flask import Flask, abort, flash, render_template, request, redirect, session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
 from models import db, User, LoginLog, ChatMessage
-import jwt
-import datetime
-SECRET_KEY = "MixwellSuperSecretKeyMixwellSuperSecretKey"
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -18,19 +15,6 @@ socketio = SocketIO(app)
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
-
-def generate_token(user):
-    payload = {
-        "user_id": user.id,
-        "username": user.username,
-        "is_admin": user.is_admin,
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
-    }
-
-    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-    
-    return token
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -67,20 +51,19 @@ def login():
             username=request.form["username"]
         ).first()
 
-        if user and check_password_hash(
-                user.password,
-                request.form["password"]
-        ):
+        if user is None:
+            flash("Invalid username")
+        elif not check_password_hash(
+            user.password, 
+            request.form["password"]):
+            flash("Invalid password")
+        elif user.is_approved == False:
+            flash("Your account is not approved yet. Please wait for admin approval.")
+        else:
             login_user(user)
-
-            db.session.add(LoginLog(user_id=user.id))
-            db.session.commit()
-
-            return redirect("/dashboard")
-
-    return render_template("login.html")
-
-
+            flash("Login successful!")
+            return redirect('/dashboard')
+    return render_template('login.html')
 @app.route("/signup", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
@@ -107,8 +90,6 @@ def service_page():
 
     service_name = request.args.get("name")
     service_url = request.args.get("url")
-    token = generate_token(current_user)            
-    service_url = service_url + "?token=" + token 
 
     return render_template(
         "service.html",
@@ -120,7 +101,7 @@ def service_page():
 @login_required
 def dashboard():
     services = [
-        {"name": "AI Service", "url": f"http://localhost:8000"},
+        {"name": "AI Service", "url": "http://localhost:8000"},
         {"name": "Video Service", "url": "http://localhost:8080"},
         {"name": "Data API", "url": "http://localhost:8000"},
         {"name": "Travel", "url": "http://localhost:8000"},
