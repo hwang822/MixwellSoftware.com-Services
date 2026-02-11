@@ -43,7 +43,7 @@ def home():
     return render_template("home.html")
 
 
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login/", methods=["GET","POST"])
 def login():
     if request.method == "POST":
 
@@ -64,7 +64,7 @@ def login():
             flash("Login successful!")
             return redirect('/dashboard')
     return render_template('login.html')
-@app.route("/signup", methods=["GET","POST"])
+@app.route("/signup/", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
         username = request.form["username"]
@@ -83,7 +83,7 @@ def signup():
         return redirect("/login")
     return render_template("signup.html")
 
-@app.route("/service")
+@app.route("/service/")
 @login_required
 def service_page():
     from flask import request
@@ -97,7 +97,7 @@ def service_page():
         service_url=service_url
     )
 
-@app.route("/dashboard")
+@app.route("/dashboard/")
 @login_required
 def dashboard():
     services = [
@@ -115,7 +115,7 @@ def dashboard():
 
     return render_template("dashboard.html", services=services)
 
-@app.route("/service/admin")
+@app.route("/service/admin/")
 @login_required
 def admin_service():
 
@@ -128,13 +128,13 @@ def admin_service():
         users=users
     )
 
-@app.route("/service/<name>")
+@app.route("/service/<name>/")
 @login_required
 def service(name):
     return render_template("service.hml", service=name)
 
 
-@app.route("/logout")
+@app.route("/logout/")
 def logout():
     logout_user()
     return redirect("/")
@@ -151,7 +151,7 @@ def handle_message(data):
 
     emit("receive_message", data, broadcast=True)
 
-@app.route("/admin/approve/<int:user_id>")
+@app.route("/admin/approve/<int:user_id>/")
 @login_required
 def approve_user(user_id):
 
@@ -164,7 +164,7 @@ def approve_user(user_id):
 
     return redirect("/service/admin")
 
-@app.route("/admin/delete/<int:user_id>")
+@app.route("/admin/delete/<int:user_id>/")
 @login_required
 def delete_user(user_id):
 
