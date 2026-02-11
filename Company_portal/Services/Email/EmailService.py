@@ -24,60 +24,60 @@ def send_email(subject, body):
 
 # ===== 首页 + 联系表单 =====
 @app.route("/", methods=["GET", "POST"])
-def home():
+def EmailService():
     if request.method == "POST":
         name = request.form.get("name")
         email = request.form.get("email")
         msg = request.form.get("message")
 
         body = f"""
-New Contact Message
+        New Contact Message
 
-Name: {name}
-Email: {email}
-Message:
-{msg}
+        Name: {name}
+        Email: {email}
+        Message:
+        {msg}
 
-Time: {datetime.datetime.now()}
-IP: {request.remote_addr}
-"""
+    Time: {datetime.datetime.now()}
+    IP: {request.remote_addr}
+    """
 
         send_email("New Website Contact", body)
 
         return "<h2>Message Sent ✅</h2>"
 
-    return """
-    <h1>Mixwell Software</h1>
-    <h2>Contact Us</h2>
-
-    <form method="post">
-        Name:<br>
-        <input name="name"><br><br>
-
-        Email:<br>
-        <input name="email"><br><br>
-
-        Message:<br>
-        <textarea name="message"></textarea><br><br>
-
-        <button type="submit">Send</button>
-    </form>
-
-    <br><br>
-    <a href="/videos">Go To Videos</a>
     """
+        <h1>Mixwell Software</h1>
+        <h2>Contact Us</h2>
+
+        <form method="post">
+            Name:<br>
+            <input name="name"><br><br>
+
+            Email:<br>
+            <input name="email"><br><br>
+
+            Message:<br>
+            <textarea name="message"></textarea><br><br>
+
+            <button type="submit">Send</button>
+        </form>
+
+        <br><br>
+        <a href="/videos">Go To Videos</a>
+"""
 
 # ===== 视频页 + Alert 邮件 =====
 @app.route("/videos")
 def videos():
 
     body = f"""
-Video Page Access Alert
+    Video Page Access Alert
 
-Time: {datetime.datetime.now()}
-IP: {request.remote_addr}
-User-Agent: {request.headers.get('User-Agent')}
-"""
+    Time: {datetime.datetime.now()}
+    IP: {request.remote_addr}
+    User-Agent: {request.headers.get('User-Agent')}
+    """
 
     send_email("Video Site Access Alert", body)
 

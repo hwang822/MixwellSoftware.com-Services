@@ -1,8 +1,5 @@
-from base64 import b64decode
+import os
 from flask import Flask, send_from_directory, request, abort, render_template_string
-from flask_login import current_user
-import jwt
-SECRET_KEY = "MixwellSSOSecretMixwellSSOSecret"
 # ---------------- 配置 ----------------
 VIDEO_FOLDER = "C:\Workarea\MixwellSoftware.com-Services\Travel\Videos"   # 视频文件夹路径（可用绝对路径）
 PASSWORD = "huaizhong"    # 自定义访问密码
@@ -37,8 +34,7 @@ HTML_LIST = """
 """
 
 @app.route("/", methods=["GET", "POST"])
-def index():
-    #verify_token()
+def VideoService():
     if request.method == "POST":
         if request.form.get("pw") == PASSWORD:
             try:
@@ -49,21 +45,6 @@ def index():
         else:
             return "密码错误"
     return HTML_PASSWORD
-
-def verify_token():
-
-    token = request.args.get("token")
-    print("token: " + token)
-
-    if not token:
-        abort(401)
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"], )        
-        return
-    except Exception as e:
-        print(e)
-        abort(401)
 
 @app.route("/video/<path:filename>")
 def serve_video(filename):
@@ -76,4 +57,4 @@ if __name__ == "__main__":
     # 局域网访问 host="0.0.0.0"
     print(f"服务器启动，局域网访问地址: http://你的电脑IP:{PORT}/")
     print("家人访问时输入密码即可看视频")
-    app.run(host="0.0.0.0", port=PORT)
+    app.run(debug=True)
