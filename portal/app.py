@@ -4,7 +4,7 @@ from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
-from models import db, User, LoginLog, ChatMessage
+from models import db, User, ChatMessage
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -101,13 +101,13 @@ def service_page():
 @login_required
 def dashboard():
     services = [
-        {"name": "AI Service", "url": "http://localhost:8000"},
-        {"name": "Video Service", "url": "http://localhost:8080"},
-        {"name": "Data API", "url": "http://localhost:8000"},
-        {"name": "Travel", "url": "http://localhost:8000"},
-        {"name": "Cam", "url": "http://localhost:8000?"},
-        {"name": "Rdp", "url": "http://localhost"},
-        {"name": "Email", "url": "http://localhost:8000"}
+        {"name": "AI Service", "url": "http://127.0.0.1:5001/"},
+        {"name": "Cam Service", "url": "http://localhost:5002"},
+        {"name": "Video Service", "url": "http://localhost:5003"},
+        {"name": "Email Service", "url": "http://localhost:5004"},
+        {"name": "Travel Service", "url": "http://localhost:5005"},
+        {"name": "Data API Service", "url": "http://localhost:5006"},
+        {"name": "Rdp Service", "url": "http://localhost:5007"}
     ]
 
     if current_user.is_admin:

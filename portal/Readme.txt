@@ -61,24 +61,21 @@ Services/
         routes.py
 
 
-
-
-
-portal/
- ├ core/
- │   ├ auth.py
- │   ├ db.py
- │   ├ plugin_loader.py
- │
- ├ plugins/
- │   ├ ai/
- │   │   ├ plugin.py
- │   │   └ templates/
- │   │
- │   ├ admin/
- │   │   ├ plugin.py
- │   │   └ templates/
- │   │
- │   └ camera/
- │       ├ plugin.py
- │       └ templates/
+project/
+│
+├ app.py                    # Main portal
+├ requirements.txt
+├ services/
+│   ├ AIService/
+│   │   ├ __init__.py
+│   │   └ aiService.py
+│   ├ CamService/
+│   │   ├ __init__.py
+│   │   └ camService.py
+│   └ VideoService/
+│       ├ __init__.py
+│       └ videoService.py
+└ templates/
+    ├ login.html
+    └ dashboard.html
+    

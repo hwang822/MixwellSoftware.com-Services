@@ -1,12 +1,17 @@
+from flask import Flask, Blueprint
+
 import os
 from flask import Flask, send_from_directory, request, abort, render_template_string
+videoService = Blueprint("videoService", __name__)
+
+
 # ---------------- 配置 ----------------
-VIDEO_FOLDER = "C:\Workarea\MixwellSoftware.com-Services\Travel\Videos"   # 视频文件夹路径（可用绝对路径）
+VIDEO_FOLDER = "C:\Workarea\MixwellSoftware.com-Services\portal\services\TravelService\Videos"   # 视频文件夹路径（可用绝对路径）
 PASSWORD = "huaizhong"    # 自定义访问密码
 PORT = 8080               # 服务器端口
 # --------------------------------------
 
-app = Flask(__name__)
+#app = Flask(__name__)
 
 # HTML 输入密码页面
 HTML_PASSWORD = """
@@ -33,8 +38,8 @@ HTML_LIST = """
 </ul>
 """
 
-@app.route("/", methods=["GET", "POST"])
-def VideoService():
+@videoService.route("/", methods=["GET", "POST"])
+def video_home():
     if request.method == "POST":
         if request.form.get("pw") == PASSWORD:
             try:
@@ -46,15 +51,22 @@ def VideoService():
             return "密码错误"
     return HTML_PASSWORD
 
-@app.route("/video/<path:filename>")
+@videoService.route("/video/<path:filename>")
 def serve_video(filename):
     # 只允许视频文件访问
     if not filename.lower().endswith(('.mp4','.mov','.mkv')):
         abort(403)
     return send_from_directory(VIDEO_FOLDER, filename)
 
+
+#@videoService.route("/")
+#def video_home():
+#    return "Video Service: Internal Only"
+
+def create_app():
+    app = Flask(__name__)
+    app.register_blueprint(videoService)
+    return app
+
 if __name__ == "__main__":
-    # 局域网访问 host="0.0.0.0"
-    print(f"服务器启动，局域网访问地址: http://你的电脑IP:{PORT}/")
-    print("家人访问时输入密码即可看视频")
-    app.run(debug=True)
+    create_app().run(host="127.0.0.1", port=5003)  # localhost only
