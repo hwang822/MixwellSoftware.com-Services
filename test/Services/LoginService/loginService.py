@@ -1,13 +1,13 @@
 from flask import Blueprint, render_template, request
 
-login_bp = Blueprint(
+loginService = Blueprint(
     "login",
     __name__,
     template_folder="templates"
 )
 
-@login_bp.route("/", methods=["GET", "POST"])
-def login():
+@loginService.route("/", methods=["GET", "POST"])
+def LoginService():
     if request.method == "POST":
         username = request.form.get("username")
         print("Login attempt:", username)
