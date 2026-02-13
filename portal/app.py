@@ -1,3 +1,5 @@
+import os
+import sys
 from flask import Flask, abort, flash, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
@@ -9,6 +11,9 @@ from models import db, User, ChatMessage
 app = Flask(__name__)
 app.config.from_object(Config)
 BASE_PORT = app.config['PORT']
+BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///app_{BASE_PORT}.db"
+os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 db.init_app(app)
 socketio = SocketIO(app)
 
@@ -188,4 +193,4 @@ if __name__ == "__main__":
         db.create_all()
         create_admin()
 
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=BASE_PORT)

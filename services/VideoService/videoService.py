@@ -2,6 +2,11 @@ from flask import Flask, Blueprint
 
 import os
 from flask import Flask, send_from_directory, request, abort, render_template_string
+import sys
+from flask import Flask, Blueprint
+BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5003
+os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
+
 videoService = Blueprint("videoService", __name__)
 
 current_path = os.path.join(videoService.root_path, "Videos")
@@ -10,7 +15,7 @@ print(current_path)
 # ---------------- 配置 ----------------
 VIDEO_FOLDER = current_path  # 视频文件夹路径（可用绝对路径）
 PASSWORD = "huaizhong"    # 自定义访问密码
-PORT = 8080               # 服务器端口
+#PORT = 8080               # 服务器端口
 # --------------------------------------
 
 #app = Flask(__name__)
@@ -66,4 +71,4 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=5003)  # localhost only
+    create_app().run(host="127.0.0.1", port=BASE_PORT)

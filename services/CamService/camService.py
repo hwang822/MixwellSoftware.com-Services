@@ -1,6 +1,12 @@
 
 import cv2
 from flask import Flask, Blueprint, Response, render_template
+import os
+import sys
+from flask import Flask, Blueprint
+
+BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5002
+os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 camService = Blueprint("camService", __name__)
 
 # 这里改成你的DroidCam在PC端的设备号或IP
@@ -37,4 +43,4 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=5002)    
+    create_app().run(host="127.0.0.1", port=BASE_PORT)    
