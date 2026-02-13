@@ -4,9 +4,11 @@ import os
 from flask import Flask, send_from_directory, request, abort, render_template_string
 videoService = Blueprint("videoService", __name__)
 
-
+current_path = os.path.join(videoService.root_path, "Videos")
+#current_path = os.getcwd()  # Get current working directory
+print(current_path)
 # ---------------- 配置 ----------------
-VIDEO_FOLDER = "C:\Workarea\MixwellSoftware.com-Services\portal\services\TravelService\Videos"   # 视频文件夹路径（可用绝对路径）
+VIDEO_FOLDER = current_path  # 视频文件夹路径（可用绝对路径）
 PASSWORD = "huaizhong"    # 自定义访问密码
 PORT = 8080               # 服务器端口
 # --------------------------------------
@@ -57,11 +59,6 @@ def serve_video(filename):
     if not filename.lower().endswith(('.mp4','.mov','.mkv')):
         abort(403)
     return send_from_directory(VIDEO_FOLDER, filename)
-
-
-#@videoService.route("/")
-#def video_home():
-#    return "Video Service: Internal Only"
 
 def create_app():
     app = Flask(__name__)

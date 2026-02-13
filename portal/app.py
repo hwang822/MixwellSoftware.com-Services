@@ -1,4 +1,4 @@
-from flask import Flask, abort, flash, render_template, request, redirect, session
+from flask import Flask, abort, flash, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,7 +8,7 @@ from models import db, User, ChatMessage
 
 app = Flask(__name__)
 app.config.from_object(Config)
-
+BASE_PORT = app.config['PORT']
 db.init_app(app)
 socketio = SocketIO(app)
 
@@ -87,7 +87,6 @@ def signup():
 @login_required
 def service_page():
     from flask import request
-
     service_name = request.args.get("name")
     service_url = request.args.get("url")
 
@@ -100,18 +99,20 @@ def service_page():
 @app.route("/dashboard/")
 @login_required
 def dashboard():
+
     services = [
-        {"name": "AI Service", "url": "http://127.0.0.1:5001/"},
-        {"name": "Cam Service", "url": "http://localhost:5002"},
-        {"name": "Video Service", "url": "http://localhost:5003"},
-        {"name": "Email Service", "url": "http://localhost:5004"},
-        {"name": "Travel Service", "url": "http://localhost:5005"},
-        {"name": "Data API Service", "url": "http://localhost:5006"},
-        {"name": "Rdp Service", "url": "http://localhost:5007"}
-    ]
+        {"name": "AI Service", "url": f"http://127.0.0.1:{BASE_PORT+1}/"},
+        {"name": "Cam Service", "url": f"http://127.0.0.1:{BASE_PORT+2}/"},
+        {"name": "Video Service", "url": f"http://127.0.0.1:{BASE_PORT+3}/"},
+        {"name": "Email Service", "url": f"http://127.0.0.1:{BASE_PORT+4}/"},
+        {"name": "Travel Service", "url": f"http://127.0.0.1:{BASE_PORT+5}/"},
+        {"name": "Data API Service", "url": f"http://127.0.0.1:{BASE_PORT+6}/"},
+        {"name": "Rdp Service", "url": f"http://127.0.0.1:{BASE_PORT+7}/"}
+   
+    ]    
 
     if current_user.is_admin:
-        services.append({"name": "Admin", "url": "http://localhost:5000/service/admin"})
+        services.append({"name": "Admin", "url": url_for("admin_service", _external=True)})
 
     return render_template("dashboard.html", services=services)
 

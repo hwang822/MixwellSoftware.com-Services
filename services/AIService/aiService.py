@@ -1,4 +1,4 @@
-from flask import Flask, Blueprint, redirect, render_template, url_for
+from flask import Flask, Blueprint, app, redirect, render_template, url_for
 
 aiService = Blueprint("aiService", __name__)
 
@@ -12,4 +12,4 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=5001)  # localhost only
+    create_app().run(host="127.0.0.1", port=5001)

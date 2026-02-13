@@ -1,8 +1,5 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from flask import Flask
-from services.DataAPIService.dataAPIService import dataAPIService
+from dataAPIService import dataAPIService
 app = Flask(__name__)
 
 app.register_blueprint(dataAPIService, url_prefix="/dataAPI")
