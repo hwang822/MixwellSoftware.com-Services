@@ -206,6 +206,22 @@ footer {
         security, cost efficiency, and operational simplicity.
       </p>
     </div>
+
+    <div class="card">
+      <h3>Service Marketplace</h3>
+      <p>
+        <ul>
+          {% for s in services %}
+            <li>
+              <a href="{{s.url}}" target="_blank">
+                  {{s.name}}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>        
+      </p>
+    </div>
+
   </div>
 </section>
 

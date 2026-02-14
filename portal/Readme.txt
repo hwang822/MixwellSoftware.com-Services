@@ -79,3 +79,37 @@ project/
     ├ login.html
     └ dashboard.html
     
+
+✅ 真正多用户登录
+✅ JWT 鉴权
+✅ 多服务注册机制
+✅ Portal 自动显示服务菜单
+✅ 手机 PWA 安装能力
+✅ Docker Ready
+✅ 以后可以直接上云
+MixwellSoftware.com-Platform
+│
+├ portal/                     ← 主网站 + UI + 登录
+│
+├ gateway/                    ← API统一入口（未来）
+│
+├ services/
+│   ├ service1/
+│   ├ service2/
+│   └ registry/               ← 服务注册中心 ⭐
+│
+├ auth/
+│   ├ jwt_auth.py
+│   └ user_db.py
+│
+├ shared/
+│   ├ config.py
+│   └ database.py
+│
+├ mobile/                     ← PWA 前端 ⭐
+│
+├ docker/
+│   ├ docker-compose.yml
+│
+└ run/
+    └ start_dev.py    

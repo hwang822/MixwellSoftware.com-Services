@@ -15,6 +15,7 @@ SET EMAIL_SERVICE_PORT=8004
 SET TRAVEL_SERVICE_PORT=8005
 SET DATAAPI_SERVICE_PORT=8006
 SET RDP_SERVICE_PORT=8007
+SET REGISTRY_SERVICE_PORT=8008
 
 
 CALL :KillPort %PORTAL_PORT%
@@ -51,6 +52,9 @@ start /B "" cmd /c "cd /d %ROOT_PATH%\services\DataAPIService && python dataAPIS
 
 echo --- Start RDP Service 8007 ---
 start /B "" cmd /c "cd /d %ROOT_PATH%\services\RDPService && python rdpService.py %RDP_SERVICE_PORT%"
+
+echo --- Start REGISTRY Service 8008 ---
+start /B "" cmd /c "cd /d %ROOT_PATH%\services\RDPService && python rdpService.py %REGISTRY_SERVICE_PORT%"
 
 echo Deployment Complete
 pause

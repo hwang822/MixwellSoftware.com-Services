@@ -3,6 +3,7 @@ import sys
 from flask import Flask, abort, flash, render_template, request, redirect, url_for
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
+import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
@@ -45,8 +46,13 @@ def create_admin():
 
 @app.route("/")
 def home():
-    return render_template("home.html")
 
+    services = requests.get(
+        "http://localhost:8008/services"
+    ).json()
+
+    return render_template("home.html", services=services)    
+    #return render_template("home.html")
 
 @app.route("/login/", methods=["GET","POST"])
 def login():
@@ -115,15 +121,28 @@ def dashboard():
         {"name": "Rdp Service", "url": f"http://127.0.0.1:{BASE_PORT+7}/"}
    
     ]    
-
     if current_user.is_admin:
         services.append({"name": "Admin", "url": url_for("admin_service", _external=True)})
+        services.append({"name": "App Registery Service", "url": url_for("registery_service", _external=True)})
 
     return render_template("dashboard.html", services=services)
 
 @app.route("/service/admin/")
 @login_required
 def admin_service():
+
+    if not current_user.is_admin:
+        abort(403)
+
+    users = User.query.all()
+    return render_template(
+        "admin_approve_users.html",
+        users=users
+    )
+
+@app.route("/service/admin/")
+@login_required
+def registery_service():
 
     if not current_user.is_admin:
         abort(403)
