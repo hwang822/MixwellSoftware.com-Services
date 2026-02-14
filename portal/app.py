@@ -193,4 +193,4 @@ if __name__ == "__main__":
         db.create_all()
         create_admin()
 
-    socketio.run(app, debug=True, port=BASE_PORT)
+    socketio.run(app, debug=False, port=BASE_PORT)
