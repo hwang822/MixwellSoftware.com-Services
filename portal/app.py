@@ -46,13 +46,13 @@ def create_admin():
 
 @app.route("/")
 def home():
-
-    services = requests.get(
+    try:
+        services = requests.get(
         "http://localhost:8008/services"
-    ).json()
-
+        ).json()
+    except FileNotFoundError:
+        return "No apps, plese check"    
     return render_template("home.html", services=services)    
-    #return render_template("home.html")
 
 @app.route("/login/", methods=["GET","POST"])
 def login():

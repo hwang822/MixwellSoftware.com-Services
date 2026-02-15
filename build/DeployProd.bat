@@ -27,8 +27,7 @@ CALL :KillPort %RDP_SERVICE_PORT%
 CALL :KillPort %TRAVEL_SERVICE_PORT%
 CALL :KillPort %VIDEO_SERVICE_PORT%
 
-echo --- Start Portal ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\portal && python app.py %PORTAL_PORT%"
+CALL :KillPort %REGISTRY_SERVICE_PORT%
 
 timeout /t 3 >nul
 
@@ -54,7 +53,10 @@ echo --- Start RDP Service 8007 ---
 start /B "" cmd /c "cd /d %ROOT_PATH%\services\RDPService && python rdpService.py %RDP_SERVICE_PORT%"
 
 echo --- Start REGISTRY Service 8008 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\services\RDPService && python rdpService.py %REGISTRY_SERVICE_PORT%"
+start /B "" cmd /c "cd /d %ROOT_PATH%\services\RegistryService && python registryService.py %REGISTRY_SERVICE_PORT%"
+
+REM echo --- Start Portal ---
+start "" cmd /c "cd /d %ROOT_PATH%\portal && python app.py %PORTAL_PORT%"
 
 echo Deployment Complete
 pause
