@@ -17,7 +17,6 @@ SET DATAAPI_SERVICE_PORT=8006
 SET RDP_SERVICE_PORT=8007
 SET REGISTRY_SERVICE_PORT=8008
 
-
 CALL :KillPort %PORTAL_PORT%
 CALL :KillPort %AI_SERVICE_PORT%
 CALL :KillPort %CMD_SERVICE_PORT%
@@ -26,7 +25,6 @@ CALL :KillPort %EMAIL_SERVICE_PORT%
 CALL :KillPort %RDP_SERVICE_PORT%
 CALL :KillPort %TRAVEL_SERVICE_PORT%
 CALL :KillPort %VIDEO_SERVICE_PORT%
-
 CALL :KillPort %REGISTRY_SERVICE_PORT%
 
 timeout /t 3 >nul
@@ -62,6 +60,6 @@ echo Deployment Complete
 pause
 exit /b
 
-:KillPort
+CALL :KillPort
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :%1') do taskkill /F /PID %%a >nul 2>&1
 exit /b
