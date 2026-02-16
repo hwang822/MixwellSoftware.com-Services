@@ -1,0 +1,16 @@
+# Flask Portal backend
+flask==2.3.5
+flask-login==0.6.3
+flask-sqlalchemy==3.0.5
+flask-socketio==5.3.7
+eventlet==0.33.3
+
+# HTTP requests / API calls
+requests==2.31.0
+
+# OpenCV for services
+opencv-python==4.8.1.78
+
+# Kivy cross-platform UI
+kivy[base]==2.3.1
+kivy_examples==2.3.1
