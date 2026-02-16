@@ -1,7 +1,7 @@
 import os
 import sys
 from flask import Flask, Blueprint, render_template
-BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5001
 os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 
 aiService = Blueprint("aiService", __name__)
