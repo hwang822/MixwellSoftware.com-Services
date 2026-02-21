@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Services</h2>
+<form method="post" action="/admin/services/admin_add_service" class="row g-2 mb-3">
+    <input name="servicename" placeholder="Name" class="form-control" required>
+    <input name="url" placeholder="URL" class="form-control" required>
+    <input name="port" placeholder="Port" class="form-control" required>
+    <button class="btn btn-success">Add Service</button>
+</form>
+
+<table class="table table-bordered">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Users</th>
+        <th>Action</th>
+    </tr>
+    {% for service in services %}
+        <tr>
+            <td>{{ service.id }}</td>
+            <td>{{ service.servicename }}</td>
+            <td>{{ service.users|length }}</td>
+            <td>                
+                <a href="/admin/services/admin_delete_service/{{ service.id }}" 
+                    class="btn btn-danger btn-sm">
+                    Delete
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}
