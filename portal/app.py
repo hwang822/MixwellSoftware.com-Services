@@ -7,7 +7,7 @@ import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
-from models import db, Users, ChatMessage, Services, UserServices
+from models import db, Users, ChatMessage, Services, UsersServices
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -184,11 +184,6 @@ def admin_add_service():
     db.session.commit()
     return redirect(url_for("admin_services"))
 
-@app.route("/admin/services/admin_delete_service2")
-@login_required
-def admin_delete_service2():
-    return redirect(url_for("admin_services"))
-
 @app.route("/admin/services/admin_delete_service/<int:serviceid>")
 @login_required
 def admin_delete_service(serviceid):
@@ -197,16 +192,77 @@ def admin_delete_service(serviceid):
     db.session.commit()
     return redirect(url_for("admin_services"))
 
+@app.route("/admin/services/admin_start_service/<int:serviceid>")
+@login_required
+def admin_start_service(serviceid):
+    service = Services.query.get_or_404(serviceid)
+    url = service.url + ":" + f"{service.port}"
+    return redirect(url)
+
+
 # ===============================
 # Users Management
 # ===============================
+
+def get_userswithservices():
+
+    results = (        
+        db.session.query(
+                UsersServices.userid,
+                Services.id,
+                Services.servicename
+            )
+            .join(Services, UsersServices.serviceid == Services.id)
+            .all()
+    )
+
+    response = [
+        {
+            "userid": r.userid,
+            "serviceid": r.id,
+            "servicename": r.servicename
+        }
+        for r in results
+    ]
+
+    return response
+
+def get_userswithoutservices():
+
+    results = (        
+        db.session.query(
+                Users.id,
+                UsersServices.userid,
+                Services.id,
+                Services.servicename
+            )
+            .join(Services, (UsersServices.userid != Users.id) and (UsersServices.serviceid == Services.id) )
+            .all()
+    )
+
+    response = [
+        {
+            "userid": r.id,
+            "userid": r.userid,
+            "serviceid": r.id,
+            "servicename": r.servicename
+        }
+        for r in results
+    ]
+
+    return response
 
 @app.route("/admin/users")
 @login_required
 def admin_users():
     users = Users.query.all()
     services = Services.query.all()
-    return render_template("admin_users.html", users=users, services=services)
+    userswithservices = get_userswithservices()
+    userswithoutservices = get_userswithoutservices()
+    return render_template("admin_users.html", users=users, 
+                           services=services, 
+                           userswithservices = userswithservices, 
+                           userswithoutservices=userswithoutservices)
 
 @app.route("/admin/users/admin_approve_user/<int:userid>")
 @login_required
@@ -230,10 +286,10 @@ def admin_delete_user(userid):
     return redirect("/admin/users")
 
 @app.route("/admin/users/admin_add_service_to_user/<int:user_id>", methods=["POST"])
-#@login_required
+@login_required
 def admin_add_service_to_user(user_id):
     service_id = request.form.get("service_id")
-    userService = UserServices(
+    userService = UsersServices(
         userid = user_id,
         serviceid = service_id
     )
@@ -242,11 +298,17 @@ def admin_add_service_to_user(user_id):
     return redirect(url_for("admin_users"))
 
 @app.route("/admin/users/admin_remove_service_from_user/<int:user_id>", methods=["POST"])
-#@login_required
+@login_required
 def admin_remove_service_from_user(user_id):  
+    results = (
+        db.session.query(Users, UsersServices)
+        .join(UsersServices, Users.id == Users.userid)        
+        .all()
+    )
+
     service_id = request.form.get("service_id")
 
-    userServices = UserServices.query.filter_by(
+    userServices = UsersServices.query.filter_by(
         userid=user_id,
         serviceid=service_id
     ).all()

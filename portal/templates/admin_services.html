@@ -13,15 +13,19 @@
     <tr>
         <th>ID</th>
         <th>Name</th>
-        <th>Users</th>
+        <th>URL</th>
         <th>Action</th>
     </tr>
     {% for service in services %}
         <tr>
             <td>{{ service.id }}</td>
             <td>{{ service.servicename }}</td>
-            <td>{{ service.users|length }}</td>
-            <td>                
+            <td>{{ service.url }}:{{ service.port }}</td>
+            <td>    
+                <a href="/admin/services/admin_start_service/{{ service.id }}"  
+                    class="btn btn-success btn-sm">
+                    Start
+                </a>
                 <a href="/admin/services/admin_delete_service/{{ service.id }}" 
                     class="btn btn-danger btn-sm">
                     Delete

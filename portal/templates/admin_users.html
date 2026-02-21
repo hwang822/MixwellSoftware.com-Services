@@ -29,8 +29,10 @@
                         <tr>
                             <td>
                                 <select name="service_id" class="form-select form-select-sm">
-                                    {% for service in services %}
-                                        <option value="{{ service.id }}">{{ service.servicename }}</option>
+                                    {% for service in userswithoutservices %}
+                                        {% if user.id == service.userid %}
+                                            <option value="{{ service.serviceid }}">{{ service.servicename }}</option>
+                                        {% endif %}                
                                     {% endfor %}
                                 </select>
                             </td>
@@ -48,8 +50,10 @@
                         <tr>
                             <td>
                                 <select name="service_id" class="form-select form-select-sm">
-                                    {% for service in services %}
-                                        <option value="{{ service.id }}">{{ service.servicename }}</option>
+                                    {% for service in userswithservices %}
+                                        {% if user.id == service.userid %}
+                                            <option value="{{ service.serviceid }}">{{ service.servicename }}</option>
+                                        {% endif %}                
                                     {% endfor %}
                                 </select>
                             </td>
@@ -66,6 +70,7 @@
                 {% else %}
                     <a href="/admin/users/admin_approve_user/{{ user.id }}" class="btn btn-success btn-sm">
                         Approve
+                    </a>
                 {% endif %}                
                 {% if user.is_admin %}
                 {% else %}
