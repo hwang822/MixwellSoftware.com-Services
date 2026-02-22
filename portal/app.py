@@ -4,6 +4,7 @@ from flask import Flask, abort, flash, render_template, render_template_string, 
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
 import requests
+from sqlalchemy import and_, true
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from config import Config
@@ -39,6 +40,32 @@ def create_admin():
         db.session.add(admin)
         db.session.commit()
         print("Created default admin: admin / admin123")
+
+# ---------- AUTO CREATE Seed Service ----------
+
+def create_seed_service():
+    if Services.query.count() == 0:
+        services = [
+            {"name": "AI Service", "url": f"http://127.0.0.1:{BASE_PORT+1}/"},
+            {"name": "Cam Service", "url": f"http://127.0.0.1:{BASE_PORT+2}/"},
+            {"name": "Video Service", "url": f"http://127.0.0.1:{BASE_PORT+3}/"},
+            {"name": "Email Service", "url": f"http://127.0.0.1:{BASE_PORT+4}/"},
+            {"name": "Travel Service", "url": f"http://127.0.0.1:{BASE_PORT+5}/"},
+            {"name": "Data API Service", "url": f"http://127.0.0.1:{BASE_PORT+6}/"},
+            {"name": "Rdp Service", "url": f"http://127.0.0.1:{BASE_PORT+7}/"}
+        ]
+        for service in services:
+            new_service = Services(
+                servicename=service['name'],
+                token=str(uuid.uuid4()),
+                url=service['url'],
+                port=BASE_PORT+1
+            )
+            db.session.add(new_service)
+            db.session.commit()        
+        print("Created seed services")
+
+
 # ---------- ROUTES ----------
 
 @app.route("/")
@@ -108,26 +135,37 @@ def dashboard():
 @login_required
 def user_dashboard():
 
-    services = [
-        {"name": "AI Service", "url": f"http://127.0.0.1:{BASE_PORT+1}/"},
-        {"name": "Cam Service", "url": f"http://127.0.0.1:{BASE_PORT+2}/"},
-        {"name": "Video Service", "url": f"http://127.0.0.1:{BASE_PORT+3}/"},
-        {"name": "Email Service", "url": f"http://127.0.0.1:{BASE_PORT+4}/"},
-        {"name": "Travel Service", "url": f"http://127.0.0.1:{BASE_PORT+5}/"},
-        {"name": "Data API Service", "url": f"http://127.0.0.1:{BASE_PORT+6}/"},
-        {"name": "Rdp Service", "url": f"http://127.0.0.1:{BASE_PORT+7}/"}
-   
-    ]    
-    if current_user.is_admin:
-        services.append({"name": "Admin", "url": url_for("admin_service", _external=True)})
-        services.append({"name": "App Registery Service", "url": url_for("registery_service", _external=True)})
-
-    return render_template("dashboard.html", services=services)
+    services = []
+    if UsersServices.query.count() > 0:         
+        results = (
+            db.session.query(
+                UsersServices.userid,
+                Services.servicename,
+            )
+            .join(
+                Services,
+                and_(
+                    UsersServices.userid == current_user.id,
+                    UsersServices.serviceid == Services.id
+                )
+            )
+            .all()
+        )    
+        
+        services = [
+            {
+                "userid": r.userid,
+                "servicename": r.servicename
+            }
+            for r in results
+        ]
+        db.session.query()
+    return render_template("user_dashboard.html", services=services)
 
 @app.route("/service/<name>/")
 @login_required
 def service(name):
-    return render_template("service.hml", service=name)
+    return render_template("user_service.hml", service=name)
 
 
 @app.route("/logout/")
@@ -205,7 +243,7 @@ def admin_start_service(serviceid):
 # ===============================
 
 def get_userswithservices():
-
+    results = []
     results = (        
         db.session.query(
                 UsersServices.userid,
@@ -229,22 +267,30 @@ def get_userswithservices():
 
 def get_userswithoutservices():
 
-    results = (        
-        db.session.query(
-                Users.id,
-                UsersServices.userid,
-                Services.id,
+    results = []
+    if UsersServices.query.count()>0:
+        results = (
+            db.session.query(
+                Users.id.label("userid"),
+                Services.id.label("serviceid"),
                 Services.servicename
             )
-            .join(Services, (UsersServices.userid != Users.id) and (UsersServices.serviceid == Services.id) )
+            .join(Services, true())   # cross join
+            .outerjoin(
+                UsersServices,
+                and_(
+                    UsersServices.userid == Users.id,
+                    UsersServices.serviceid == Services.id
+                )
+            )
+            .filter(UsersServices.userid == None)
             .all()
-    )
+        )
 
     response = [
         {
-            "userid": r.id,
             "userid": r.userid,
-            "serviceid": r.id,
+            "serviceid": r.serviceid,
             "servicename": r.servicename
         }
         for r in results
@@ -326,5 +372,6 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         create_admin()
+        create_seed_service()
 
     socketio.run(app, debug=False, port=BASE_PORT)
