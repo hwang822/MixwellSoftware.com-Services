@@ -213,9 +213,9 @@ footer {
         <ul>
           {% for s in services %}
             <li>
-              <a href="{{s.url}}" target="_blank">
-                  {{s.name}}
-              </a>
+              <a href="/services/service_download/{{ s.id }}">
+                  {{s.servicedesc}}
+              </a>              
             </li>
           {% endfor %}
         </ul>        

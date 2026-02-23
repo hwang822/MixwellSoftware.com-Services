@@ -46,20 +46,21 @@ def create_admin():
 def create_seed_service():
     if Services.query.count() == 0:
         services = [
-            {"name": "AI Service", "url": f"http://127.0.0.1:{BASE_PORT+1}/"},
-            {"name": "Cam Service", "url": f"http://127.0.0.1:{BASE_PORT+2}/"},
-            {"name": "Video Service", "url": f"http://127.0.0.1:{BASE_PORT+3}/"},
-            {"name": "Email Service", "url": f"http://127.0.0.1:{BASE_PORT+4}/"},
-            {"name": "Travel Service", "url": f"http://127.0.0.1:{BASE_PORT+5}/"},
-            {"name": "Data API Service", "url": f"http://127.0.0.1:{BASE_PORT+6}/"},
-            {"name": "Rdp Service", "url": f"http://127.0.0.1:{BASE_PORT+7}/"}
+            {"name": "AIService", "desc": "AI Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+1}"},
+            {"name": "CamService", "desc": "Cam Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+2}"},
+            {"name": "VideoService", "desc": "Video Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+3}"},
+            {"name": "EmailService", "desc": "Email Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+4}"},
+            {"name": "TravelService", "desc": "Travel Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+5}"},
+            {"name": "DataAPIService", "desc": "Data Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+6}"},
+            {"name": "RdpService", "desc": "RDP Service", "url": f"http://127.0.0.1", "port": f"{BASE_PORT+7}"}
         ]
         for service in services:
             new_service = Services(
                 servicename=service['name'],
                 token=str(uuid.uuid4()),
                 url=service['url'],
-                port=BASE_PORT+1
+                port=BASE_PORT+1,
+                dsec=service['desc'] 
             )
             db.session.add(new_service)
             db.session.commit()        
@@ -70,7 +71,8 @@ def create_seed_service():
 
 @app.route("/")
 def home():
-    return render_template("home.html", services=[])    
+    services = Services.query.all()
+    return render_template("home.html", services=services)    
 
 @app.route("/login/", methods=["GET","POST"])
 def login():
@@ -96,6 +98,7 @@ def login():
             else:
                 return redirect('/user_dashboard')
     return render_template('login.html')
+
 @app.route("/signup/", methods=["GET","POST"])
 def signup():
     if request.method == "POST":
@@ -112,6 +115,27 @@ def signup():
             flash("Username already exists.")
         return redirect("/login")
     return render_template("signup.html")
+
+from flask import send_from_directory
+import os
+
+@app.route("/downloads/<filename>")
+def download_file(filename):
+    download_folder = os.path.join(app.root_path, "downloads")
+    return send_from_directory(download_folder, filename, as_attachment=True)
+
+@app.route("/services/service_download/<int:serviceid>", methods=["GET","POST"])
+def service_download(serviceid):
+    serviceGet = Services.query.get_or_404(serviceid)
+
+    service = {
+        "name": serviceGet.servicename,
+        "url": url_for("download_file", filename=f"{serviceGet.servicename}App.exe"),
+        "android_url": "#",
+        "ios_url": "#"
+    }    
+    return render_template("serviceapp_download.html",service=service)
+
 @app.route("/service/")
 @login_required
 def service_page():
@@ -123,6 +147,7 @@ def service_page():
         service=service_name,
         service_url=service_url
     )
+
 @app.route("/dashboard/")
 @login_required
 def dashboard():
@@ -216,7 +241,8 @@ def admin_add_service():
         servicename=request.form["servicename"],
         token=str(uuid.uuid4()),
         url=request.form["url"],
-        port=request.form["port"]
+        port=request.form["port"],
+        servicedesc=request.form["servicedesc"],
     )
     db.session.add(new_service)
     db.session.commit()
@@ -234,7 +260,7 @@ def admin_delete_service(serviceid):
 @login_required
 def admin_start_service(serviceid):
     service = Services.query.get_or_404(serviceid)
-    url = service.url + ":" + f"{service.port}"
+    url = service.url
     return redirect(url)
 
 

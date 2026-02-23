@@ -4,6 +4,7 @@
 <h2>Services</h2>
 <form method="post" action="/admin/services/admin_add_service" class="row g-2 mb-3">
     <input name="servicename" placeholder="Name" class="form-control" required>
+    <input name="servicedesc" placeholder="DESC" class="form-control" required>
     <input name="url" placeholder="URL" class="form-control" required>
     <input name="port" placeholder="Port" class="form-control" required>
     <button class="btn btn-success">Add Service</button>
@@ -13,6 +14,7 @@
     <tr>
         <th>ID</th>
         <th>Name</th>
+        <th>Desc</th>
         <th>URL</th>
         <th>Action</th>
     </tr>
@@ -20,6 +22,7 @@
         <tr>
             <td>{{ service.id }}</td>
             <td>{{ service.servicename }}</td>
+            <td>{{ service.servicedesc }}</td>
             <td>{{ service.url }}:{{ service.port }}</td>
             <td>    
                 <a href="/admin/services/admin_start_service/{{ service.id }}"  

@@ -8,12 +8,14 @@ class Users(UserMixin, db.Model):
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     is_approved = db.Column(db.Boolean, default=False) 
+
 class Services(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     servicename = db.Column(db.String(100), unique=True, nullable=False)
     token = db.Column(db.String(100), unique=True, nullable=False)
     url = db.Column(db.String(200), nullable=False)
     port = db.Column(db.Integer, nullable=False)
+    servicedesc = db.Column(db.String(100), unique=True, nullable=False)
 
 class LoginLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -2,11 +2,24 @@
 {% block content %}
 <h2>{{ service }}</h2>
 
-<iframe src="{{ service_url }}"
-        width="100%"
-        height="700px"
-        style="border:none">
-</iframe>
+<div>
+  <h3>Windows</h3>
+  <a href="{{service.url}}">
+      Click to download Windows app
+   </a>              
+</div>
+
+<div>
+  <h3>Android</h3>
+  <img src="/static/Android_QR.png" alt="Android QR">
+  <p>Scan to download Android APK</p>
+</div>
+
+<div>
+  <h3>iOS</h3>
+  <img src="/static/iOS_QR.png" alt="iOS QR">
+  <p>Scan to install via TestFlight</p>
+</div>
 
 <a href="/dashboard" class="btn btn-secondary mt-3">
 Back to Dashboard
