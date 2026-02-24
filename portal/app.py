@@ -1,5 +1,6 @@
 import os
 import sys
+import jwt
 from flask import Flask, abort, flash, render_template, render_template_string, request, redirect, url_for
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_socketio import SocketIO, emit
@@ -115,6 +116,84 @@ def signup():
             flash("Username already exists.")
         return redirect("/login")
     return render_template("signup.html")
+
+
+# portal/api.py
+
+import datetime
+from flask import Blueprint, request
+
+api = Blueprint("api", __name__)
+
+# Flask session secret
+app.config["SECRET_KEY"] = "service-session-secret"
+
+# JWT secret (must match portal if verifying across apps)
+JWT_SECRET = "jwt-signing-secret"
+
+@app.route("/api/signup/", methods=["GET","POST"])
+def adi_signup():   # http://localhost:5000/api/signup
+    data = request.get_json()
+    lgoinUN = data["username"]
+    lgoinPS = data["password"]
+    lgoinPSHash = generate_password_hash(lgoinPS) 
+    chk = check_password_hash(
+            lgoinPSHash, 
+            lgoinPS)            
+    new_user = Users(username=lgoinUN, 
+                     password=lgoinPSHash, 
+                     is_approved=True, 
+                     is_admin=False)
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        #flash("Signup successful! Waiting for admin approval.")
+    except:
+        db.session.rollback()
+        #flash("Username already exists.")
+        return {"error": "Username already exists."}, 401
+    return {"error": "Signup successful!"}, 200
+    
+
+@app.route("/api/login/", methods=["GET","POST"])
+def api_login(): #http://localhost:5000/api/login
+    data = request.get_json()
+    lgoinUN = data["username"]
+    lgoinPS = data["password"]
+    user = Users.query.filter_by(username=lgoinUN).first()
+    if not user or not check_password_hash(
+            user.password, 
+            lgoinPS):
+        return {"error": "Invalid credentials"}, 401
+
+    payload = {
+        "user_id": user.id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+    return {
+        "token": token
+    }, 200
+    
+@app.route("/api/verify/", methods=["GET","POST"])
+def verify_token():
+    data = request.get_json()
+
+    try:
+        decoded = jwt.decode(
+            data["token"],
+            JWT_SECRET,
+            algorithms=["HS256"]
+        )
+
+        return {"valid": True, "user_id": decoded["user_id"]}
+
+    except jwt.ExpiredSignatureError:
+        return {"valid": False, "error": "Token expired"}, 401
+
+    except:
+        return {"valid": False, "error": "Invalid token"}, 401
 
 from flask import send_from_directory
 import os
