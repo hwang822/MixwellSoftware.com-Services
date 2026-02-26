@@ -16,6 +16,7 @@
         <th>Name</th>
         <th>Desc</th>
         <th>URL</th>
+        <th>Start Time</th>
         <th>Action</th>
     </tr>
     {% for service in services %}
@@ -24,6 +25,7 @@
             <td>{{ service.servicename }}</td>
             <td>{{ service.servicedesc }}</td>
             <td>{{ service.url }}:{{ service.port }}</td>
+            <td>{{ service.starttime }}</td>
             <td>    
                 <a href="/admin/services/admin_start_service/{{ service.id }}"  
                     class="btn btn-success btn-sm">
