@@ -109,7 +109,7 @@ def api_user_signup():   # http://localhost:5000/api/signup
     lgoinPSHash = generate_password_hash(lgoinPS) 
     new_user = Users(username=lgoinUN, 
                      password=lgoinPSHash, 
-                     is_approved=True, 
+                     is_approved=False, 
                      is_admin=False)
     try:
         db.session.add(new_user)
@@ -309,7 +309,7 @@ def user_signup(username, password):
         session.pop('_flashes', None)
         password = generate_password_hash(password)    
         # 创建用户，但默认未批准
-        new_user = Users(username=username, password=password, is_approved=True, is_admin=False)
+        new_user = Users(username=username, password=password, is_approved=False, is_admin=False)
         try:
             db.session.add(new_user)
             db.session.commit()
