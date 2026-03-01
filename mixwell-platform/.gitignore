@@ -1,0 +1,9 @@
+*.mp4
+*.pdf
+*.zip
+*.log
+*.db
+*.csv
+__pycache__/
+.env
+**/MixwellSoftware.com-Services/

@@ -50,6 +50,32 @@ CMD (venv) C:\Workarea\MixwellSoftware.com-Services\mixwell-platform>pip show fl
 
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 
+control-shift-p => Python Select interpreter => C:\Workarea\MixwellSoftware.com-Services\mixwell-platform\venv\Scripts\python.exe
+wil using same python under mixwell-platform
+
+C:\Users\hwang>dir C:\Workarea\MixwellSoftware.com-Services\mixwell-platform\venv\Scripts
+ Volume in drive C is Windows-SSD
+ Volume Serial Number is EC27-33FA
+
+ Directory of C:\Workarea\MixwellSoftware.com-Services\mixwell-platform\venv\Scripts
+
+02/27/2026  02:34 PM    <DIR>          .
+02/27/2026  02:30 PM    <DIR>          ..
+02/27/2026  02:30 PM             2,406 activate
+02/27/2026  02:30 PM             1,031 activate.bat
+02/27/2026  02:30 PM            26,199 Activate.ps1
+02/27/2026  02:30 PM               393 deactivate.bat
+02/27/2026  02:34 PM           108,427 flask.exe
+02/27/2026  02:30 PM           108,440 pip.exe
+02/27/2026  02:30 PM           108,440 pip3.12.exe
+02/27/2026  02:30 PM           108,440 pip3.exe
+02/27/2026  02:30 PM           270,616 python.exe
+02/27/2026  02:30 PM           259,352 pythonw.exe
+              10 File(s)        993,744 bytes
+               2 Dir(s)  65,075,929,088 bytes free
+
+
+
 ########################################
 1. install postgersql database
 

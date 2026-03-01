@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect
 from models import db
-from config import Config
+from config.settings import Config
 import requests
 
 app = Flask(__name__)

@@ -1,13 +1,22 @@
-from flask import Flask, request, jsonify, render_template
+import os
+import sys
+
+from dotenv import load_dotenv
+from flask import Flask, make_response, redirect, request, jsonify, render_template, flash, session
 from models import db, User, Service, UserService
-from config import Config
+
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from datetime import datetime, timedelta, timezone
-from email_service import send_verify_email
+from email_service import send_verify_email, user_token
 from sqlalchemy.engine import URL
 from sqlalchemy import text
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+from config.settings import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -27,27 +36,31 @@ def load_user(user_id):
 # -------------------------
 @app.route("/user/signup", methods=["GET", "POST"])
 def user_signup():
+
     if request.method == "GET":
         return render_template("signup.html")
-
+    session.pop('_flashes', None)
     email = request.form["username"]
     password = generate_password_hash(request.form["password"])    
-
     user = User(email=email, 
         password=password, 
         is_verified=False, 
         created_at = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())
     )
-    db.session.add(user)
-    db.session.commit()
-    
-    send_verify_email(user.id, email)
-
+    try:
+        db.session.add(user)
+        db.session.commit()
+        send_verify_email(user.id, email)
+        flash("Signup successful! Waiting for admin approval.")        
+    except:
+        db.session.rollback()
+        flash("Username already exists.")            
+    return render_template("login.html") 
 # -------------------------
-# VERIFY EMAIL
+# VERIFY token   # send link to verify.mixwellsoftware.com with token 
 # -------------------------
 
-@app.route("/user/verify/<token>")
+@app.route("/user/verify/<token>")  
 def user_verify(token):
     try:
         decoded = jwt.decode(
@@ -55,7 +68,6 @@ def user_verify(token):
             Config.JWT_SECRET,
             algorithms=["HS256"]
         )
-
         user_id = decoded["user_id"]
         user = User.query.filter_by(id=user_id).first()
         if user.is_verified == False:
@@ -69,29 +81,43 @@ def user_verify(token):
 # LOGIN
 # -------------------------
 @app.route("/user/login", methods=["GET", "POST"])
-def user_login():
+def user_login():    
     if request.method == "GET":
         return render_template("login.html")
-
 #    data = request.json
+    session.pop('_flashes', None)
     email = request.form["username"]
     password = request.form["password"]    
     user = User.query.filter_by(email=email).first()
 
     if user is None:
-        return render_template("signup.html")
-        #return {"message": "Invalid username!"}, 401
+        flash("Invalid username!.")
+        return render_template("login.html")
     elif not check_password_hash(
         user.password, 
         password):
-        return {"message": "Invalid password!"}, 401
+        flash("Invalid password!.")
+        return render_template("login.html")
     elif user.is_verified == False:
-        return {"message": "verify email for approved."}, 200
+        flash("Waitting verify email for approve.")
+        return render_template("login.html")
     else:
-        #login_user(user)
-        # Generate JWT token for email verification
-        send_verify_email(user.id, user.email)
-        return {"message": "login successful!"}, 200
+        flash("Login successful!")
+        token = user_token(user.id)
+        response = make_response(
+            redirect("http://localhost:5001/")
+        )
+        response.set_cookie(
+            "access_token",
+            token,
+            httponly=True,
+            samesite="Lax"
+        )
+        return response
+
+@app.route("/user/logout")
+def logout():
+    logout_user()
 
 def create_admin():
     if User.query.count() == 0:
@@ -214,6 +240,5 @@ if __name__ == "__main__":
     with app.app_context():        
         db.create_all()    
         create_admin()
-        service_register(5, "service1")
     app.run(port=5003)
 
