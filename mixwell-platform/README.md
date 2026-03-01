@@ -35,7 +35,20 @@ vscode open folder auth-server.
 
 another vscode open folder service1.
 
+Verify model is installed in your venv
 
+CMD => cd C:\Workarea\MixwellSoftware.com-Services\mixwell-platform
+CMD => venv\Scripts\activate
+CMD => pip install flask_login (at even)
+  Collecting flask_login
+    Obtaining dependency information for flask_login from https://files.pythonhosted.org/packages/59/f5/67e9cc5c2036f58115f9fe0f00d203cf6780c3ff8ae0e705e7a9d9e8ff9e/Flask_Login-0.6.3-py3-none-any.whl.metadata
+    Downloading Flask_Login-0.6.3-py3-none-any.whl.metadata (5.8 kB)
+CMD (venv) C:\Workarea\MixwellSoftware.com-Services\mixwell-platform>pip show flask_login
+  Name: Flask-Login
+  Version: 0.6.3
+  Summary: User authentication and session management for Flask.
+
+from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 
 ########################################
 1. install postgersql database
@@ -133,3 +146,4 @@ download and install pgAdmin (Manager tool for PostgreSQL)
 change password. pgAdmin 4\Servers(1)\PostgreSQL 18\Login/Group Roles\postgres->right click->properties...\Definition\Password -> typein new password ->Save
 
 create new database ->   pgAdmin 4\Servers(1)\PostgreSQL 18\Databases (3) -> right clcik -> Create -> Database ...
+delete a database  ->   pgAdmin 4\Servers(1)\PostgreSQL 18\Databases (3) -> right clcik -> Delete/Drop -> Database ...
