@@ -1,9 +1,9 @@
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timezone, timedelta
 
 db = SQLAlchemy()
 
-class User(db.Model):
+class User(UserMixin, db.Model):   # Set UserMixin for flask_login import LoginManager login_user(user) check
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)

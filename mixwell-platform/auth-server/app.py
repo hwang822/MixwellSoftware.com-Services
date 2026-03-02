@@ -31,12 +31,15 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+@app.route("/", methods=["GET", "POST"])
+def user_auth():
+    return redirect("/user/login")
+
 # -------------------------
 # SIGNUP
 # -------------------------
 @app.route("/user/signup", methods=["GET", "POST"])
 def user_signup():
-
     if request.method == "GET":
         return render_template("signup.html")
     session.pop('_flashes', None)
@@ -51,11 +54,13 @@ def user_signup():
         db.session.add(user)
         db.session.commit()
         send_verify_email(user.id, email)
-        flash("Signup successful! Waiting for admin approval.")        
+        flash("Signup successful! Waiting for admin approval.")       
+        return redirect("/user/login") 
     except:
         db.session.rollback()
         flash("Username already exists.")            
-    return render_template("login.html") 
+        return redirect("/user/signup")
+     
 # -------------------------
 # VERIFY token   # send link to verify.mixwellsoftware.com with token 
 # -------------------------
@@ -82,9 +87,10 @@ def user_verify(token):
 # -------------------------
 @app.route("/user/login", methods=["GET", "POST"])
 def user_login():    
+    session.pop('_flashes', None)
     if request.method == "GET":
-        return render_template("login.html")
-#    data = request.json
+        return render_template("login.html")    
+
     session.pop('_flashes', None)
     email = request.form["username"]
     password = request.form["password"]    
@@ -113,11 +119,13 @@ def user_login():
             httponly=True,
             samesite="Lax"
         )
+        login_user(user)
         return response
 
 @app.route("/user/logout")
 def logout():
     logout_user()
+    return redirect("/uder/login")
 
 def create_admin():
     if User.query.count() == 0:
