@@ -12,17 +12,7 @@ sys.path.insert(0, BASE_DIR)
 from config.settings import Config
 
 
-def send_verify_email(user_id, user_email):
-    """
-    # Generate JWT token
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(hours=12)
-    }
-
-    token = jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
-    """
-    
+def send_verify_email(user_id, user_email):    
     token = user_token(user_id)
     verify_url = Config.VERIFY_URL + f"{token}"
     html_content = render_template(

@@ -38,7 +38,7 @@ def user_auth():
 # -------------------------
 # SIGNUP
 # -------------------------
-@app.route("/user/signup", methods=["GET", "POST"])
+@app.route("/user/signup/", methods=["GET", "POST"])
 def user_signup():
     if request.method == "GET":
         return render_template("signup.html")
@@ -82,6 +82,24 @@ def user_verify(token):
     except:
         return "Invalid token"
 
+@app.route("/user/verified/", methods=["GET", "POST"])  
+def user_verified():
+    if request.method == "POST":
+        data = request.get_json()
+        servicename = data["servicename"]
+        servicedesc = data["servicedesc"]
+        url = data["url"]
+        port = data["port"]
+        userid = data["userid"]        
+        user = User.query.filter_by(id=userid).first()
+        if user is None:
+            return {"verified": False}, 401
+        else:    
+            if user.is_verified == False:
+                return {"verified": False}, 401
+            else:
+                service_register(userid, servicename, servicedesc, url, port)                
+                return {"verified": True}, 200
 # -------------------------
 # LOGIN
 # -------------------------
@@ -186,31 +204,30 @@ def admin_remove_service_from_user(user_id):
 # SERVICE 
 # -------------------------
 
-def service_register(user_id, service_name):
-
-    # Get or create Service
-    
-    service = Service.query.filter_by(name=service_name).first()
+def service_register(userid, servicename, servicedesc, url, port):
+    # Get or create Service    
+    service = Service.query.filter_by(name=servicename).first()
     if not service:
         service = Service(
-                name=service_name,
-                desc = service_name,
+                name=servicename,
+                desc = servicedesc,
                 token = "",
-                url = "",
-                port = 0                        
+                url = url,
+                port = port,
+                starttime = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())                        
             )
         db.session.add(service)
         db.session.flush()   # get service.id without commit
 
     # Get or create UserService
     userservice = UserService.query.filter_by(
-        user_id=user_id,
+        user_id=userid,
         service_id=service.id
     ).first()
 
     if not userservice:
         userservice = UserService(
-            user_id=user_id,
+            user_id=userid,
             service_id=service.id,
             access = 1
         )
