@@ -38,7 +38,7 @@ def user_auth():
 # -------------------------
 # SIGNUP
 # -------------------------
-@app.route("/user/signup/", methods=["GET", "POST"])
+@app.route("/user/signup", methods=["GET", "POST"])
 def user_signup():
     if request.method == "GET":
         return render_template("signup.html")
@@ -82,24 +82,33 @@ def user_verify(token):
     except:
         return "Invalid token"
 
-@app.route("/user/verified/", methods=["GET", "POST"])  
+@app.route("/user/verified", methods=["GET", "POST"])  
 def user_verified():
     if request.method == "POST":
         data = request.get_json()
-        servicename = data["servicename"]
-        servicedesc = data["servicedesc"]
-        url = data["url"]
-        port = data["port"]
-        userid = data["userid"]        
+        token = data["token"]        
+        serviceName = data["serviceName"]
+        serviceDesc = data["serviceDesc"]        
+        serviceUrl = data["serviceUrl"]
+        servicePort = data["servicePort"]
+        if token is None:
+            return f"{Config.AUTH_URL}:{Config.AUTH_PORT}/user/login"  # user need login
+        decoded = jwt.decode(
+            token,
+            Config.JWT_SECRET,
+            algorithms=["HS256"]
+        )
+        userid = decoded["user_id"]
         user = User.query.filter_by(id=userid).first()
-        if user is None:
-            return {"verified": False}, 401
+        if user is None:   
+            return f"{Config.AUTH_URL}:{Config.AUTH_PORT}/user/signup"
         else:    
             if user.is_verified == False:
-                return {"verified": False}, 401
+                return f"{Config.AUTH_URL}:{Config.AUTH_PORT}/user/login" # user need watting approve
             else:
-                service_register(userid, servicename, servicedesc, url, port)                
-                return {"verified": True}, 200
+                service_register(userid, serviceName, serviceDesc, serviceUrl, servicePort)
+                return ""    
+                         
 # -------------------------
 # LOGIN
 # -------------------------
@@ -131,13 +140,13 @@ def user_login():
         response = make_response(
             redirect("http://localhost:5001/")
         )
-        response.set_cookie(
+        r = response.set_cookie(
             "access_token",
             token,
             httponly=True,
             samesite="Lax"
         )
-        login_user(user)
+        login_user(user)                
         return response
 
 @app.route("/user/logout")
@@ -204,16 +213,16 @@ def admin_remove_service_from_user(user_id):
 # SERVICE 
 # -------------------------
 
-def service_register(userid, servicename, servicedesc, url, port):
+def service_register(userid, serviceName, serviceDesc, serviceUrl, servicePort):
     # Get or create Service    
-    service = Service.query.filter_by(name=servicename).first()
+    service = Service.query.filter_by(name=serviceName).first()
     if not service:
         service = Service(
-                name=servicename,
-                desc = servicedesc,
+                name=serviceName,
+                desc = serviceDesc,
                 token = "",
-                url = url,
-                port = port,
+                url = serviceUrl,
+                port = servicePort,
                 starttime = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())                        
             )
         db.session.add(service)

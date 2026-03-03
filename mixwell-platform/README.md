@@ -1,3 +1,47 @@
+Python/Flask Concept 
+
+######################################
+services share model or function.
+at BASE_PATH = "mixwell-platform"
+
+BASE_PATH/.env
+         /core
+            /settings.py
+            /serviceSetup.py
+
+CMD => cd BASE_PATH
+
+BASE_PATH/.env
+  PORTAL_PORT = "5000"
+  AUTH_PORT = "5003"
+  AUTH_URL = "http://localhost"
+
+BASE_PATH/core/settings.py
+  import os
+  from dotenv import load_dotenv
+  # Load .env from project root
+  load_dotenv()
+  class Config:
+      PORTAL_PORT = os.getenv("PORTAL_PORT")
+      AUTH_PORT = os.getenv("AUTH_PORT")
+      AUTH_URL = os.getenv("AUTH_URL")
+
+BASE_PATH/core/serviceSetup.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ✅ 最终推荐项目结构（完全独立微服务）
 
 你不要再用一个 mixwell 包了。
