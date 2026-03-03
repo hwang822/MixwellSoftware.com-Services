@@ -82,7 +82,7 @@ def user_verify(token):
     except:
         return "Invalid token"
 
-@app.route("/user/verified", methods=["GET", "POST"])  
+@app.route("/user/verified/", methods=["GET", "POST"])  
 def user_verified():
     if request.method == "POST":
         data = request.get_json()
@@ -116,8 +116,7 @@ def user_verified():
 def user_login():    
     session.pop('_flashes', None)
     if request.method == "GET":
-        return render_template("login.html")    
-
+        return render_template("login.html")        
     session.pop('_flashes', None)
     email = request.form["username"]
     password = request.form["password"]    
@@ -137,16 +136,17 @@ def user_login():
     else:
         flash("Login successful!")
         token = user_token(user.id)
+        next_url = request.args.get("next")  #next url from send server
         response = make_response(
-            redirect("http://localhost:5001/")
+            redirect(next_url)
         )
-        r = response.set_cookie(
+        response.set_cookie(
             "access_token",
             token,
             httponly=True,
             samesite="Lax"
         )
-        login_user(user)                
+        login_user(user)                        
         return response
 
 @app.route("/user/logout")

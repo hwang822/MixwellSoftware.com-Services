@@ -32,6 +32,60 @@ BASE_PATH/core/serviceSetup.py
 
 
 
+####################################
+
+FLASK request data from A to B.
+Service A → send one string (route path) or one integer (user_id) + status
+Service B → receive it
+#####################################
+
+METHOD 1 — Send as JSON (Most Common & Cleanest)
+
+🔹 Service A (Sender)
+import requests
+
+data = {
+    "user_id": 123,
+    "status": "active"
+}
+
+r = requests.post(
+    "http://localhost:5001/receive",
+    json=data   # automatically sets Content-Type: application/json
+)
+
+print(r.status_code)
+
+🔹 Service B (Receiver)
+
+from flask import request
+
+@app.route("/receive", methods=["POST"])
+def receive():
+    data = request.get_json()
+
+    user_id = data.get("user_id")
+    status = data.get("status")
+
+    print("User ID:", user_id)
+    print("Status:", status)
+
+    return {"message": "received"}, 200
+
+
+METHOD 2 — Send Only ONE Simple Value
+
+🔹 Service A (Sender)
+
+requests.post(
+    "http://localhost:5001/receive",
+    json={"user_id": 123}
+)
+
+🔹 Service B (Receive)
+
+data = request.get_json()
+user_id = data["user_id"]
 
 
 
