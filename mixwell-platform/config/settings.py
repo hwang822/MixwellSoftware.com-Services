@@ -26,4 +26,7 @@ class Config:
     JWT_SECRET = os.getenv("JWT_SECRET")
     AUTH_PORT = os.getenv("AUTH_PORT")
     AUTH_URL = os.getenv("AUTH_URL")
-
+    GATWAY_URL = os.getenv("GATWAY_URL")
+    ADMIN_NAME = os.getenv("ADMIN_NAME")
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")
+    PORTAL_PORT = os.getenv("PORTAL_PORT")

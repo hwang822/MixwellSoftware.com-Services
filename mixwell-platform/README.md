@@ -88,7 +88,23 @@ data = request.get_json()
 user_id = data["user_id"]
 
 
+##############################
+Get request from paort service to auth service
+service.py
+    services = requests.get(f"{auth_path}/service/all").json()    
+    return render_template("portal.html", services=services)
+auth.py
+@app.route("/service/all", methods=["GET"])
+def service_all():
+    return Utility.services_all()
 
+Utility.py
+def services_all():
+    services = Service.query.all()
+    servicesJson = jsonify([s.to_dict() for s in services])
+    return servicesJson
+
+#############################
 
 
 

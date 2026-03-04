@@ -1,7 +1,7 @@
 import os, sys, requests
 
 from flask import Flask, render_template, request, redirect
-from models import db
+from orlmodels import db
 import requests
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

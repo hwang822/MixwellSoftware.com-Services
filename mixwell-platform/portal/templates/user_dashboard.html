@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row">
+
+<div class="col-md-8">
+<h2>User Services</h2>
+<table class="table table-bordered">
+    <tr>
+        <th>Name</th>
+        <th>Action</th>
+    </tr>
+    {% for service in services %}
+        <tr>
+            <td>{{ service.servicename }}</td>
+            <td>    
+                <a href="/admin/services/admin_start_service/{{ service.id }}"  
+                    class="btn btn-success btn-sm">
+                    Start
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+
+<div class="col-md-4">
+
+  <h3>Chat</h3>
+
+  <div id="chatbox" style="height:100px;overflow:auto" class="border p-2 bg-white"></div>
+
+  <input id="msg" class="form-control mt-2" placeholder="Message">
+
+  <button onclick="sendMsg()" class="btn btn-success mt-2 w-100">Send</button>
+  </div>
+
+</div>
+
+<script>
+var socket = io();
+
+socket.on("receive_message", function(data){
+    let box = document.getElementById("chatbox");
+    box.innerHTML += "<div><b>"+data.user+":</b> "+data.msg+"</div>";
+});
+
+function sendMsg(){
+    let msg = document.getElementById("msg").value;
+    socket.emit("send_message",{user:"{{current_user.username}}", msg:msg});
+}
+</script>
+
+{% endblock %}

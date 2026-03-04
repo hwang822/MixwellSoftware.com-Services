@@ -1,9 +1,10 @@
 import os
 import sys
+import json
 
 from dotenv import load_dotenv
 from flask import Flask, make_response, redirect, request, jsonify, render_template, flash, session
-from models import db, User, Service, UserService
+from models import db, User, Service, UserService, Utility
 
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -35,16 +36,23 @@ def load_user(user_id):
 def user_auth():
     return redirect("/user/login")
 
+serviceName = "authService"
+serviceDesc = "auth Service"
+serviceUrl = "localhost"
+servicePort = "5003"
+
+
 # -------------------------
 # SIGNUP
 # -------------------------
-@app.route("/user/signup", methods=["GET", "POST"])
-def user_signup():
+#@app.route("/user/signup", methods=["GET", "POST"])
+def user_signup1():
     if request.method == "GET":
         return render_template("signup.html")
     session.pop('_flashes', None)
     email = request.form["username"]
     password = generate_password_hash(request.form["password"])    
+    
     user = User(email=email, 
         password=password, 
         is_verified=False, 
@@ -67,20 +75,7 @@ def user_signup():
 
 @app.route("/user/verify/<token>")  
 def user_verify(token):
-    try:
-        decoded = jwt.decode(
-            token,
-            Config.JWT_SECRET,
-            algorithms=["HS256"]
-        )
-        user_id = decoded["user_id"]
-        user = User.query.filter_by(id=user_id).first()
-        if user.is_verified == False:
-            user.is_verified = True
-            db.session.commit()
-        return "Email verified"
-    except:
-        return "Invalid token"
+    Utility.user_verify(token)    
 
 @app.route("/user/verified/", methods=["GET", "POST"])  
 def user_verified():
@@ -148,66 +143,45 @@ def user_login():
         )
         login_user(user)                        
         return response
+    
+# send username and email to auth 
+#    data = {"username": Config.ADMIN_NAME,"email": Config.ADMIN_EMAIL}    
+#    path = f"{auth_path}/user/add"
+#    respose = requests.post(path, json=data)     
+#    print(respose.status_code) text["user_id": 1] 200            
+
+@app.route("/user/signup", methods=["POST"]) #
+def user_signup():    
+    data = request.get_json()
+    username = data.get("username")
+    email = data.get("email")
+    print("username:", username)
+    print("email:", email)
+    user = Utility.user_signup(username, email)
+    return {"userId": user.id}, 200    
 
 @app.route("/user/logout")
 def logout():
     logout_user()
     return redirect("/uder/login")
 
-def create_admin():
-    if User.query.count() == 0:
-        admin = User(            
-            email="admin",
-            password=generate_password_hash("admin123"),
-            is_verified = True,
-            is_admin = True,
-            created_at = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())
-        )
-        db.session.add(admin)
-        db.session.commit()
-        print("Created default admin: admin / admin123")
 # -------------------------
 # USER DELETE
 # -------------------------
-@app.route("/user/delete/<int:userid>", methods=["GET", "POST"])
-def user_delete(userid):
-    user = User.query.get_or_404(userid)
-    db.session.delete(user)
-    db.session.commit()
-
-    return jsonify({"message": "user (user_id:{userid} has been deleteed"})
+@app.route("/user/remove/<int:userid>", methods=["POST"])
+def user_remove(userid):
+    return Utility.user_remove(userid)
 
 @app.route("/user/approve/<int:userid>")
 @login_required
-def approve_user(userid):
-    if not current_user.is_admin:
-        return "Access denied", 403
-    user = User.query.get(userid)
-    user.is_approved = True
-    db.session.commit()
-    return
+def user_approve(userid):
+    return Utility.user_approve(userid)
 
-@app.route("/user/remove_service_from_user/<int:user_id>", methods=["POST"])
+@app.route("/user/user_remove_service/<int:user_id>", methods=["POST"])
 @login_required
-def admin_remove_service_from_user(user_id):  
-    results = (
-        db.session.query(User, UserService)
-        .join(UserService, UserService.userid == user_id)        
-        .all()
-    )
-
-    service_id = request.form.get("service_id")
-
-    userServices = UserService.query.filter_by(
-        userid=user_id,
-        serviceid=service_id
-    ).all()
-
-    for userService in userServices:        
-        db.session.delete(userService)
-        db.session.commit()    
-    return 
-
+def user_remove_service(user_id):  
+    service_id = 0
+    return Utility.user_remove_service(user_id, service_id)
 
 # -------------------------
 # SERVICE 
@@ -246,33 +220,43 @@ def service_register(userid, serviceName, serviceDesc, serviceUrl, servicePort):
 
     return userservice
 
-@app.route("/service/all", methods=["GET", "POST"])
+#    Get request and return json as list
+#    services = requests.get(f"{auth_path}/service/all").json()    
+#    return render_template("portal.html", services=services)
+@app.route("/service/all", methods=["GET"])
 def service_all():
-    return Service.query.all()
+    return Utility.services_all()
 
-@app.route("/service/user_with_services")
-def user_services():
-    return Service.query.all()
+@app.route("/service/add", methods=["POST"])
+def service_add():
+    service = request.get_json()  
+    serviceName = service["serviceName"]
+    serviceDesc = service["serviceDesc"]
+    serviceURL = service["serviceUrl"]
+    servicePort = service["servicePort"]
+    return Utility.service_add(serviceName, serviceDesc, serviceURL, servicePort)
 
-@app.route("/service/delete/<int:service_id>", methods=["GET", "POST"])
-def service_delete(service_id):
-    service = Service.query.get_or_404(service_id)
-    db.session.delete(service)
-    db.session.commit()
+@app.route("/services/all", methods=["POST"])
+def services_all():
+    services = request.get_json()  
+    return Utility.services_add(services)
 
-    return Service.query.all()
+@app.route("/service/remove/<int:service_id>", methods=["GET", "POST"])
+def service_remove(service_id):
+    return Utility.service_remove(service_id)
 
 @app.route("/service/user_without_services")
 def user_without_services():
-    return Service.query.all()
+    userid = 1
+    return Utility.user_without_services(userid)
 
 @app.route("/service/user_with_services")
 def user_with_services():
-    return Service.query.all()
+    userid = 1
+    return Utility.user_with_services(userid)
 
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()    
-        create_admin()
-    app.run(port=5003)
+    app.run(port=servicePort)
 
