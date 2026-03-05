@@ -1,7 +1,7 @@
 import os
 import sys
 import jwt
-from flask import Flask, Blueprint, render_template
+from flask import Flask, Blueprint, redirect, render_template, request
 import requests
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -19,10 +19,12 @@ app.config["SECRET_KEY"] = "service-session-secret"
 
 serviceName = "portalService"
 serviceDesc = "Portal Service"
-serviceUrl =  Config.AUTH_URL
+serviceUrl =  Config.SERVICE_URL
 servicePort = Config.PORTAL_PORT
 
-auth_path = f"{Config.AUTH_URL}:{Config.AUTH_PORT}"
+auth_path = f"{serviceUrl}:{Config.AUTH_PORT}"
+service_path = f"{serviceUrl}:{servicePort}"
+services = []
 
 # ---------- Login, siginup, logout ROUTES ----------
 
@@ -30,12 +32,31 @@ auth_path = f"{Config.AUTH_URL}:{Config.AUTH_PORT}"
 def home():
     # add see services.         
     #get default sverices list.
+    token = request.cookies.get("access_token")
+
+    if token is None:
+        # add admin user first. 
+        return redirect(f"{auth_path}/user/login?next={serviceUrl}:{servicePort}/")        
+    else:
+        data = {
+            "token": token,
+            "serviceName": serviceName
+        }
+        routpath = requests.get(
+            f"{auth_path}/user/verified",
+            json=data   # automatically sets Content-Type: application/json
+        )
+
+        return render_template("admin_dashboard.html", services = services)
+        return render_template("admin_users.html")
+
+        #if routpath["ok"] == True:
+        #            return render_template("admin_dashboard.html")
+        #else:
+        #    return render_template("portal.html")
+
     
-    services = []
-    #services = requests.get(f"{auth_path}/service/all").json()    
-    return render_template("portal.html", services=services)
-
-
+    
 
 
 """
@@ -520,39 +541,36 @@ def handle_message(data):
 
 def home_insital():
     services = [
-        {"servicename": "Portal Service", "servicedesc": "Portal Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
-        {"servicename": "AuthService", "servicedesc": "Auth Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
-        {"servicename": "AIService", "servicedesc": "AI Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
-        {"servicename": "CamService", "servicedesc": "Cam Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
-        {"servicename": "VideoService", "servicedesc": "Video Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
-        {"servicename": "EmailService", "servicedesc": "Email Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
-        {"servicename": "TravelService", "servicedesc": "Travel Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
-        {"servicename": "DataAPIService", "servicedesc": "Data Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"},
-        {"servicename": "RdpService", "servicedesc": "RDP Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+8}"}
+        {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
+        {"name": "AuthService", "desc": "Auth Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
+        {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
+        {"name": "CamService", "desc": "Cam Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
+        {"name": "VideoService", "desc": "Video Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
+        {"name": "EmailService", "desc": "Email Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
+        {"name": "TravelService", "desc": "Travel Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
+        {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"},
+        {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+8}"}
     ]        
-    path = f"{auth_path}/services/all"
-    #respose = requests.post(path, json=services) 
+    path = f"{auth_path}/services/add_all"
+    respose = requests.get(path, json=services) 
 
     # add admin user first. 
-    data = {"username": Config.ADMIN_NAME,"email": Config.ADMIN_EMAIL}    
+    user = {"email": Config.ADMIN_NAME,"password": Config.ADMIN_PASSWORD, "is_verified": True, "is_admin":True}    
     path = f"{auth_path}/user/signup"
-    #respose = requests.post(path, json=data)  
-    #print(respose.status_code)            
+    respose = requests.get(path, json=user)  
+    #print(respose.status_code)
 
     #add service infomation to db
-    data = {"serviceName": serviceName,
-            "serviceDesc": serviceDesc,
-            "serviceUrl": serviceUrl,
-            "servicePort": servicePort
-           }    
+    service = {"name": serviceName,"desc": serviceDesc,"url": serviceUrl,"port": servicePort}    
     path = f"{auth_path}/service/add"
-    respose = requests.post(path, json=data)    
-    
+    respose = requests.get(path, json=service)        
 
 if __name__ == "__main__":
 #    with app.app_context():
 #        db.create_all()
 #        create_admin()
     home_insital()
+    services = requests.get(f"{auth_path}/services/get_all").json()    
+
     app.run(port=servicePort)
     #socketio.run(app, debug=False, port=BASE_PORT)

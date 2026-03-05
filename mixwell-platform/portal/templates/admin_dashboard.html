@@ -1,6 +1,122 @@
-{% extends "base.html" %}
-{% block content %}
 <h3>Admin Dashboard</h3>
-<a href="/admin/users">Manage Users</a>
-<a href="/admin/services">Manage Services</a>
-{% endblock %}
+
+<h2>Admin Users</h2>
+<table class="table table-bordered">
+    <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Services</th>
+        <th>Add Service</th>
+        <th>Remove Service</th>
+        <th>Action</th>
+    </tr>
+
+    {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>
+                {% for service in user.services %}
+                    <span class="badge bg-info">
+                        {{ service.servicename }}
+                    </span>
+                {% endfor %}
+            </td>
+            <td>
+                <form method="post" action="/admin/users/admin_add_service_to_user/{{ user.id }}">
+                    <table class="addtable">
+                        <tr>
+                            <td>
+                                <select name="service_id" class="form-select form-select-sm">
+                                    {% for service in userswithoutservices %}
+                                        {% if user.id == service.userid %}
+                                            <option value="{{ service.serviceid }}">{{ service.servicename }}</option>
+                                        {% endif %}                
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success mt-1">Add</button>
+                            </td>
+
+                        </tr>
+                    </table>
+                </form>
+            </td>
+            <td>
+                <form method="post" action="/admin/users/admin_remove_service_from_user/{{ user.id }}">
+                    <table class="removetable">
+                        <tr>
+                            <td>
+                                <select name="service_id" class="form-select form-select-sm">
+                                    {% for service in userswithservices %}
+                                        {% if user.id == service.userid %}
+                                            <option value="{{ service.serviceid }}">{{ service.servicename }}</option>
+                                        {% endif %}                
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-danger mt-1">Remove</button>
+                            </td>
+
+                        </tr>
+                    </table>
+                </form>
+            </td>
+            <td>
+                {% if user.is_approved %}
+                {% else %}
+                    <a href="/admin/users/admin_approve_user/{{ user.id }}" class="btn btn-success btn-sm">
+                        Approve
+                    </a>
+                {% endif %}                
+                {% if user.is_admin %}
+                {% else %}
+                    <a href="/admin/users/admin_delete_user/{{ user.id }}" class="btn btn-danger btn-sm">
+                        Delete
+                    </a>
+                {% endif %}                
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+
+<h2>Admin Services</h2>
+<form method="post" action="/admin/services/admin_add_service" class="row g-2 mb-3">
+    <input name="servicename" placeholder="Name" class="form-control" required>
+    <input name="servicedesc" placeholder="DESC" class="form-control" required>
+    <input name="url" placeholder="URL" class="form-control" required>
+    <input name="port" placeholder="Port" class="form-control" required>
+    <button class="btn btn-success">Add Service</button>
+</form>
+
+<table class="table table-bordered">
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Desc</th>
+        <th>URL</th>
+        <th>Start Time</th>
+        <th>Action</th>
+    </tr>
+    {% for service in services %}
+        <tr>
+            <td>{{ service.id }}</td>
+            <td>{{ service.servicename }}</td>
+            <td>{{ service.servicedesc }}</td>
+            <td>{{ service.url }}:{{ service.port }}</td>
+            <td>{{ service.starttime }}</td>
+            <td>    
+                <a href="/admin/services/admin_start_service/{{ service.id }}"  
+                    class="btn btn-success btn-sm">
+                    Start
+                </a>
+                <a href="/admin/services/admin_delete_service/{{ service.id }}" 
+                    class="btn btn-danger btn-sm">
+                    Delete
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+</table>

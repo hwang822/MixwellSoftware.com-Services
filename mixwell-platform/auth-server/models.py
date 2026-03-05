@@ -18,6 +18,14 @@ class User(UserMixin, db.Model):   # Set UserMixin for flask_login import LoginM
     is_admin = db.Column(db.Boolean, default=False)
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime)
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "email": self.email,
+            "is_admin": self.is_admin,
+            "is_verified": self.is_verified,
+            "created_at": self.created_at
+        }    
 
 class Service(db.Model):
     __tablename__ = "services"
@@ -47,19 +55,18 @@ class UserService(db.Model):
     access = db.Column(db.Integer)
 
 class Utility:
-    def service_add(serviceName, ServiceDecs, ServiceURL, ServicePORT):
-        serviceone = Service.query.filter_by(name=serviceName).first()  # serviceName is unique      
-        if serviceone is None:
+    def service_add(name, desc, url, port):
+        service = Service.query.filter_by(name=name).first()  # serviceName is unique      
+        if service is None:
             s = Service(   # new service
-                name=serviceName,
-                desc=ServiceDecs,
-                url=ServiceURL,
-                port=ServicePORT,
+                name = name,
+                desc=desc,
+                url=url,
+                port=port,
                 started_at=datetime.now(timezone.utc) + timedelta(hours=12)
             )
             db.session.add(s)                
             db.session.commit()        
-
 
     def service_remove(serviceid):
         service = Service.query.get_or_404(serviceid)
@@ -69,30 +76,35 @@ class Utility:
                 db.session.delete(userservices)        
                 db.session.commit()
 
-    def services_all():
+    def services_get_all():
         services = Service.query.all()
         servicesJson = jsonify([s.to_dict() for s in services])
         return servicesJson
 
-    def user_signup(email, password):         
+    def user_signup(email, password, is_verified, is_admin):         
         user = User.query.filter_by(email=email).first()        
+        password= generate_password_hash(password)
         if user is None:
             user = User(
                 email = email, 
-                password= generate_password_hash(password), # password hash
-                is_verified = False,
-                is_admin = False,
+                password= password, # password hash
+                is_verified = is_verified,
+                is_admin = is_admin,
                 created_at = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())            
             )
             db.session.add(user)                
             db.session.commit()
             return {"error": "Signup successful."}, 200    
         else:
+            user.password = password
+            user.is_verified = is_verified
+            user.is_admin = is_admin
+            db.session.add(user)                
+            db.session.commit()
             return {"error": "Username already exists."}, 401
             
     def user_login(email, password):         
-        user = User.query.filter_by(email=email).first()        
-        
+        user = User.query.filter_by(email=email).first()                
         if user is None:
             #flash("Invalid username!.")
             return {"error": "Invalid username!."}, 401
@@ -154,20 +166,22 @@ class Utility:
             return "Invalid token"
 
 
-    def user_add_service(userid, serviceid): #update users_services table for connect user.id and service.id
+    def user_add_service(userid, servicename): #update users_services table for connect user.id and service.id        
+        service = Service.query.filter_by(name=servicename).first()
+
         userservices = UserService.query.filter_by(   
             user_id=userid,
-            service_id=serviceid
+            service_id=service.id
         ).first()
 
         if not userservices:
             userservices = UserService(
                 user_id=userid,
-                service_id=serviceid,
+                service_id=service.id,
                 access = 1
             )
             db.session.add(userservices)
-        db.session.commit()
+            db.session.commit()
 
     def user_remove_service(user_id, service_id):  
         results = (
@@ -238,7 +252,6 @@ class Utility:
         ]
         return response
 
-    def services_add(services):
-        if Service.query.count() == 0:
-            Utility.add_services(services)
-    
+    def services_add_all(services):
+        for service in services:
+            Utility.service_add(service["name"], service["desc"], service["url"], service["port"])
