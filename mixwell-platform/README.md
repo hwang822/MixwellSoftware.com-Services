@@ -56,6 +56,7 @@ r = requests.post(
 
 print(r.status_code)
 
+
 🔹 Service B (Receiver)
 
 from flask import request
@@ -87,6 +88,19 @@ requests.post(
 data = request.get_json()
 user_id = data["user_id"]
 
+or
+
+🔹 Service A (Sender)
+user_id = 123
+user = requests.get(f"http://localhost:5001/receive\{user_id}").json()
+
+🔹 Service B (Receive)
+def receive(user_id)
+    user = {
+        user_id = user_id
+        username = ""
+    }
+    return user[user_id]
 
 ##############################
 Get request from paort service to auth service
