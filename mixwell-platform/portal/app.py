@@ -72,25 +72,24 @@ def home():
     else:
         return render_template("admin_dashboard.html", userswithservices = userswithservices)     
 
+@app.route("/users/user_add/<int:userid>")
+def user_add(userid):
+    return userid
+@app.route("/users/user_remove/<int:userid>")
+def user_remove(userid):
+    return userid
 @app.route("/users/user_add_service/<int:userid>")
 def user_add_service(userid):
-    return userid
-@app.route("/users/user_approve/<int:userid>")
-def user_approve(userid):
-    return userid
-@app.route("/users/user_add/<int:userid>")
-def user_approve(userid):
     return userid
 @app.route("/users/user_remove_service/<int:userid>")
 def user_remove_service(userid):
     return userid
 @app.route("/services/service_remove/<int:serviceid>")
-def user_delete(serviceid):
+def service_remove(serviceid):
     return serviceid
 @app.route("/services/service_start/<int:serviceid>")
-def user_add(serviceid):
+def service_start(serviceid):
     return serviceid
-
 
 def home_insital():
     services = [
