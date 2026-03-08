@@ -143,14 +143,7 @@ class Utility:
 
     def user_get(userid):         
         user = User.query.filter_by(id=userid).first()
-        return {
-            "id": user.id,
-            "email": user.email,
-            "password": user.password,
-            "is_admin": user.is_admin,
-            "is_verified": user.is_verified,
-            "created_at": user.created_at
-        }    
+        return user
                 
     def user_remove(userid):
         user = User.query.get_or_404(userid)
@@ -184,7 +177,25 @@ class Utility:
         return {
             "status": 200, 
             "error": "User is verified."}            
- 
+
+    def user_auth(serviceName):
+        token = request.cookies.get("access_token")
+        if not token:
+            return None
+        try:
+            decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+            userid = decoded["user_id"]
+            user = Utility.user_get(userid)
+            if user.is_verfied:
+                token = jwt.encode({"user_id": user["id"], "service": serviceName}, Config.JWT_SECRET, algorithm="HS256")
+                resp = make_response({"status": "ok"})
+                resp.set_cookie(f"{serviceName}_token", token)
+                return user
+            else:
+                return None 
+        except Exception:
+            return None
+        
     def user_verify_email(user_id, user_email):    
         token = Utility.user_token(user_id)
         verify_url = Config.VERIFY_URL + f"{token}"
