@@ -1,24 +1,38 @@
 import os, sys, requests
 
 from flask import Flask, render_template, request, redirect
-from orlmodels import db
+from models import db
 import requests
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
 from config.settings import Config
+
+from auth.core import check_user_access
+from auth.utility import test, ervice_add
+
+ret = check_user_access(1, "service1")
+ret = test()
+
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
-AUTH_URL =  Config.AUTH_URL
+AUTH_URL =  Config.SERVICE_URL
 AUTH_PORT =  Config.AUTH_PORT 
 serviceName = "service1"
 serviceDesc = "service 1"
 serviceUrl = "localhost"
-servicePort = "5001"
+servicePort = "5010"
+
+
 
 @app.route("/")
 def home():
+
+    token = request.cookies.get("access_token")
+
+
+"""    
     token = request.cookies.get("access_token")
     data = {
         "token": token,
@@ -37,7 +51,10 @@ def home():
         return render_template(f"{serviceName}.html")
     else:
         return redirect(f"{AUTH_URL}:{AUTH_PORT}/user/login?next={serviceUrl}:{servicePort}/")
+"""    
+
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()    
+    services = test()
     app.run(port=servicePort)
