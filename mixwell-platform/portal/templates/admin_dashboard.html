@@ -17,7 +17,7 @@
     {% for user in users %}
         <tr>
             <td>{{ user.id }}</td>
-            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
             <td>
                 <span class="badge bg-info">
                 </span>
@@ -65,7 +65,7 @@
                 </form>
             </td>
             <td>
-                {% if user.is_approved %}
+                {% if user.is_verified %}
                 {% else %}
                     <a href="/users/user_approve/{{ user.id }}" class="btn btn-success btn-sm">
                         Approve
@@ -83,13 +83,6 @@
 </table>
 
 <h2>Admin Services</h2>
-<form method="post" action="/services/add_service" class="row g-2 mb-3">
-    <input name="servicename" placeholder="Name" class="form-control" required>
-    <input name="servicedesc" placeholder="DESC" class="form-control" required>
-    <input name="url" placeholder="URL" class="form-control" required>
-    <input name="port" placeholder="Port" class="form-control" required>
-    <button class="btn btn-success">Add Service</button>
-</form>
 
 <table class="table table-bordered">
     <tr>
@@ -120,5 +113,12 @@
         </tr>
     {% endfor %}
 </table>
+<form method="post" action="/services/add_service" class="row g-2 mb-3">
+    <input name="servicename" placeholder="Name" class="form-control" required>
+    <input name="servicedesc" placeholder="DESC" class="form-control" required>
+    <input name="url" placeholder="URL" class="form-control" required>
+    <input name="port" placeholder="Port" class="form-control" required>
+    <button class="btn btn-success">Add Service</button>
+</form>
 
 {% endblock %}

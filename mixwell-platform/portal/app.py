@@ -1,16 +1,32 @@
 import os
 import sys
+from flask_login import LoginManager, login_user, logout_user
 import jwt
-from flask import Flask, make_response, redirect, render_template, request
+from flask import Flask, flash, make_response, redirect, render_template, request, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import Utility, db, Utility, User, UserService
 import requests
 
+#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+#if BASE_DIR not in sys.path:
+#    sys.path.insert(0, BASE_DIR)
+#from settings import Config
+#from auth.models import db, Utility, User, UserService
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if BASE_DIR not in sys.path:
-    sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, BASE_DIR)
 from config.settings import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
+db.init_app(app)
+
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 #api = Blueprint("api", __name__)
 
@@ -28,71 +44,102 @@ services = []
 users = []
 userswithservices = []
 userswithoutservices = []
-currentuser = []
+currentuser = None
 
 # ---------- Login, siginup, logout ROUTES ----------
 
 @app.route("/")
 def home():
+    token = request.cookies.get("access_token")
+    services = Utility.services_get_all()
+    if not token:
+        return render_template("portal.html", services = services)
 
-    # 1️⃣ token returned from auth
-    token = request.args.get("token")
-    if token:
-        response = make_response(redirect("/"))
+    decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+    userid = decoded["user_id"]
+    user = Utility.user_get(userid)
+
+    if user.is_admin:
+        users = Utility.users_get_all()
+            
+        return render_template("admin_dashboard.html", services = services, users = users)     
+    else:
+        userswithservices = Utility.user_with_services(user.id)
+        return render_template("user_dashboard.html", userswithservices = userswithservices)                     
+
+# -------------------------
+# user signup, login, logout request from auth UI 
+# -------------------------
+@app.route("/signup", methods=["GET", "POST"])  
+def signup():    
+    if request.method == "GET":
+        return render_template("signup.html")
+    session.pop('_flashes', None)
+    email = request.form["username"]
+    password = request.form["password"]        
+    response = Utility.user_signup(email, password, False, False)
+    flash(response["message"])
+    if response["status"] == 400:  
+        return redirect("/signup")
+    return redirect("/login/")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():      
+    
+    if request.method == "GET":
+        return render_template("login.html")        
+    session.pop('_flashes', None)
+    email = request.form["username"]
+    password = request.form["password"]    
+    response = Utility.user_login(email, password)    
+    flash(response["message"])
+    if response["status"] == 400:
+        redirect("/login/")
+    else :  
+        flash(response["message"])
+        user = response["data"]
+        token = Utility.user_token(user.id)            
+        next_url = request.args.get("next")  
+        response = make_response(redirect(next_url))
         response.set_cookie(
             "access_token",
             token,
             httponly=True,
             samesite="Lax"
-        )
-        return response
+        ) 
+        return response       
+        #return redirect("/")
 
-    # 2️⃣ check existing cookie
-    token = request.cookies.get("access_token")
-    if not token:
-        return redirect(f"{auth_path}/login?next={serviceUrl}:{servicePort}/")        
-    try:
-        decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
-    except Exception:
-        return redirect(f"{auth_path}/login?next={serviceUrl}:{servicePort}/")        
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    logout_user()
+    return redirect("/login/")
 
-    currentuserid = decoded["user_id"]
-    user = requests.get(f"{auth_path}/user/user_get/{currentuserid}").json()
-    is_adimin = user["is_admin"]        
-    userswithoutservices = requests.get(f"{auth_path}/user/user_without_services/{currentuserid}").json()            
-    userswithservices = requests.get(f"{auth_path}/user/user_with_services/{currentuserid}").json()                    
-    if is_adimin:
-        users = requests.get(f"{auth_path}/users/get_all").json()
-        services = requests.get(f"{auth_path}/services/get_all").json()    
-        return render_template("admin_dashboard.html", 
-            users = users,
-            services = services, 
-            userswithservices = userswithservices, 
-            userswithoutservices = userswithoutservices)
-    else:
-        return render_template("admin_dashboard.html", userswithservices = userswithservices)     
-
-@app.route("/users/user_add/<int:userid>")
-def user_add(userid):
-    return userid
-@app.route("/users/user_remove/<int:userid>")
+@app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):
-    return userid
+    return Utility.user_remove(userid)
+
+@app.route("/users/user_approve/<int:userid>")   #GOOD
+def user_approve(userid):
+    return Utility.user_approve(userid)
+                    
 @app.route("/users/user_add_service/<int:userid>")
 def user_add_service(userid):
-    return userid
+    return Utility.user_add_service(userid)
+
 @app.route("/users/user_remove_service/<int:userid>")
 def user_remove_service(userid):
-    return userid
+    return Utility.user_remove_service(userid)
 @app.route("/services/service_remove/<int:serviceid>")
 def service_remove(serviceid):
-    return serviceid
+    return Utility.service_remove(serviceid)
+    
 @app.route("/services/service_start/<int:serviceid>")
 def service_start(serviceid):
-    return serviceid
+    return Utility.service_start(serviceid)
 
 def home_insital():
-    services = [
+    servicesList = [
         {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
         {"name": "AuthService", "desc": "Auth Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
         {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
@@ -103,25 +150,12 @@ def home_insital():
         {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"},
         {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+8}"}
     ]        
-    path = f"{auth_path}/services/add_all"
-    respose = requests.get(path, json=services) 
-
-    # add admin user first. 
-    user = {"email": Config.ADMIN_NAME,"password": Config.ADMIN_PASSWORD, "is_verified": True, "is_admin":True}    
-    path = f"{auth_path}/user/user_signup"
-    respose = requests.get(path, json=user)  
-    #print(respose.status_code)
-
-    #add service infomation to db
-    service = {"name": serviceName,"desc": serviceDesc,"url": serviceUrl,"port": servicePort}    
-    path = f"{auth_path}/service/add"
-    respose = requests.get(path, json=service)        
-
+    services = Utility.services_add_all(servicesList)
+    Utility.service_add(serviceName, serviceDesc, serviceUrl, servicePort)    
+    Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
+    
 if __name__ == "__main__":
-#    with app.app_context():
-#        db.create_all()
-#        create_admin()
-    home_insital()
-
+    with app.app_context():        
+        db.create_all()
+        home_insital()    
     app.run(port=servicePort)
-    #socketio.run(app, debug=False, port=BASE_PORT)

@@ -1,43 +1,32 @@
-import os, sys, requests
-
-from flask import Flask, render_template, request, redirect
-from models import db
+import os, sys
+from flask import Flask, redirect, render_template, request, url_for
 import requests
+from models import db
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
 from config.settings import Config
+from portal.models import db, Utility
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
-AUTH_URL =  Config.AUTH_URL
-AUTH_PORT =  Config.AUTH_PORT 
+
 serviceName = "service2"
 serviceDesc = "service 2"
 serviceUrl = "localhost"
-servicePort = "5002"
-
+servicePort = "5012"
+authPort = 5000
+authUrl = f"http://{serviceUrl}:{authPort}/login?next=http://{serviceUrl}:{servicePort}"
 @app.route("/")
-def home():
+def home():    
     token = request.cookies.get("access_token")
-    data = {
-        "token": token,
-        "serviceName": serviceName,
-        "serviceDesc": serviceDesc,
-        "serviceUrl": serviceUrl,
-        "servicePort": servicePort,
-    }
-
-    routpath = requests.post(
-        f"{AUTH_URL}:{AUTH_PORT}/user/verified",
-        json=data   # automatically sets Content-Type: application/json
-    )
+    if not token:
+        print(authUrl)         
+        return redirect(authUrl)
+    return render_template(f"{serviceName}.html")    
     
-    if routpath.text == "":
-        return render_template(f"{serviceName}.html")
-    else:
-        return redirect(f"{AUTH_URL}:{AUTH_PORT}/user/login?next={serviceUrl}:{servicePort}/")
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()    
+        Utility.service_add(serviceName, serviceDesc, serviceUrl, servicePort)
     app.run(port=servicePort)
