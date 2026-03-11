@@ -18,19 +18,20 @@
         <tr>
             <td>{{ user.id }}</td>
             <td>{{ user.email }}</td>
-            <td>
-                <span class="badge bg-info">
-                </span>
-            </td>
+            <td>{{ services | count }}</td>
+
             <td>
                 <form method="post" action="/users/user_add_service/{{ user.id }}">
                     <table class="addtable">
                         <tr>
                             <td>
+                                {{ userswithoutservices | count }}                                
+                            </td>
+                            <td>
                                 <select name="service_id" class="form-select form-select-sm">
-                                    {% for service in userswithoutservices %}
-                                        {% if user.id == service.id %}
-                                            <option value="{{ service.id }}">{{ service.name }}</option>
+                                    {% for service in userswithoutservices %}                                        
+                                        {% if user.id == service.userid %}
+                                            <option value="{{ service.serviceid }}">{{ service.name }}</option>
                                         {% endif %}                
                                     {% endfor %}
                                 </select>
@@ -48,9 +49,12 @@
                     <table class="removetable">
                         <tr>
                             <td>
+                                {{ userswithservices | count }}                                
+                            </td>
+                            <td>
                                 <select name="service_id" class="form-select form-select-sm">
-                                    {% for service in userswithservices %}
-                                        {% if user.id == service.id %}
+                                    {% for service in userswithservices %}                                    
+                                        {% if user.id == service.user_id %}       
                                             <option value="{{ service.id }}">{{ service.name }}</option>
                                         {% endif %}                
                                     {% endfor %}

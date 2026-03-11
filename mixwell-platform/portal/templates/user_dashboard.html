@@ -4,19 +4,19 @@
 <div class="row">
 
 <div class="col-md-8">
-<h2>User Services</h2>
+<h2>User: {{user.email}}</h2>
 <table class="table table-bordered">
     <tr>
         <th>Name</th>
         <th>Action</th>
     </tr>
-    {% for service in services %}
+    {% for service in userswithservices %}
         <tr>
             <td>{{ service.servicename }}</td>
             <td>    
-                <a href="/admin/services/admin_start_service/{{ service.id }}"  
+                <a href="/services/service_view/{{ service.id }}"  
                     class="btn btn-success btn-sm">
-                    Start
+                    View
                 </a>
             </td>
         </tr>

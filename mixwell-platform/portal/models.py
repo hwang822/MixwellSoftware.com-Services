@@ -91,6 +91,10 @@ class Utility:
         UserService.query.filter_by(service_id=serviceid).delete()
         db.session.commit()
 
+    def service_start(serviceid):
+        service = Service.query.get_or_404(serviceid)
+            
+
 # users methods
 
     def user_signup(email, password, is_verified, is_admin):         
@@ -281,48 +285,29 @@ class Utility:
                 .join(Service, UserService.service_id == Service.id)
                 .all()
         )
-
-        response = [
-        {
-            "userid": r.user_id,
-            "serviceid": r.id,
-            "servicename": r.name
-        }
-        for r in results
-        ]
-        return response
-    
+        return results
 
     def user_without_services(userid):        
         results = []
-        if UserService.query.count()>0:
-            results = (
-                db.session.query(
-                    User.id.label("userid"),
-                    Service.id.label("serviceid"),
-                    Service.name
-                )
-                .join(Service, true())   # cross join
-                .outerjoin(
-                    UserService,
-                    and_(
-                        UserService.id == User.id,
-                        UserService.id == Service.id
-                    )
-                )
-                .filter(UserService.id == None)
-                .all()
+        #if UserService.query.count()>0:
+        results = (
+            db.session.query(
+                User.id.label("userid"),
+                Service.id.label("serviceid"),
+                Service.name
             )
-
-        response = [
-            {
-                "userid": r.userid,
-                "serviceid": r.serviceid,
-                "servicename": r.name
-            }
-            for r in results
-        ]
-        return response
+            .join(Service, true())   # cross join
+            .outerjoin(
+                UserService,
+                and_(
+                    UserService.id == User.id,
+                    UserService.id == Service.id
+                )
+            )
+            .filter(UserService.id == None)
+            .all()
+        )
+        return results
 
     def services_add_all(services):
         for service in services:
