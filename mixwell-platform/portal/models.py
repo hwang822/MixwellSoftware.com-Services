@@ -87,12 +87,9 @@ class Utility:
             db.session.commit()        
 
     def service_remove(serviceid):
-        service = Service.query.get_or_404(serviceid)
-        if service is None:
-            userservices = UserService.query.filter_by(service.id)   
-            if userservices is not None:
-                db.session.delete(userservices)        
-                db.session.commit()
+        Service.query.filter_by(id=serviceid).delete()
+        UserService.query.filter_by(service_id=serviceid).delete()
+        db.session.commit()
 
 # users methods
 
@@ -144,12 +141,8 @@ class Utility:
         return user
                 
     def user_remove(userid):
-        user = User.query.get_or_404(userid)
-        if user is not None:
-            db.session.delete(user)   
-            userservices = UserService.query.filter_by(user.id)   
-            if userservices is not None:
-                db.session.delete(userservices)   
+        User.query.filter_by(id=userid).delete()
+        UserService.query.filter_by(user_id=userid).delete()
         db.session.commit()
 
     def user_approve(userid):

@@ -53,26 +53,29 @@ def home():
     token = request.cookies.get("access_token")
     services = Utility.services_get_all()
     if not token:
-        return render_template("portal.html", services = services)
+        return redirect("/logout")
 
-    decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
-    userid = decoded["user_id"]
-    user = Utility.user_get(userid)
+    try:
+        decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        userid = decoded["user_id"]
+        user = Utility.user_get(userid)
 
-    if user.is_admin:
-        users = Utility.users_get_all()
-            
-        return render_template("admin_dashboard.html", services = services, users = users)     
-    else:
-        userswithservices = Utility.user_with_services(user.id)
-        return render_template("user_dashboard.html", userswithservices = userswithservices)                     
+        if user.is_admin:
+            users = Utility.users_get_all()
+                
+            return render_template("admin_dashboard.html", services = services, users = users)     
+        else:
+            userswithservices = Utility.user_with_services(user.id)
+            return render_template("user_dashboard.html", userswithservices = userswithservices)                     
+    except:
+        return redirect("/logout")
 
 # -------------------------
 # user signup, login, logout request from auth UI 
 # -------------------------
 @app.route("/signup", methods=["GET", "POST"])  
 def signup():    
-    if request.method == "GET":
+    if request.method == "GET":        
         return render_template("signup.html")
     session.pop('_flashes', None)
     email = request.form["username"]
@@ -81,25 +84,24 @@ def signup():
     flash(response["message"])
     if response["status"] == 400:  
         return redirect("/signup")
-    return redirect("/login/")
+    return redirect("/login")
 
 @app.route("/login", methods=["GET", "POST"])
-def login():      
-    
+def login():          
     if request.method == "GET":
         return render_template("login.html")        
-    session.pop('_flashes', None)
+    session.pop('_flashes', None)    
     email = request.form["username"]
     password = request.form["password"]    
     response = Utility.user_login(email, password)    
     flash(response["message"])
     if response["status"] == 400:
-        redirect("/login/")
+        return redirect("/login")
     else :  
         flash(response["message"])
         user = response["data"]
         token = Utility.user_token(user.id)            
-        next_url = request.args.get("next")  
+        next_url = request.args.get("/")  
         response = make_response(redirect(next_url))
         response.set_cookie(
             "access_token",
@@ -112,8 +114,9 @@ def login():
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
+    session.pop('_flashes', None)
     logout_user()
-    return redirect("/login/")
+    return redirect("/login")
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):
@@ -124,12 +127,21 @@ def user_approve(userid):
     return Utility.user_approve(userid)
                     
 @app.route("/users/user_add_service/<int:userid>")
-def user_add_service(userid):
-    return Utility.user_add_service(userid)
+def user_add_service(userid, serviceid):
+    return Utility.user_add_service(userid, serviceid)
 
 @app.route("/users/user_remove_service/<int:userid>")
-def user_remove_service(userid):
-    return Utility.user_remove_service(userid)
+def user_remove_service(userid, serviceid):
+    return Utility.user_remove_service(userid, serviceid)
+
+@app.route("/services/service_add")
+def service_add():
+    name = request.form["name"]
+    desc = request.form["desc"]    
+    url = request.form["url"]
+    port = request.form["port"]    
+    return Utility.service_add(name, desc, url, port)
+
 @app.route("/services/service_remove/<int:serviceid>")
 def service_remove(serviceid):
     return Utility.service_remove(serviceid)

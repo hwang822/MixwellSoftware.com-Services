@@ -101,11 +101,11 @@
             <td>{{ service.url }}:{{ service.port }}</td>
             <td>{{ service.started_at }}</td>
             <td>    
-                <a href="/services/start_service/{{ service.id }}"  
+                <a href="/services/service_start/{{ service.id }}"  
                     class="btn btn-success btn-sm">
                     Start
                 </a>
-                <a href="/services/remove_service/{{ service.id }}" 
+                <a href="/services/service_remove/{{ service.id }}" 
                     class="btn btn-danger btn-sm">
                     Remove
                 </a>
@@ -113,9 +113,9 @@
         </tr>
     {% endfor %}
 </table>
-<form method="post" action="/services/add_service" class="row g-2 mb-3">
-    <input name="servicename" placeholder="Name" class="form-control" required>
-    <input name="servicedesc" placeholder="DESC" class="form-control" required>
+<form method="post" action="/services/service_add" class="row g-2 mb-3">
+    <input name="name" placeholder="Name" class="form-control" required>
+    <input name="desc" placeholder="DESC" class="form-control" required>
     <input name="url" placeholder="URL" class="form-control" required>
     <input name="port" placeholder="Port" class="form-control" required>
     <button class="btn btn-success">Add Service</button>
