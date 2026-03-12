@@ -1,23 +1,177 @@
-from flask import Flask, request, redirect
-import requests
+import os
+import sys
+from flask_login import LoginManager, logout_user
+import jwt # install PyJWT
+from flask import Flask, flash, make_response, redirect, render_template, request, session
+from models import Utility, db, Utility, User
+
+#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+#if BASE_DIR not in sys.path:
+#    sys.path.insert(0, BASE_DIR)
+#from settings import Config
+#from auth.models import db, Utility, User, UserService
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, BASE_DIR)
+from config.settings import Config
 
 app = Flask(__name__)
+app.config.from_object(Config)
+db.init_app(app)
 
-AUTH_URL = "http://localhost:5003/api/verify_token"
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+#api = Blueprint("api", __name__)
+
+# Flask session secret
+app.config["SECRET_KEY"] = "service-session-secret"
+
+serviceName = "PortalService"
+serviceDesc = "Portal Service"
+serviceUrl =  Config.SERVICE_URL
+servicePort = Config.PORTAL_PORT
+
+auth_path = f"{serviceUrl}:{Config.AUTH_PORT}"
+service_path = f"{serviceUrl}:{servicePort}"
+services = []
+users = []
+userswithservices = []
+userswithoutservices = []
+currentuser = None
+
+# ---------- Login, siginup, logout ROUTES ----------
 
 @app.route("/")
-def portal():
-    token = request.cookies.get("jwt")
+def home():
+    token = request.cookies.get("access_token")
+    services = Utility.services_get_all()
     if not token:
-        return redirect("http://localhost:5003/login")
+        return redirect("/logout")
 
-    r = requests.get(AUTH_URL, headers={"Authorization": token})
+    try:
+        decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        userid = decoded["user_id"]
+        user = Utility.user_get(userid)
+        userswithservices =  Utility.user_with_services(user.id)
+        if user.is_admin:
+            users = Utility.users_get_all()
+            userswithoutservices =  Utility.user_without_services(user.id)    
+            return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
+        else:
+            return render_template("user_dashboard.html", user = user, userswithservices = userswithservices)                     
+    except:
+        return redirect("/logout")
 
-    if r.status_code != 200:
-        return redirect("http://localhost:5003/login")
+# -------------------------
+# user signup, login, logout request from auth UI 
+# -------------------------
+@app.route("/signup", methods=["GET", "POST"])  
+def signup():    
+    if request.method == "GET":        
+        return render_template("signup.html")
+    session.pop('_flashes', None)
+    email = request.form["username"]
+    password = request.form["password"]        
+    response = Utility.user_signup(email, password, False, False)
+    flash(response["message"])
+    if response["status"] == 400:  
+        return redirect("/signup")
+    return redirect("/login")
 
-    return "Welcome to Portal"
+@app.route("/login", methods=["GET", "POST"])
+def login():          
+    if request.method == "GET":
+        return render_template("login.html")        
+    session.pop('_flashes', None)    
+    email = request.form["username"]
+    password = request.form["password"]    
+    response = Utility.user_login(email, password)    
+    flash(response["message"])
+    if response["status"] == 400:
+        return redirect("/login")
+    else :  
+        flash(response["message"])
+        user = response["data"]
+        token = Utility.user_token(user.id)            
+        next_url = request.args.get("/")  
+        response = make_response(redirect(next_url))
+        response.set_cookie(
+            "access_token",
+            token,
+            httponly=True,
+            samesite="Lax"
+        ) 
+        return response       
+        #return redirect("/")
 
+@app.route("/logout", methods=["GET", "POST"])
+def logout():
+    session.pop('_flashes', None)
+    logout_user()
+    return redirect("/login")
 
+@app.route("/users/user_remove/<int:userid>") 
+def user_remove(userid):
+    Utility.user_remove(userid)
+    return redirect("/")
+
+@app.route("/users/user_approve/<int:userid>")   #GOOD
+def user_approve(userid):
+    Utility.user_approve(userid)
+    return redirect("/")
+                    
+@app.route("/users/user_add_service/<int:userid>")
+def user_add_service(userid, serviceid):
+    Utility.user_add_service(userid, serviceid)
+    return redirect("/")    
+
+@app.route("/users/user_remove_service/<int:userid>")
+def user_remove_service(userid, serviceid):
+    Utility.user_remove_service(userid, serviceid)
+    return redirect("/")    
+
+@app.route("/services/service_add", methods=["POST"])
+def service_add():
+    name = request.form["name"]
+    desc = request.form["desc"]    
+    url = request.form["url"]
+    port = request.form["port"]    
+    Utility.service_add(name, desc, url, port)
+    return redirect("/")    
+
+@app.route("/services/service_remove/<int:serviceid>")
+def service_remove(serviceid):
+    Utility.service_remove(serviceid)
+    return redirect("/")
+
+@app.route("/services/service_view/<int:serviceid>")
+def service_view(serviceid): 
+    Utility.service_start(serviceid)
+    return redirect("/")
+
+def home_insital():
+    servicesList = [
+        {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
+        {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
+        {"name": "CamService", "desc": "Cam Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
+        {"name": "VideoService", "desc": "Video Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
+        {"name": "EmailService", "desc": "Email Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
+        {"name": "TravelService", "desc": "Travel Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
+        {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
+        {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"}
+    ]        
+    
+    Utility.services_add_all(servicesList)
+    Utility.service_add(serviceName, serviceDesc, serviceUrl, servicePort)    
+    Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
+    
 if __name__ == "__main__":
-    app.run(port=5000)
+    with app.app_context():        
+        db.create_all()
+        home_insital()    
+    app.run(port=servicePort)
