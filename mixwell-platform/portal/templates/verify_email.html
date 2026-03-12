@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Your Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            padding: 40px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin-top: 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #4CAF50;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Mixwell Platform!</h1>
+        <p>Hi {{ user_email }},</p>
+        <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
+        <a href="{{ verify_url }}" class="btn">Verify Email</a>
+        <p>If you did not sign up, please ignore this email.</p>
+        <div class="footer">
+            &copy; 2026 Mixwell Software. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

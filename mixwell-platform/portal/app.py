@@ -28,21 +28,10 @@ def load_user(user_id):
 
 #api = Blueprint("api", __name__)
 
-# Flask session secret
-app.config["SECRET_KEY"] = "service-session-secret"
-
 serviceName = "PortalService"
 serviceDesc = "Portal Service"
 serviceUrl =  Config.SERVICE_URL
 servicePort = Config.PORTAL_PORT
-
-auth_path = f"{serviceUrl}:{Config.AUTH_PORT}"
-service_path = f"{serviceUrl}:{servicePort}"
-services = []
-users = []
-userswithservices = []
-userswithoutservices = []
-currentuser = None
 
 # ---------- Login, siginup, logout ROUTES ----------
 
@@ -56,14 +45,15 @@ def home():
     try:
         decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
         userid = decoded["user_id"]
-        user = Utility.user_get(userid)
-        userswithservices =  Utility.user_with_services(user.id)
-        if user.is_admin:
+        #user = Utility.user_get(userid)
+        currentuser = Utility.user_get(userid)
+        userswithservices =  Utility.user_with_services(currentuser.id)
+        if currentuser.is_admin:
             users = Utility.users_get_all()
-            userswithoutservices =  Utility.user_without_services(user.id)    
+            userswithoutservices =  Utility.user_without_services(currentuser.id)    
             return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
         else:
-            return render_template("user_dashboard.html", user = user, userswithservices = userswithservices)                     
+            return render_template("user_dashboard.html", user = currentuser, userswithservices = userswithservices)                     
     except:
         return redirect("/logout")
 
@@ -96,10 +86,13 @@ def login():
         return redirect("/login")
     else :  
         flash(response["message"])
-        user = response["data"]
-        token = Utility.user_token(user.id)            
-        next_url = request.args.get("/")  
-        response = make_response(redirect(next_url))
+        currentuser = response["data"]
+        token = Utility.user_token(currentuser.id)            
+        next_url = request.args.get("/")
+        if next_url is None:  
+            response = make_response(redirect("/"))  # back to portal 
+        else:
+            response = make_response(redirect(next_url)) # back to service
         response.set_cookie(
             "access_token",
             token,
@@ -107,7 +100,6 @@ def login():
             samesite="Lax"
         ) 
         return response       
-        #return redirect("/")
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
@@ -120,18 +112,27 @@ def user_remove(userid):
     Utility.user_remove(userid)
     return redirect("/")
 
-@app.route("/users/user_approve/<int:userid>")   #GOOD
+@app.route("/users/user_approve/<int:userid>")
 def user_approve(userid):
     Utility.user_approve(userid)
     return redirect("/")
-                    
-@app.route("/users/user_add_service/<int:userid>")
-def user_add_service(userid, serviceid):
+
+@app.route("/users/user_verify/<token>")
+def user_verify(token):
+    Utility.user_verify(token)
+    return redirect("/")
+
+@app.route("/users/user_add_service", methods=["POST"])
+def user_add_service():
+    userid = request.form.get("userid")
+    serviceid = request.form.get("serviceid")
     Utility.user_add_service(userid, serviceid)
     return redirect("/")    
 
-@app.route("/users/user_remove_service/<int:userid>")
-def user_remove_service(userid, serviceid):
+@app.route("/users/user_remove_service", methods=["POST"])
+def user_remove_service():
+    userid = int(request.form.get("userid"))
+    serviceid = int(request.form.get("serviceid"))
     Utility.user_remove_service(userid, serviceid)
     return redirect("/")    
 
@@ -156,14 +157,14 @@ def service_view(serviceid):
 
 def home_insital():
     servicesList = [
-        {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
-        {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
-        {"name": "CamService", "desc": "Cam Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
-        {"name": "VideoService", "desc": "Video Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
-        {"name": "EmailService", "desc": "Email Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
-        {"name": "TravelService", "desc": "Travel Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
-        {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
-        {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"}
+        {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
+        {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
+        {"name": "CamService", "desc": "Cam Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
+        {"name": "VideoService", "desc": "Video Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
+        {"name": "EmailService", "desc": "Email Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
+        {"name": "TravelService", "desc": "Travel Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
+        {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
+        {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"}
     ]        
     
     Utility.services_add_all(servicesList)
