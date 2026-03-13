@@ -276,23 +276,27 @@ class Utility:
         user =  Utility.user_get(user_id)
         return user
 
+    def user_add_service_byname(userid, servicename): #update users_services table for connect user.id and service.id                
+        service = Service.query.filter_by(name=servicename).first()
+        userservice = Utility.user_add_service(userid, service.id)
+        return userservice
+
 
     def user_add_service(userid, serviceid): #update users_services table for connect user.id and service.id        
         service = Service.query.filter_by(id=serviceid).first()
-        userservices = UserService.query.filter_by(   
+        userservice = UserService.query.filter_by(   
             user_id=userid,
             service_id=serviceid
         ).first()
 
-        if not userservices:
-            userservices = UserService(
+        if not userservice:
+            userservice = UserService(
                 user_id=userid,
                 service_id=serviceid,
                 access = 1
             )
-            db.session.add(userservices)
             db.session.commit()
-        return userservices
+        return userservice
 
     def user_remove_service(user_id, service_id):  
         userService = UserService.query.filter_by(
