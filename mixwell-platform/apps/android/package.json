@@ -1,0 +1,11 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "mixwellsoftware.com portal website",
+  "main": "index.js",
+  "scripts": {
+    "test": "app"
+  },
+  "author": "",
+  "license": "ISC"
+}

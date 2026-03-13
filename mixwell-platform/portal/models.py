@@ -9,6 +9,7 @@ from sqlalchemy import and_, true
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
+import subprocess
 
 db = SQLAlchemy()
 
@@ -16,6 +17,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
 
 from config.settings import Config
+
 
 class User(UserMixin, db.Model):   # Set UserMixin for flask_login import LoginManager login_user(user) check
     __tablename__ = "users"
@@ -39,19 +41,19 @@ class Service(db.Model):
     __tablename__ = "services"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True)
-    desc = db.Column(db.String(100), nullable=False)
+    path = db.Column(db.String(200), nullable=False) 
     url = db.Column(db.String(200), nullable=False)
     port = db.Column(db.Integer, nullable=False)
-    started_at = db.Column(db.DateTime)
+    status = db.Column(db.String(20)) # running / stopped
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "desc": self.desc,
+            "path": self.path,
             "url": self.url,
             "port": self.port,
-            "started_at": self.started_at
+            "status": self.status
         }    
 
 class UserService(db.Model):
@@ -63,19 +65,55 @@ class UserService(db.Model):
 
 class Utility:
 
+    def services_register(SERVICES_PATH):
+
+        for folder in os.listdir(SERVICES_PATH):
+
+            service_path = os.path.join(SERVICES_PATH, folder)
+
+            if not os.path.isdir(service_path):
+                continue
+
+            # split folder name
+            parts = folder.split("_", 1)
+
+            if len(parts) != 2:
+                print(f"Invalid service folder name: {folder}")
+                continue
+
+            port = int(parts[0])
+            name = parts[1]
+            path = service_path
+            url = f"{Config.GATEWAY_URL}:{port}"
+            service = Service.query.filter_by(name=name).first()
+
+            if service:
+                service.port = port
+                service.url = url
+                service.path = path
+            else:
+                service = Service(
+                    name=name,
+                    port=port,
+                    url=url,
+                    path=path,
+                    status = "stopped"
+                )
+                db.session.add(service)
+        db.session.commit()
+
 # service methods
     def services_get_all():
         return Service.query.all()
 
-    def service_add(name, desc, url, port):
+    def service_add(name, url, port):
         service = Service.query.filter_by(name=name).first()  # serviceName is unique      
         if service is None:
             service = Service(   # new service
                 name = name,
-                desc=desc,
                 url=url,
                 port=port,
-                started_at=datetime.now(timezone.utc) + timedelta(hours=12)
+                status="stopped" #datetime.strftime(datetime.now(timezone.utc) + timedelta(hours=12))
             )
             db.session.add(service)                
             db.session.commit()
@@ -89,8 +127,30 @@ class Utility:
 
     def service_start(serviceid):
         service = Service.query.get_or_404(serviceid)
+        if service.status == "stopped":
+            app_file = os.path.join(service.path, "app.py")
+            subprocess.Popen(
+                ["python", app_file]
+            )
+            service.status = "running"
+            db.session.commit()
+            #return redirect("/services")        
         return service
-            
+
+    def service_stop(serviceid):
+        service = Service.query.get_or_404(serviceid)
+        # simple example using port kill
+        os.system(f"fuser -k {service.port}/tcp")
+        service.status = "stopped"
+        db.session.commit()
+        return service
+
+    def service_view(serviceid):
+        service = Service.query.get_or_404(serviceid)
+        #return redirect(service.url)        
+        #service = Service.query.get_or_404(serviceid)
+        return service
+
 
 # users methods
 
@@ -274,7 +334,7 @@ class Utility:
 
     def services_add_all(services):
         for service in services:
-            Utility.service_add(service["name"], service["desc"], service["url"], service["port"])
+            Utility.service_add(service["name"], service["url"], service["port"])
 
     def auth_response(status, message, data):
         return {"status" : status, "message" : message, "data" : data}

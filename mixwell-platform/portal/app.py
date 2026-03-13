@@ -13,7 +13,6 @@ from models import Utility, db, Utility, User
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, BASE_DIR)
 from config.settings import Config
-
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
@@ -29,7 +28,6 @@ def load_user(user_id):
 #api = Blueprint("api", __name__)
 
 serviceName = "PortalService"
-serviceDesc = "Portal Service"
 serviceUrl =  Config.SERVICE_URL
 servicePort = Config.PORTAL_PORT
 
@@ -51,6 +49,7 @@ def home():
         if currentuser.is_admin:
             users = Utility.users_get_all()
             userswithoutservices =  Utility.user_without_services(currentuser.id)    
+            #return render_template("admin_dashboard.html", users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)
             return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
         else:
             return render_template("user_dashboard.html", user = currentuser, userswithservices = userswithservices)                     
@@ -136,15 +135,6 @@ def user_remove_service():
     Utility.user_remove_service(userid, serviceid)
     return redirect("/")    
 
-@app.route("/services/service_add", methods=["POST"])
-def service_add():
-    name = request.form["name"]
-    desc = request.form["desc"]    
-    url = request.form["url"]
-    port = request.form["port"]    
-    Utility.service_add(name, desc, url, port)
-    return redirect("/")    
-
 @app.route("/services/service_remove/<int:serviceid>")
 def service_remove(serviceid):
     Utility.service_remove(serviceid)
@@ -152,23 +142,25 @@ def service_remove(serviceid):
 
 @app.route("/services/service_view/<int:serviceid>")
 def service_view(serviceid): 
+    service = Utility.service_view(serviceid)
+    return redirect(service.url)
+
+@app.route("/services/service_start/<int:serviceid>")
+def service_start(serviceid): 
     Utility.service_start(serviceid)
     return redirect("/")
 
+@app.route("/services/service_stop/<int:serviceid>")
+def service_stop(serviceid): 
+    Utility.service_stop(serviceid)
+    return redirect("/")
+
+
+
 def home_insital():
-    servicesList = [
-        {"name": "PortalService", "desc": "Portal Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)}"},
-        {"name": "AIService", "desc": "AI Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+1}"},
-        {"name": "CamService", "desc": "Cam Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+2}"},
-        {"name": "VideoService", "desc": "Video Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+3}"},
-        {"name": "EmailService", "desc": "Email Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+4}"},
-        {"name": "TravelService", "desc": "Travel Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+5}"},
-        {"name": "DataAPIService", "desc": "Data Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+6}"},
-        {"name": "RdpService", "desc": "RDP Service", "url": f"{Config.GATEWAY_URL}", "port": f"{int(Config.PORTAL_PORT)+7}"}
-    ]        
-    
-    Utility.services_add_all(servicesList)
-    Utility.service_add(serviceName, serviceDesc, serviceUrl, servicePort)    
+
+    SERVICES_PATH = "..\\services"
+    Utility.services_register(SERVICES_PATH)
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":
