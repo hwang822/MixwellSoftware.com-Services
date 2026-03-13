@@ -1,6 +1,6 @@
 import os
 import sys
-from flask_login import LoginManager, logout_user
+from flask_login import LoginManager, logout_user, login_required
 import jwt # install PyJWT
 from flask import Flask, flash, make_response, redirect, render_template, request, session
 from models import Utility, db, Utility, User
@@ -24,9 +24,6 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
-#api = Blueprint("api", __name__)
-
 serviceName = "PortalService"
 serviceUrl =  Config.SERVICE_URL
 servicePort = Config.PORTAL_PORT
@@ -39,17 +36,14 @@ def home():
     services = Utility.services_get_all()
     if not token:
         return redirect("/logout")
-
     try:
         decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
         userid = decoded["user_id"]
-        #user = Utility.user_get(userid)
         currentuser = Utility.user_get(userid)
         userswithservices =  Utility.user_with_services(currentuser.id)
         if currentuser.is_admin:
             users = Utility.users_get_all()
             userswithoutservices =  Utility.user_without_services(currentuser.id)    
-            #return render_template("admin_dashboard.html", users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)
             return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
         else:
             return render_template("user_dashboard.html", user = currentuser, userswithservices = userswithservices)                     
@@ -155,10 +149,7 @@ def service_stop(serviceid):
     Utility.service_stop(serviceid)
     return redirect("/")
 
-
-
 def home_insital():
-
     SERVICES_PATH = "..\\services"
     Utility.services_register(SERVICES_PATH)
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
@@ -167,4 +158,4 @@ if __name__ == "__main__":
     with app.app_context():        
         db.create_all()
         home_insital()    
-    app.run(port=servicePort)
+    app.run(port=servicePort, debug=False, use_reloader=False)

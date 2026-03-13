@@ -14,14 +14,40 @@
         <tr>
             <td>{{ service.name }}</td>
             <td>    
-                <a href="/services/service_view/{{ service.id }}"  
+                <a href="#"
+                    onclick="openService('{{ service.url }}','{{ service.name }}'); return false;"
                     class="btn btn-success btn-sm">
                     View
-                </a>
+                </a>                
+
             </td>
         </tr>
     {% endfor %}
 </table>
+
+<script>
+    function openService(url, name){
+        document.getElementById("serviceFrame").src = url;
+        document.getElementById("serviceTitle").innerText = name;
+}    
+</script>
+
+
+<div class="col-md-4">
+    <h3>Service View</h3>
+    <iframe id="serviceFrame"></iframe>
+</div>
+
+<style>
+    table {border-collapse: collapse;}
+    td,th {border:1px solid #ccc;padding:8px;}
+    iframe {
+        width:300%;
+        height:200px;
+        border:1px solid #aaa;
+    }
+</style>
+
 
 <div class="col-md-4">
 

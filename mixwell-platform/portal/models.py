@@ -127,15 +127,14 @@ class Utility:
 
     def service_start(serviceid):
         service = Service.query.get_or_404(serviceid)
-        if service.status == "stopped":
-            app_file = os.path.join(service.path, "app.py")
-            subprocess.Popen(
-                ["python", app_file]
-            )
-            service.status = "running"
-            db.session.commit()
-            #return redirect("/services")        
-        return service
+        #if service.status == "stopped":
+        app_file = os.path.join(service.path, "app.py")
+        subprocess.Popen(
+            ["python", app_file]
+        )
+        service.status = "running"
+        db.session.commit()
+        #return service
 
     def service_stop(serviceid):
         service = Service.query.get_or_404(serviceid)
@@ -209,13 +208,7 @@ class Utility:
         return user
 
     def user_verify(token):
-        decoded = jwt.decode(
-            token,
-            Config.JWT_SECRET,
-            algorithms=["HS256"]
-        )
-        user_id = decoded["user_id"]
-        user = User.query.filter_by(id=user_id).first()
+        user = Utility.user_bytoken(token)
         if user.is_verified == False:
             user.is_verified = True
             db.session.commit()
@@ -273,6 +266,16 @@ class Utility:
         token = jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
         return token
 
+    def user_bytoken(token):
+        decoded = jwt.decode(
+            token,
+            Config.JWT_SECRET,
+            algorithms=["HS256"]
+        )
+        user_id = decoded["user_id"]
+        user =  Utility.user_get(user_id)
+        return user
+
 
     def user_add_service(userid, serviceid): #update users_services table for connect user.id and service.id        
         service = Service.query.filter_by(id=serviceid).first()
@@ -300,16 +303,19 @@ class Utility:
         db.session.commit()    
 
     def user_with_services(userid):
-        results = (        
+        services = (        
             db.session.query(
                     UserService.user_id,
                     Service.id,
-                    Service.name
+                    Service.name,
+                    Service.url
                 )
                 .join(Service, UserService.service_id == Service.id)
                 .all()
         )
-        return results
+        for service in services:
+            Utility.service_start(service.id) # to make sure services is running.
+        return services
 
     def user_without_services(userid):        
         results = []
@@ -331,10 +337,6 @@ class Utility:
             .all()
         )
         return results
-
-    def services_add_all(services):
-        for service in services:
-            Utility.service_add(service["name"], service["url"], service["port"])
 
     def auth_response(status, message, data):
         return {"status" : status, "message" : message, "data" : data}
