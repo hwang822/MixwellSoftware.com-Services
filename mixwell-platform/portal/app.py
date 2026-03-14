@@ -142,15 +142,45 @@ def service_view(serviceid):
     service = Utility.service_view(serviceid)
     return redirect(service.url)
 
-@app.route("/services/service_start/<int:serviceid>")
-def service_start(serviceid): 
-    Utility.service_start(serviceid)
+@app.route("/services/service_start/<servicename>")
+def service_start(servicename): 
+    Utility.service_start(servicename)
     return redirect("/")
 
-@app.route("/services/service_stop/<int:serviceid>")
-def service_stop(serviceid): 
-    Utility.service_stop(serviceid)
+@app.route("/services/service_stop/<servicename>")
+def service_stop(servicename): 
+    Utility.service_stop(servicename)
     return redirect("/")
+
+@app.route("/<servicename>")
+def service_router(servicename):
+    service = Utility.service_start(servicename)
+    if not service:
+        return "Service not found"
+    return f"{service.name} is {servicename}"
+        
+"""
+    for folder in os.listdir(SERVICES_PATH):
+
+        port, name = folder.split("_")
+
+        if name.lower() == servicename.lower():
+
+            port = int(port)
+
+            service_path = os.path.join(SERVICES_PATH, folder)
+
+            start_service(port, service_path)
+
+            url = f"http://127.0.0.1:{port}/{service_path}"
+
+            r = requests.get(url)
+
+            return r.text
+
+    return "Service not found"
+"""
+
 
 def home_insital():
     Utility.services_register(SERVICES_PATH)

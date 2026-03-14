@@ -19,6 +19,6 @@ db.init_app(app)
 def home():    
     return render_template(f"{serviceName}.html")        
 if __name__ == "__main__":
-    with app.app_context():        
-        db.create_all()    
+    #with app.app_context():        
+        #db.create_all()    
     app.run(port=servicePort)

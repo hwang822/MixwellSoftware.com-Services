@@ -88,35 +88,34 @@
     <tr>
         <th>ID</th>
         <th>Name</th>
-        <th>Path</th>
+        
         <th>URL</th>
         <th>Status</th>
+        <th>PID</th>
         <th>Action</th>
+        <th>Path</th>        
     </tr>
     {% for service in services %}
         <tr>
             <td>{{ service.id }}</td>
             <td>{{ service.name }}</td>
-            <td>{{ service.path }}</td>
             <td>{{ service.url }}</td>
             <td>{{ service.status }}</td>
+            <td>{{ service.pid }}</td>
+            <td>{{ service.path }}</td>
             <td>    
                 {% if service.status == "stopped" %}
-                    <a href="/services/service_start/{{ service.id }}"  
+                    <a href="/services/service_start/{{ service.name }}"  
                         class="btn btn-success btn-sm">
                         Start
                     </a>
                 {% else %}
-                    <a href="/services/service_stop/{{ service.id }}"  
+                    <a href="/services/service_stop/{{ service.name }}"  
                         class="btn btn-success btn-sm">
                         Stop
                     </a>
                 {% endif %}                
 
-                <!--a href="/services/service_view/{{ service.id }}"  
-                    class="btn btn-success btn-sm">
-                    View
-                </a-->
                 <a href="#"
                     onclick="openService('{{ service.url }}','{{ service.name }}'); return false;"
                     class="btn btn-success btn-sm">
@@ -153,12 +152,5 @@
 <h3>Service View</h3>
 
 <iframe id="serviceFrame"></iframe>
-
-<!--form method="post" action="/services/service_add" class="row g-2 mb-3">
-    <input name="name" placeholder="Name" class="form-control" required>
-    <input name="url" placeholder="URL" class="form-control" required>
-    <input name="port" placeholder="Port" class="form-control" required>
-    <button class="btn btn-success">Add Service</button>
-</form-->
 
 {% endblock %}

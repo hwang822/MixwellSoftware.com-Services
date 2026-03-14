@@ -45,6 +45,7 @@ class Service(db.Model):
     url = db.Column(db.String(200), nullable=False)
     port = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20)) # running / stopped
+    pid = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
@@ -53,7 +54,8 @@ class Service(db.Model):
             "path": self.path,
             "url": self.url,
             "port": self.port,
-            "status": self.status
+            "status": self.status,
+            "pid": self.pid
         }    
 
 class UserService(db.Model):
@@ -69,7 +71,7 @@ class Utility:
 
         for folder in os.listdir(SERVICES_PATH):
 
-            service_path = os.path.join(SERVICES_PATH, folder)
+            service_path = os.path.join(SERVICES_PATH, folder).lower()
 
             if not os.path.isdir(service_path):
                 continue
@@ -87,11 +89,7 @@ class Utility:
             url = f"{Config.GATEWAY_URL}:{port}"
             service = Service.query.filter_by(name=name).first()
 
-            if service:
-                service.port = port
-                service.url = url
-                service.path = path
-            else:
+            if not service:
                 service = Service(
                     name=name,
                     port=port,
@@ -99,8 +97,13 @@ class Utility:
                     path=path,
                     status = "stopped"
                 )
-                db.session.add(service)
+                db.session.add(service)        
         db.session.commit()
+
+        services = Utility.services_get_all()
+        for service in services:
+            Utility.service_start(service.name)
+        return services
 
 # service methods
     def services_get_all():
@@ -113,39 +116,43 @@ class Utility:
                 name = name,
                 url=url,
                 port=port,
-                status="stopped" #datetime.strftime(datetime.now(timezone.utc) + timedelta(hours=12))
+                status="running" #datetime.strftime(datetime.now(timezone.utc) + timedelta(hours=12))
             )
             db.session.add(service)                
             db.session.commit()
         return service        
 
-    def service_remove(serviceid):
-        Service.query.filter_by(id=serviceid).delete()
-        UserService.query.filter_by(service_id=serviceid).delete()
+    def service_remove(servicename):
+        service = Service.query.filter_by(name=servicename).first()
+        Service.query.filter_by(id=service.id).delete()
+        UserService.query.filter_by(service_id=service.id).delete()
         db.session.commit()
-        return serviceid
+        return servicename
 
-    def service_start(serviceid):
-        service = Service.query.get_or_404(serviceid)
-        #if service.status == "stopped":
-        app_file = os.path.join(service.path, "app.py")
-        subprocess.Popen(
-            ["python", app_file]
-        )
-        service.status = "running"
-        db.session.commit()
-        #return service
+    def service_start(servicename):
+        try:            
+            service = Service.query.filter_by(name=servicename).first()
+            app_file = os.path.join(service.path, "app.py")
+            proc = subprocess.Popen(
+                ["python", app_file]
+            )
+            service.status = "running"
+            service.pid = proc.pid
+            db.session.commit()
+            return service
+        except:
+            return None
 
-    def service_stop(serviceid):
-        service = Service.query.get_or_404(serviceid)
+    def service_stop(servicename):
+        service = Service.query.filter_by(name=servicename).first()
         # simple example using port kill
         os.system(f"fuser -k {service.port}/tcp")
         service.status = "stopped"
         db.session.commit()
         return service
 
-    def service_view(serviceid):
-        service = Service.query.get_or_404(serviceid)
+    def service_view(servicename):
+        service = Service.query.filter_by(name=servicename).first()
         #return redirect(service.url)        
         #service = Service.query.get_or_404(serviceid)
         return service
@@ -320,7 +327,7 @@ class Utility:
                 .all()
         )
         for service in services:
-            Utility.service_start(service.id) # to make sure services is running.
+            Utility.service_start(service.name) # to make sure services is running.
         return services
 
     def user_without_services(userid):        
