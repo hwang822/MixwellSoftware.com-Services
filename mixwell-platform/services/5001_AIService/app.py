@@ -1,24 +1,40 @@
-from flask import Flask, Blueprint, render_template
-import os
-import sys
-from flask import Flask, Blueprint
-URL = "127.0.0.1"
-BASE_PORT = 5000
-BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else BASE_PORT + 1
-SERVICENAME = "aiService"
-SERVICEPATH = SERVICENAME + "html"
+import os, sys
+from flask import Flask, redirect, render_template, request
+import jwt
 
-os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
-aiService = Blueprint(SERVICENAME, __name__, template_folder="templates")   #Make Each Service a Blueprint
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
+from config.settings import Config
+from portal.models import db
+app = Flask(__name__)
+app.config.from_object(Config)
+db.init_app(app)
 
-@aiService.route("/")
-def ai_home():
-    return render_template("aiService.html")
+folder_name = os.path.basename(os.path.dirname(__file__))
+servicePort, serviceName = folder_name.split("_", 1)
+servicePort = int(servicePort)
+authUrl = f"{Config.SERVICE_URL}:{Config.PORTAL_PORT}/login?service={serviceName}&next={Config.SERVICE_URL}:{servicePort}"
+@app.route("/")
+def home():    
+    user =  get_user()
+    if not user:
+        return redirect(authUrl) 
+    print(f"Welcome {user['email']} using {user['servicename']}")
+    return render_template(f"{serviceName}.html") 
 
-def create_app():
-    app = Flask(__name__)
-    app.register_blueprint(aiService)
-    return app
-
+def get_user():     
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
+        user = f"{payload['userid']} + {payload['email']} + {payload['servicename']}"
+    except:
+        return None        
+    return payload
+       
 if __name__ == "__main__":
-    create_app().run(host=URL, port=BASE_PORT)  # localhost only
+    with app.app_context():        
+        db.create_all()    
+    app.run(port=servicePort)
+
