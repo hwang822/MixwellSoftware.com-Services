@@ -17,6 +17,8 @@ app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 
+SERVICES_PATH = f"{BASE_DIR}\services"
+
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
@@ -38,7 +40,7 @@ def home():
         return redirect("/logout")
     try:
         decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
-        userid = decoded["user_id"]
+        userid = decoded["userid"]
         currentuser = Utility.user_get(userid)
         userswithservices =  Utility.user_with_services(currentuser.id)
         if currentuser.is_admin:
@@ -151,7 +153,6 @@ def service_stop(serviceid):
     return redirect("/")
 
 def home_insital():
-    SERVICES_PATH = "..\\services"
     Utility.services_register(SERVICES_PATH)
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
