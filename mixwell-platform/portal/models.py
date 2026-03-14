@@ -257,10 +257,12 @@ class Utility:
             return {"status" : 401,"message" : "Invalid email address"}         
         """
 
-    def user_token(user_id):
+    def user_token(userid, email, servicename):
         # Generate JWT token
         payload = {
-            "user_id": user_id,
+            "userid": userid,
+            "email": email,
+            "servicename": servicename,
             "exp": datetime.now(timezone.utc) + timedelta(hours=12)
         }
         token = jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
@@ -272,8 +274,8 @@ class Utility:
             Config.JWT_SECRET,
             algorithms=["HS256"]
         )
-        user_id = decoded["user_id"]
-        user =  Utility.user_get(user_id)
+        userid = decoded["userid"]
+        user =  Utility.user_get(userid)
         return user
 
     def user_add_service_byname(userid, servicename): #update users_services table for connect user.id and service.id                

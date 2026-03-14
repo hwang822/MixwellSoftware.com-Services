@@ -80,8 +80,9 @@ def login():
     else :  
         flash(response["message"])
         currentuser = response["data"]
-        token = Utility.user_token(currentuser.id)            
-        next_url = request.args.get("/")
+        next_url = request.args.get("next")
+        servicename = request.args.get("service")
+        token = Utility.user_token(currentuser.id, currentuser.email, servicename)                    
         if next_url is None:  
             response = make_response(redirect("/"))  # back to portal 
         else:

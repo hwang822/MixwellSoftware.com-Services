@@ -14,7 +14,7 @@ from flask import send_from_directory
 app = Flask(__name__)
 app.config.from_object(Config)
 BASE_PORT = app.config['PORT']
-BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///app_{BASE_PORT}.db"
 os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 db.init_app(app)
