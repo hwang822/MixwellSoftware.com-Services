@@ -2,8 +2,8 @@ from flask import Flask, Blueprint
 import os
 import sys
 
-BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5008
-os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
+#BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5008
+#os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 
 registryService = Blueprint("registryService", __name__)
 
@@ -17,7 +17,7 @@ def register():
 
     service={
         "name": "AI Service",
-        "url": "http://localhost:8001\health"
+        "url": "http://localhost:8001"
     }
     SERVICES.append(service)
     service={
@@ -63,21 +63,15 @@ def create_app():
     return app
 
 import os, sys
-from flask import Flask, redirect, render_template, request
-import jwt
+from flask import Flask
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
-from config.settings import Config
-from portal.models import db
 app = Flask(__name__)
-app.config.from_object(Config)
-db.init_app(app)
 
 folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
 servicePort = int(servicePort)
-authUrl = f"{Config.SERVICE_URL}:{Config.PORTAL_PORT}/login?service={serviceName}&next={Config.SERVICE_URL}:{servicePort}"
 
 if __name__ == "__main__":
     create_app().run(host="127.0.0.1", port=servicePort) 

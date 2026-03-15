@@ -50,8 +50,8 @@
                                 <input type="hidden" name="userid" value="{{ user.id }}">
                                 <select name="serviceid" class="form-select form-select-sm">
                                     {% for service in userswithservices %}                                    
-                                        {% if user.id == service.user_id %}       
-                                            <option value="{{ service.id }}">{{ service.name }}</option>
+                                        {% if user.id == service.userid %}       
+                                            <option value="{{ service.serviceid }}">{{ service.name }}</option>
                                         {% endif %}                
                                     {% endfor %}
                                 </select>
@@ -93,7 +93,6 @@
         <th>Status</th>
         <th>PID</th>
         <th>Action</th>
-        <th>Path</th>        
     </tr>
     {% for service in services %}
         <tr>
@@ -102,7 +101,6 @@
             <td>{{ service.url }}</td>
             <td>{{ service.status }}</td>
             <td>{{ service.pid }}</td>
-            <td>{{ service.path }}</td>
             <td>    
                 {% if service.status == "stopped" %}
                     <a href="/services/service_start/{{ service.name }}"  

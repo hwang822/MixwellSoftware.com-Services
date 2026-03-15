@@ -1,3 +1,4 @@
+"""
 import os
 import sys
 from flask_login import LoginManager, logout_user, login_required
@@ -43,3 +44,4 @@ def home():
     
 if __name__ == "__main__":
     app.run(port=Config.PORTAL_PORT, debug=False, use_reloader=False)
+"""

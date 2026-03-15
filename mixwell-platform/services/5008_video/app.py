@@ -1,30 +1,15 @@
 import os, sys
-from flask import Flask, render_template
+from flask import Blueprint, Flask, request, send_from_directory, abort, render_template_string
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-sys.path.insert(0, BASE_DIR)
-from config.settings import Config
-from portal.models import db
+#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+#sys.path.insert(0, BASE_DIR)
 app = Flask(__name__)
 
 folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
-servicePort = int(servicePort)
 
-app.config.from_object(Config)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"{app.config["SQLALCHEMY_DATABASE_URL"]}/{serviceName}db" 
-db.init_app(app)
-
-
-
-from flask import Flask, Blueprint
-
-import os
-from flask import Flask, send_from_directory, request, abort, render_template_string
-import sys
-from flask import Flask, Blueprint
-BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5003
-os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
+#BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5003
+#os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 
 videoService = Blueprint("videoService", __name__)
 

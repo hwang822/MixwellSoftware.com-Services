@@ -3,17 +3,17 @@ from email.mime.text import MIMEText
 import os
 import smtplib
 import sys
-from flask import render_template
-import jwt
+from flask import render_template, request
 from sqlalchemy import and_, true
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
+import jwt # python -m pip install PyJWT
 
 db = SQLAlchemy()
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
 
 from config.settings import Config
@@ -101,8 +101,8 @@ class Utility:
         db.session.commit()
 
         services = Utility.services_get_all()
-        for service in services:
-            Utility.service_start(service.name)
+        #for service in services:
+            #Utility.service_start(service.name)
         return services
 
 # service methods
@@ -222,7 +222,7 @@ class Utility:
         return user            
     
     def user_verify_email(user_id, user_email):    
-        token = Utility.user_token(user_id)
+        token = Utility.user_token(user_id,  user_email, "")
         verify_url = Config.VERIFY_URL + f"/{token}"
         html_content = render_template(
             "verify_email.html",
@@ -275,6 +275,23 @@ class Utility:
         token = jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
         return token
 
+    def user_check():
+        token = request.cookies.get("access_token")
+        if not token:
+            return None
+        try:
+            decoded = jwt.decode(
+                token,
+                Config.JWT_SECRET,
+                algorithms=["HS256"]
+            )
+            userid = decoded["userid"]
+            user =  Utility.user_get(userid)
+        except:
+            return None
+        return user
+
+
     def user_bytoken(token):
         decoded = jwt.decode(
             token,
@@ -304,6 +321,7 @@ class Utility:
                 service_id=serviceid,
                 access = 1
             )
+            db.session.add(userservice)
             db.session.commit()
         return userservice
 

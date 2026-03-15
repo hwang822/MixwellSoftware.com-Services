@@ -1,23 +1,19 @@
 import os
 import sys
-from flask_login import LoginManager, logout_user, login_required
-import jwt # install PyJWT
+from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, session
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+sys.path.insert(0, BASE_DIR)
+
+from config.settings import Config
 from models import Utility, db, Utility, User
 
-#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-#if BASE_DIR not in sys.path:
-#    sys.path.insert(0, BASE_DIR)
-#from settings import Config
-#from auth.models import db, Utility, User, UserService
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.insert(0, BASE_DIR)
-from config.settings import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 
-SERVICES_PATH = f"{BASE_DIR}\services"
+SERVICES_PATH = f"{BASE_DIR}\\services"
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -26,31 +22,36 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-serviceName = "PortalService"
-serviceUrl =  Config.SERVICE_URL
-servicePort = Config.PORTAL_PORT
+folder_name = os.path.basename(os.path.dirname(__file__))
+servicePort, serviceName = folder_name.split("_", 1)
+servicePort = int(servicePort)
+
+#serviceName = "PortalService"
+#serviceUrl =  Config.SERVICE_URL
+#servicePort = Config.PORTAL_PORT
+
+
 
 # ---------- Login, siginup, logout ROUTES ----------
 
 @app.route("/")
 def home():
-    token = request.cookies.get("access_token")
     services = Utility.services_get_all()
-    if not token:
-        return redirect("/logout")
+    user = Utility.user_check()
+    if not user:
+        return render_template("admin_dashboard.html", services = services)    
+        #return render_template("admin_dashboard.html", services = services)
     try:
-        decoded = jwt.decode(token, Config.JWT_SECRET, algorithms=["HS256"])
-        userid = decoded["userid"]
-        currentuser = Utility.user_get(userid)
-        userswithservices =  Utility.user_with_services(currentuser.id)
-        if currentuser.is_admin:
+        userswithservices =  Utility.user_with_services(user.id)
+        if user.is_admin:
             users = Utility.users_get_all()
-            userswithoutservices =  Utility.user_without_services(currentuser.id)    
+            userswithoutservices =  Utility.user_without_services(user.id)    
             return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
         else:
-            return render_template("user_dashboard.html", user = currentuser, userswithservices = userswithservices)                     
+            return render_template("user_dashboard.html", user = user, userswithservices = userswithservices)                     
     except:
-        return redirect("/logout")
+        return render_template("admin_dashboard.html", services = services)    
+        #return redirect("/logout")
 
 # -------------------------
 # user signup, login, logout request from auth UI 
@@ -158,32 +159,9 @@ def service_router(servicename):
     if not service:
         return "Service not found"
     return f"{service.name} is {servicename}"
-        
-"""
-    for folder in os.listdir(SERVICES_PATH):
-
-        port, name = folder.split("_")
-
-        if name.lower() == servicename.lower():
-
-            port = int(port)
-
-            service_path = os.path.join(SERVICES_PATH, folder)
-
-            start_service(port, service_path)
-
-            url = f"http://127.0.0.1:{port}/{service_path}"
-
-            r = requests.get(url)
-
-            return r.text
-
-    return "Service not found"
-"""
-
 
 def home_insital():
-    Utility.services_register(SERVICES_PATH)
+    services = Utility.services_register(SERVICES_PATH)
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":

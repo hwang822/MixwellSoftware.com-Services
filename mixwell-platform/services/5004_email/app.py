@@ -3,21 +3,13 @@ import os
 import sys
 
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-sys.path.insert(0, BASE_DIR)
-from config.settings import Config
-from portal.models import db
+#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+#sys.path.insert(0, BASE_DIR)
 app = Flask(__name__)
-app.config.from_object(Config)
-db.init_app(app)
 
 folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
 servicePort = int(servicePort)
-authUrl = f"{Config.SERVICE_URL}:{Config.PORTAL_PORT}/login?service={serviceName}&next={Config.SERVICE_URL}:{servicePort}"
-
-#BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5004
-#os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 
 emailService = Blueprint("emailService", __name__)
 
@@ -26,7 +18,7 @@ def send_email():
 
 @emailService.route("/")
 def Email_home():
-    return render_template("EmailService.html")
+    return render_template(f"{serviceName}.html")
 
 @emailService.route("/email/", methods=["GET", "POST"])
 def sendEmail():
