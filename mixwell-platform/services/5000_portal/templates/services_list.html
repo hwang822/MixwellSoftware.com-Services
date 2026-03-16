@@ -1,0 +1,20 @@
+<ul>
+
+{% for s in services %}
+
+<li>
+
+{{s.name}}
+
+<button
+hx-delete="/service/{{s.id}}"
+hx-confirm="Delete service?"
+hx-swap="none">
+Delete
+</button>
+
+</li>
+
+{% endfor %}
+
+</ul>

@@ -26,32 +26,37 @@ folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
 servicePort = int(servicePort)
 
-#serviceName = "PortalService"
-#serviceUrl =  Config.SERVICE_URL
-#servicePort = Config.PORTAL_PORT
-
-
-
 # ---------- Login, siginup, logout ROUTES ----------
+
+@app.route("/users/list/", strict_slashes=False)
+def users_list():
+    users = Utility.users_list()
+    print("users_list called")
+    print(f"users_list called {users.count()}")
+
+    return render_template("users_list.html", users = users)
+
+@app.route("/services/list/", strict_slashes=False)
+def services_list():
+    services = Utility.services_get_all()
+    print(f"services_list called {services.count()}")
+    return render_template("services_list.html", services = services)
 
 @app.route("/")
 def home():
     services = Utility.services_get_all()
     user = Utility.user_check()
     if not user:
-        return render_template("admin_dashboard.html", services = services)    
-        #return render_template("admin_dashboard.html", services = services)
+        return render_template(f"{serviceName}.html", services = services)    
     try:
-        userswithservices =  Utility.user_with_services(user.id)
         if user.is_admin:
-            users = Utility.users_get_all()
-            userswithoutservices =  Utility.user_without_services(user.id)    
-            return render_template("admin_dashboard.html", services = services, users = users, userswithservices = userswithservices, userswithoutservices=userswithoutservices)     
+            users = Utility.users_list()
+            return render_template("admin_dashboard.html", services = services, users = users)     
         else:
-            return render_template("user_dashboard.html", user = user, userswithservices = userswithservices)                     
+            user_with_services = Utility.user_with_services(user.id)
+            return render_template("user_dashboard.html", username = user.email, user_with_services = user_with_services)                     
     except:
         return render_template("admin_dashboard.html", services = services)    
-        #return redirect("/logout")
 
 # -------------------------
 # user signup, login, logout request from auth UI 

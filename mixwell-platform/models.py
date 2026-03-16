@@ -1,15 +1,23 @@
-from datetime import datetime, timedelta, timezone
+from asyncio import start_server
+from ctypes import util
+from datetime import datetime, time, timedelta, timezone
 from email.mime.text import MIMEText
 import os
 import smtplib
 import sys
+from time import process_time
 from flask import render_template, request
-from sqlalchemy import and_, true
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 import jwt # python -m pip install PyJWT
+import subprocess
+import sys
+import os
+import signal
+import psutil
 
 db = SQLAlchemy()
 
@@ -19,7 +27,7 @@ sys.path.insert(0, BASE_DIR)
 from config.settings import Config
 
 
-class User(UserMixin, db.Model):   # Set UserMixin for flask_login import LoginManager login_user(user) check
+class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
@@ -27,15 +35,12 @@ class User(UserMixin, db.Model):   # Set UserMixin for flask_login import LoginM
     is_admin = db.Column(db.Boolean, default=False)
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime)
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "password": self.password,
-            "is_admin": self.is_admin,
-            "is_verified": self.is_verified,
-            "created_at": self.created_at
-        }    
+
+    services = db.relationship(
+        "Service",
+        secondary="users_services",   # 修正这里
+        backref="users"
+    )
 
 class Service(db.Model):
     __tablename__ = "services"
@@ -47,23 +52,12 @@ class Service(db.Model):
     status = db.Column(db.String(20)) # running / stopped
     pid = db.Column(db.Integer, nullable=True)
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "path": self.path,
-            "url": self.url,
-            "port": self.port,
-            "status": self.status,
-            "pid": self.pid
-        }    
-
 class UserService(db.Model):
     __tablename__ = "users_services"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
-    service_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), primary_key=True)    # 修正这里
+    service_id = db.Column(db.Integer, db.ForeignKey("services.id"), primary_key=True)                 # 修正这里
     access = db.Column(db.Integer)
+
 
 class Utility:
 
@@ -95,15 +89,11 @@ class Utility:
                     port=port,
                     url=url,
                     path=path,
-                    status = "stopped"
+                    status = "running"
                 )
-                db.session.add(service)        
+                db.session.add(service)
+                Utility.service_start(service.name)        
         db.session.commit()
-
-        services = Utility.services_get_all()
-        #for service in services:
-            #Utility.service_start(service.name)
-        return services
 
 # service methods
     def services_get_all():
@@ -128,7 +118,48 @@ class Utility:
         UserService.query.filter_by(service_id=service.id).delete()
         db.session.commit()
         return servicename
+    
+    def service_start(servicename):
+        try:
+            service = Service.query.filter_by(name=servicename).first()
+            app_file = os.path.join(service.path, "app.py")
 
+            # Windows
+            if os.name == 'nt':
+                proc = subprocess.Popen(
+                    [sys.executable, app_file],
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+                )
+            else:  # Linux / macOS
+                proc = subprocess.Popen(
+                    [sys.executable, app_file],
+                    start_new_session=True
+                )
+
+            service.status = "running"
+            service.pid = proc.pid
+            db.session.commit()
+            return service
+        except Exception as e:
+            print(e)
+            return None
+
+
+    def service_stop(servicename):
+        service = Service.query.filter_by(name=servicename).first()
+        try:
+            if service.pid:
+                p = psutil.Process(service.pid)
+                p.terminate()  # 或 p.kill() 强制杀掉
+                p.wait(timeout=5)
+        except Exception as e:
+            print(e)
+        service.status = "stopped"
+        service.pid = None
+        db.session.commit()
+        return service
+    
+    """
     def service_start(servicename):
         try:            
             service = Service.query.filter_by(name=servicename).first()
@@ -150,12 +181,8 @@ class Utility:
         service.status = "stopped"
         db.session.commit()
         return service
+    """
 
-    def service_view(servicename):
-        service = Service.query.filter_by(name=servicename).first()
-        #return redirect(service.url)        
-        #service = Service.query.get_or_404(serviceid)
-        return service
 
 
 # users methods
@@ -309,7 +336,6 @@ class Utility:
 
 
     def user_add_service(userid, serviceid): #update users_services table for connect user.id and service.id        
-        service = Service.query.filter_by(id=serviceid).first()
         userservice = UserService.query.filter_by(   
             user_id=userid,
             service_id=serviceid
@@ -332,42 +358,104 @@ class Utility:
         ).first()
         db.session.delete(userService)
         db.session.commit()    
+        return userService
 
-    def user_with_services(userid):
-        services = (        
+    def user_with_services(user_id):
+        userwithservices = (
             db.session.query(
-                    UserService.user_id,
-                    Service.id,
-                    Service.name,
-                    Service.url
-                )
-                .join(Service, UserService.service_id == Service.id)
-                .all()
-        )
-        for service in services:
-            Utility.service_start(service.name) # to make sure services is running.
-        return services
-
-    def user_without_services(userid):        
-        results = []
-        results = (
-            db.session.query(
-                User.id.label("userid"),
-                Service.id.label("serviceid"),
-                Service.name
+                UserService.user_id,
+                Service.id,
+                Service.name,
+                Service.url
             )
-            .join(Service, true())   # cross join
-            .outerjoin(
-                UserService,
-                and_(
-                    UserService.id == User.id,
-                    UserService.id == Service.id
-                )
-            )
-            .filter(UserService.id == None)
+            .join(Service, UserService.service_id == Service.id)
+            .filter(UserService.user_id == user_id)
             .all()
         )
-        return results
+
+        return userwithservices
+    
+    def users_list():
+
+        rows = (
+            db.session.query(
+                User.id.label("user_id"),
+                User.email,
+
+                func.json_agg(
+                    func.json_build_object(
+                        "id", Service.id,
+                        "name", Service.name
+                    )
+                ).filter(UserService.user_id == User.id).label("with_services"),
+
+            )
+            .select_from(User)
+            .outerjoin(UserService, User.id == UserService.user_id)
+            .outerjoin(Service, Service.id == UserService.service_id)
+            .group_by(User.id)
+            .order_by(User.id)
+            .all()
+        )
+
+        # all services once
+        all_services = db.session.query(Service.id, Service.name).all()
+
+        users = []
+
+        for r in rows:
+
+            with_services = r.with_services or []
+
+            with_ids = {s["id"] for s in with_services}
+
+            without_services = [
+                {"id": s.id, "name": s.name}
+                for s in all_services
+                if s.id not in with_ids
+            ]
+
+            users.append({
+                "user_id": r.user_id,
+                "email": r.email,
+                "service_count": len(with_services),
+                "with_services": with_services,
+                "without_services": without_services
+            })
+
+        return users
+
+
+    # service manager
+    def process_alive(pid):
+
+        if not pid:
+            return False
+
+        return util.pid_exists(pid)
+
+
+    def monitor_services():
+
+        while True:
+
+            services = Service.query.all()
+
+            for service in services:
+
+                if service.status == "running":
+
+                    if not process_time(service.pid):
+
+                        start_server(service)
+
+                else:
+
+                    if process_time(service.pid):
+
+                        stop_service(service)
+
+            time.sleep(5)
 
     def auth_response(status, message, data):
         return {"status" : status, "message" : message, "data" : data}

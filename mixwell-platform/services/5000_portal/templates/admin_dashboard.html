@@ -1,6 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
 
+
+<!--!DOCTYPE html>
+<html>
+
+<head>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+
+<div id="users_list" hx-get="/users/list" hx-trigger="load" hx-target="#users_list"></div>
+<div id="services_list" hx-get="/services/list" hx-trigger="load" hx-target="#services_list"></div>
+
+
+<body>
+
+    <h2>Users</h2>
+
+    <div id="users_list"
+        hx-get="/users/list"
+        hx-trigger="load, refreshUsers from:body"
+        hx-target="#users_list">
+    </div>
+
+
+    <h2>Services</h2>
+
+    <div id="services_list"
+        hx-get="/services/list"
+        hx-trigger="load, refreshServices from:body"
+        hx-target="#services_list">
+    </div>
+</body>
+</html-->
+
 <h3>Admin Dashboard</h3>
 
 <h2>Admin Users</h2>
@@ -16,21 +49,19 @@
 
     {% for user in users %}
         <tr>
-            <td>{{ user.id }}</td>
+            <td>{{ user.user_id }}</td>
             <td>{{ user.email }}</td>
-            <td>{{ services | count }}</td>
+            <td>{{ user.service_count }}</td>
 
             <td>
                 <form method="post" action="/users/user_add_service">
                     <table class="addtable">
                         <tr>
                             <td>
-                                <input type="hidden" name="userid" value="{{ user.id }}">
+                                <input type="hidden" name="userid" value="{{ user.user_id }}">
                                 <select name="serviceid" class="form-select form-select-sm">
-                                    {% for service in userswithoutservices %}                                        
-                                        {% if user.id == service.userid %}
-                                            <option value="{{ service.serviceid }}">{{ service.name }}</option>
-                                        {% endif %}                
+                                    {% for service in user.without_services %}                                        
+                                        <option value="{{ service.id }}">{{  service.name }}</option>
                                     {% endfor %}
                                 </select>
                             </td>
@@ -47,12 +78,10 @@
                     <table class="removetable">
                         <tr>
                             <td>
-                                <input type="hidden" name="userid" value="{{ user.id }}">
+                                <input type="hidden" name="userid" value="{{ user.user_id }}">
                                 <select name="serviceid" class="form-select form-select-sm">
-                                    {% for service in userswithservices %}                                    
-                                        {% if user.id == service.userid %}       
-                                            <option value="{{ service.serviceid }}">{{ service.name }}</option>
-                                        {% endif %}                
+                                    {% for service in user.with_services %}                                    
+                                        <option value="{{ service.id }}">{{ service.name }}</option>
                                     {% endfor %}
                                 </select>
                             </td>
@@ -149,6 +178,6 @@
 
 <h3>Service View</h3>
 
-<iframe id="serviceFrame"></iframe>
+<iframe id="serviceFrame"></iframe-->
 
 {% endblock %}

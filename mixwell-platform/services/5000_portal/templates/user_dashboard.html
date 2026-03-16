@@ -4,13 +4,13 @@
 <div class="row">
 
 <div class="col-md-8">
-<h2>User: {{user.email}}</h2>
+<h2>User: {{username}}</h2>
 <table class="table table-bordered">
     <tr>
         <th>Name</th>
         <th>Action</th>
     </tr>
-    {% for service in userswithservices %}
+    {% for service in user_with_services %}
         <tr>
             <td>{{ service.name }}</td>
             <td>    
