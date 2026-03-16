@@ -28,19 +28,11 @@ servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
 
 # ---------- Login, siginup, logout ROUTES ----------
 
-@app.route("/users/list/", strict_slashes=False)
-def users_list():
-    users = Utility.users_list()
-    print("users_list called")
-    print(f"users_list called {users.count()}")
-
-    return render_template("users_list.html", users = users)
-
-@app.route("/services/list/", strict_slashes=False)
-def services_list():
-    services = Utility.services_get_all()
-    print(f"services_list called {services.count()}")
-    return render_template("services_list.html", services = services)
+@app.route("/<servicename>")
+def serivce_access(servicename):
+    services = Utility.service_get(servicename)    
+    servicesurl = 'http://127.0.0.1:8001'
+    return redirect(servicesurl)
 
 @app.route("/")
 def home():
@@ -104,10 +96,9 @@ def login():
         return response       
 
 @app.route("/logout", methods=["GET", "POST"])
-def logout():
-    session.pop('_flashes', None)
+def logout():    
     logout_user()
-    return redirect("/login")
+    return render_template(f"{serviceName}.html")
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):

@@ -159,6 +159,10 @@ class Utility:
         db.session.commit()
         return service
     
+    def service_get(servicename):
+        service = Service.query.filter_by(name=servicename).first()
+        return service
+
 
 # users methods
 
