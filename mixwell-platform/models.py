@@ -159,31 +159,6 @@ class Utility:
         db.session.commit()
         return service
     
-    """
-    def service_start(servicename):
-        try:            
-            service = Service.query.filter_by(name=servicename).first()
-            app_file = os.path.join(service.path, "app.py")
-            proc = subprocess.Popen(
-                ["python", app_file]
-            )
-            service.status = "running"
-            service.pid = proc.pid
-            db.session.commit()
-            return service
-        except:
-            return None
-
-    def service_stop(servicename):
-        service = Service.query.filter_by(name=servicename).first()
-        # simple example using port kill
-        os.system(f"fuser -k {service.port}/tcp")
-        service.status = "stopped"
-        db.session.commit()
-        return service
-    """
-
-
 
 # users methods
 
