@@ -1,83 +1,136 @@
 @echo off
 
+cd /d %~dp0
+
+setlocal EnableDelayedExpansion
+
+set LOGFILE=deploy.log
+
+del %LOGFILE% 2>nul
+
+set STARTTIME=%DATE% %TIME%
+
+set LOGFILE=deploy.log
+set STARTTIME=%DATE% %TIME%
+
+echo ===================================== >> %LOGFILE%
+echo Build started: %STARTTIME% >> %LOGFILE%
+echo ===================================== >> %LOGFILE%
+
 echo Starting deployment...
+echo.
 
-echo --- Git Sync ---
-CALL RepoStartup.bat
+REM -----------------------------
+REM Project settings
+REM -----------------------------
 
-echo --- Kill old ports ---
+set REPO_URL=https://github.com/hwang822/MixwellSoftware.com-Services.git
+set PROJECT_DIR=MixwellSoftware.com-Services
+set PLATFORM_DIR=%PROJECT_DIR%\mixwell-platform
+set SERVICES_DIR=%PLATFORM_DIR%\services
+set PYTHON=%~dp0%PLATFORM_DIR%\venv\Scripts\python.exe
 
-SET PORTAL_PORT=8000
-SET AI_SERVICE_PORT=8001
-SET CAM_SERVICE_PORT=8002
-SET DATA_SERVICE_PORT=8003
-SET EMAIL_SERVICE_PORT=8004
-SET RDP_SERVICE_PORT=8005
-SET REGISTRY_SERVICE_PORT=8006
-SET USER_SERVICE_PORT=8007
-SET VIDEO_SERVICE_PORT=8008
-SET SERVICE1_SERVICE_PORT=8009
-SET SERVICE2_SERVICE_PORT=8010
+REM -----------------------------
+REM Clone or update repo
+REM -----------------------------
 
-CALL :KillPort %PORTAL_PORT%
-CALL :KillPort %AI_SERVICE_PORT%
-CALL :KillPort %CAM_SERVICE_PORT%
-CALL :KillPort %DATA_SERVICE_PORT%
-CALL :KillPort %EMAIL_SERVICE_PORT%
-CALL :KillPort %RDP_SERVICE_PORT%
-CALL :KillPort %REGISTRY_SERVICE_PORT%
-CALL :KillPort %USER_SERVICE_PORT%
-CALL :KillPort %VIDEO_SERVICE_PORT%
-CALL :KillPort %SERVICE1_SERVICE_PORT%
-CALL :KillPort %SERVICE2_SERVICE_PORT%
+if not exist "%PROJECT_DIR%" (
+    echo Cloning repository...
+    echo Cloning repository... >> %LOGFILE%
+    git clone %REPO_URL%
+) else (
+    echo Updating repository...
+    echo Updating repository... >> %LOGFILE%
+    cd %PROJECT_DIR%
+    git pull
+    cd ..
+)
+
+REM Copy .env file to build directory
+SET SOURCE_ENV=..\mixwell-platform\.env
+SET TARGET_ENV=%PROJECT_DIR%\.env
+echo Copying .env file...
+copy /Y "%SOURCE_ENV%" "%TARGET_ENV%"
+
+
+REM -----------------------------
+REM Start services
+REM -----------------------------
+
+echo.
+echo Starting services...
+echo Starting services... >> %LOGFILE%
+
+FOR /D %%D IN (%SERVICES_DIR%\*) DO (
+    call :StartService "%%~fD" "%%~nxD"
+)
+
+REM -----------------------------
+REM Check portal
+REM -----------------------------
 
 timeout /t 3 >nul
 
-SET PYTHON_PATH=C:\Workarea\MixwellSoftware.com-Services\build\MixwellSoftware.com-Services\mixwell-platform\venv\Scripts
-SET ROOT_PATH=C:\Workarea\MixwellSoftware.com-Services\build\MixwellSoftware.com-Services\mixwell-platform\services
+powershell -Command ^
+"try { (Invoke-WebRequest http://localhost:8000 -UseBasicParsing).StatusCode } catch { exit 1 }"
 
-echo --- Start Portal Service 8000 ---
-start "" cmd /c "cd /d %ROOT_PATH%\5000_portal && %PYTHON_PATH%\python app.py %PORTAL_PORT%"
+set ENDTIME=%DATE% %TIME%
 
-echo --- Start AI Service 8001 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5001_ai && %PYTHON_PATH%\python app.py %AI_SERVICE_PORT%"
+echo Build finished: %ENDTIME% >> %LOGFILE%
+echo ===================================== >> %LOGFILE%
 
-echo --- Start Cam Service 8002 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5002_cam && %PYTHON_PATH%\python app.py %CAM_SERVICE_PORT%"
-
-echo --- Start Data Service 8003 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5003_data && %PYTHON_PATH%\python app.py %DATA_SERVICE_PORT%"
-
-echo --- Start Email Service 8004 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5004_email && %PYTHON_PATH%\python app.py %EMAIL_SERVICE_PORT%"
-
-echo --- Start rdb Service 8005 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5005_rdp && %PYTHON_PATH%\python app.py %RDP_SERVICE_PORT%"
-
-echo --- Start Registry Service 8006 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5006_registry && %PYTHON_PATH%\python app.py %REGISTRY_SERVICE_PORT%"
-
-echo --- Start user Service 8007 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5007_user && %PYTHON_PATH%\python app.py %USER_SERVICE_PORT%"
-
-echo --- Start video Service 8008 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5008_video && %PYTHON_PATH%\python app.py %VIDEO_SERVICE_PORT%"
-
-echo --- Start service1 Service 8009 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5009_service1 && %PYTHON_PATH%\python app.py %SERVICE1_SERVICE_PORT%"
-
-echo --- Start service2 Service 8010 ---
-start /B "" cmd /c "cd /d %ROOT_PATH%\5010_service2 && %PYTHON_PATH%\python app.py %SERVICE2_SERVICE_PORT%"
-
-
-echo Deployment Complete
-pause
+echo Deployment finished.
+REM pause
 exit /b
+
+REM -----------------------------
+REM Start service
+REM -----------------------------
+
+:StartService
+
+set SERVICE_PATH=%~1
+set FOLDER_NAME=%~2
+
+set PORT_PREFIX=%FOLDER_NAME:~0,4%
+set PORT=%PORT_PREFIX:5=8%
+
+set APP_FILE=%SERVICE_PATH%\app.py
+echo SERVICE_PATH=%SERVICE_PATH% >> %LOGFILE%
+echo FOLDER_NAME=%FOLDER_NAME% >> %LOGFILE%
+
+echo To start APP_FILE !APP_FILE! >> %LOGFILE%
+
+echo Starting %FOLDER_NAME% port %PORT%
+echo Starting %FOLDER_NAME% port %PORT% >> %LOGFILE%
+
+call :KillPort %PORT%
+
+REM set CMD=start "" /B cmd /c "cd /d "!SERVICE_PATH!" && "%PYTHON%" app.py !PORT!"
+start "" /B cmd /c "cd /d "!SERVICE_PATH!" && "%PYTHON%" app.py !PORT! >> !SERVICE_PATH!\service.log 2>&1"
+
+echo CMD=!CMD! >> %LOGFILE%
+
+!CMD!
+
+if %ERRORLEVEL% EQU 0 (
+    echo %FOLDER_NAME% OK >> %LOGFILE%
+) else (
+    echo %FOLDER_NAME% FAILED >> %LOGFILE%
+)
+
+exit /b
+
+REM -----------------------------
+REM Kill port
+REM -----------------------------
 
 :KillPort
-SET PORT=%1
+set PORT=%1
+
 FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr :%PORT%') DO (
-    echo Killing PID %%a on port %PORT%
-    taskkill /PID %%a /F
+    taskkill /PID %%a /F >nul 2>&1
 )
+
 exit /b
+
