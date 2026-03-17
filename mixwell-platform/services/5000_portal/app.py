@@ -55,9 +55,9 @@ def home():
 # -------------------------
 @app.route("/signup", methods=["GET", "POST"])  
 def signup():    
-    if request.method == "GET":        
+    if request.method == "GET":      
+        session.pop('_flashes', None)  
         return render_template("signup.html")
-    session.pop('_flashes', None)
     email = request.form["username"]
     password = request.form["password"]        
     response = Utility.user_signup(email, password, False, False)
@@ -69,8 +69,8 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 def login():          
     if request.method == "GET":
-        return render_template("login.html")        
-    session.pop('_flashes', None)    
+        session.pop('_flashes', None)        
+        return render_template("login.html")                
     email = request.form["username"]
     password = request.form["password"]    
     response = Utility.user_login(email, password)    
