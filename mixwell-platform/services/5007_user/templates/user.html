@@ -6,11 +6,13 @@
 <table class="table table-bordered">
     <tr>
         <th>Name</th>
+        <th>Url</th>
         <th>Action</th>
     </tr>
-    {% for service in userswithservices %}
+    {% for service in user_with_services %}
         <tr>
             <td>{{ service.name }}</td>
+            <td>{{ service.url }}</td>
             <td>    
                 <a href="#"
                     onclick="openService('{{ service.url }}','{{ service.name }}'); return false;"
@@ -30,7 +32,6 @@
 }    
 </script>
 
-
 <div class="col-md-4">
     <h3>Service View</h3>
     <iframe id="serviceFrame"></iframe>
@@ -45,7 +46,6 @@
         border:1px solid #aaa;
     }
 </style>
-
 
 <div class="col-md-4">
 

@@ -26,18 +26,23 @@ folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
 servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort) 
 
+authUrl = f"http://{Config.SERVICE_URL}:{servicePort}/login?next=http://{Config.SERVICE_URL}:{servicePort}"
+
 # ---------- Login, siginup, logout ROUTES ----------
 
-@app.route("/<servicename>")
+@app.route("/service/<servicename>")
 def serivce_access(servicename):
+    user = Utility.user_check(servicename)    
+    if not user:
+        return redirect(authUrl)    
     service = Utility.service_get(servicename)    
     if service:
-        return redirect(service.url)
-
+        return redirect(f"{service.url}/user/{user.id}")
+    
 @app.route("/")
 def home():
     services = Utility.services_get_all()
-    user = Utility.user_check()
+    user = Utility.user_check(serviceName)
     if not user:
         return render_template(f"{serviceName}.html", services = services)    
     try:
@@ -45,8 +50,7 @@ def home():
             users = Utility.users_list()
             return render_template("admin_dashboard.html", services = services, users = users)     
         else:
-            user_with_services = Utility.user_with_services(user.id)
-            return render_template("user_dashboard.html", username = user.email, user_with_services = user_with_services)                     
+            return redirect(f"http://localhost:5007/user/{user.id}") #, username = user.email, user_with_services = user_with_services)
     except:
         return render_template("admin_dashboard.html", services = services)    
 
@@ -137,7 +141,9 @@ def service_remove(serviceid):
 @app.route("/services/service_view/<int:serviceid>")
 def service_view(serviceid): 
     service = Utility.service_view(serviceid)
-    return redirect(service.url)
+    if service: 
+        return redirect(service.url)
+    return redirect("/")
 
 @app.route("/services/service_start/<servicename>")
 def service_start(servicename): 
@@ -157,8 +163,7 @@ def service_router(servicename):
     return f"{service.name} is {servicename}"
 
 def home_insital():
-    Utility.services_register(SERVICES_PATH)    
-#    Utility.sync_services()
+    Utility.services_register(SERVICES_PATH, servicePort)    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":

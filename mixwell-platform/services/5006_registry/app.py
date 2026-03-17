@@ -2,9 +2,6 @@ from flask import Flask, Blueprint
 import os
 import sys
 
-#BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5008
-#os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
-
 registryService = Blueprint("registryService", __name__)
 
 SERVICES = []

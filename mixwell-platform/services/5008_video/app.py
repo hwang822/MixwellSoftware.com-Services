@@ -9,8 +9,6 @@ folder_name = os.path.basename(os.path.dirname(__file__))
 servicePort, serviceName = folder_name.split("_", 1)
 servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
 
-#BASE_PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5003
-#os.system(f'for /f "tokens=5" %a in (\'netstat -ano ^| findstr :{BASE_PORT}\') do taskkill /F /PID %a')
 
 videoService = Blueprint("videoService", __name__)
 
