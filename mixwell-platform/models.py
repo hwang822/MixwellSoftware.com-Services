@@ -7,6 +7,7 @@ import smtplib
 import sys
 from time import process_time
 from flask import render_template, request
+import psycopg2
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
@@ -21,10 +22,17 @@ import psutil
 
 db = SQLAlchemy()
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 sys.path.insert(0, BASE_DIR)
 
 from config.settings import Config
+
+# ----------------------------
+# 配置路径
+# ----------------------------
+PLATFORM_DIR = os.path.join(BASE_DIR, "mixwell-platform") # r"C:\Workarea\MixwellSoftware.com-Services\mixwell-platform"
+SERVICES_DIR = os.path.join(PLATFORM_DIR, "services")
+PYTHON_PATH = os.path.join(PLATFORM_DIR, "venv", "Scripts", "python.exe")
 
 
 class User(UserMixin, db.Model):
@@ -46,11 +54,13 @@ class Service(db.Model):
     __tablename__ = "services"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True)
-    path = db.Column(db.String(200), nullable=False) 
+    desc = db.Column(db.String(100), unique=False)
     url = db.Column(db.String(200), nullable=False)
     port = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20)) # running / stopped
+    database = db.Column(db.String(100), unique=False)
     pid = db.Column(db.Integer, nullable=True)
+    path = db.Column(db.String(200), nullable=False) 
 
 class UserService(db.Model):
     __tablename__ = "users_services"
@@ -61,39 +71,9 @@ class UserService(db.Model):
 
 class Utility:
 
-    def services_register(SERVICES_PATH):
-
-        for folder in os.listdir(SERVICES_PATH):
-
-            service_path = os.path.join(SERVICES_PATH, folder).lower()
-
-            if not os.path.isdir(service_path):
-                continue
-
-            # split folder name
-            parts = folder.split("_", 1)
-
-            if len(parts) != 2:
-                print(f"Invalid service folder name: {folder}")
-                continue
-
-            port = int(parts[0])
-            name = parts[1]
-            path = service_path
-            url = f"{Config.GATEWAY_URL}:{port}"
-            service = Service.query.filter_by(name=name).first()
-
-            if not service:
-                service = Service(
-                    name=name,
-                    port=port,
-                    url=url,
-                    path=path,
-                    status = "running"
-                )
-                db.session.add(service)
-                Utility.service_start(service.name)        
-        db.session.commit()
+    ####################################
+    # service methods
+    ####################################
 
 # service methods
     def services_get_all():
@@ -104,6 +84,8 @@ class Utility:
         if service is None:
             service = Service(   # new service
                 name = name,
+                desc = f"{name} serv",
+                database = "",
                 url=url,
                 port=port,
                 status="running" #datetime.strftime(datetime.now(timezone.utc) + timedelta(hours=12))
@@ -120,40 +102,23 @@ class Utility:
         return servicename
     
     def service_start(servicename):
-        try:
-            service = Service.query.filter_by(name=servicename).first()
-            app_file = os.path.join(service.path, "app.py")
-
-            # Windows
-            if os.name == 'nt':
-                proc = subprocess.Popen(
-                    [sys.executable, app_file],
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-                )
-            else:  # Linux / macOS
-                proc = subprocess.Popen(
-                    [sys.executable, app_file],
-                    start_new_session=True
-                )
-
-            service.status = "running"
-            service.pid = proc.pid
-            db.session.commit()
-            return service
-        except Exception as e:
-            print(e)
-            return None
+        service = Service.query.filter_by(name=servicename).first()
+        start_bat = os.path.join(service.path, f"{service.name}_start.bat")
+        if os.path.exists(start_bat):
+            subprocess.Popen([start_bat], shell=True)            
+        service = Service.query.filter_by(name=servicename).first()
+        service.status = "running"
+        service.pid = proc.pid
+        db.session.commit()
+        return service
 
 
     def service_stop(servicename):
         service = Service.query.filter_by(name=servicename).first()
-        try:
-            if service.pid:
-                p = psutil.Process(service.pid)
-                p.terminate()  # 或 p.kill() 强制杀掉
-                p.wait(timeout=5)
-        except Exception as e:
-            print(e)
+        stop_bat = os.path.join(service.path, f"{service.name}_stop.bat")
+        if os.path.exists(stop_bat):
+            subprocess.Popen([stop_bat], shell=True)
+        
         service.status = "stopped"
         service.pid = None
         db.session.commit()
@@ -163,8 +128,9 @@ class Utility:
         service = Service.query.filter_by(name=servicename).first()
         return service
 
-
-# users methods
+    ####################################
+    # users methods
+    ####################################
 
     def user_signup(email, password, is_verified, is_admin):         
         user = User.query.filter_by(email=email).first()   
@@ -404,15 +370,19 @@ class Utility:
 
         return users
 
+    def auth_response(status, message, data):
+        return {"status" : status, "message" : message, "data" : data}
 
-    # service manager
+    ####################################
+    # admin methods
+    ####################################
+
     def process_alive(pid):
 
         if not pid:
             return False
 
         return util.pid_exists(pid)
-
 
     def monitor_services():
 
@@ -436,6 +406,185 @@ class Utility:
 
             time.sleep(5)
 
-    def auth_response(status, message, data):
-        return {"status" : status, "message" : message, "data" : data}
 
+#    from your_auth_model import db, Service  # 替换成你实际 DB model
+    from datetime import datetime
+
+    # ----------------------------
+    # 工具函数
+    # ----------------------------
+    def folder_to_port(folder_name):
+        """从 service folder 名字解析端口号：5000_portal -> 8000"""
+        try:
+            return int('8' + folder_name[3])
+        except Exception:
+            return 8000  # 默认端口
+
+    def generate_service_scripts(service_name, port, service_path, python_path):
+        """为 service 生成 start/stop bat 文件"""
+        start_bat = os.path.join(service_path, f"{service_name}_start.bat")
+        stop_bat = os.path.join(service_path, f"{service_name}_stop.bat")
+
+        start_content = f"""@echo off
+            cd /d %~dp0
+            REM Start {service_name} on port {port}
+            FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr :{port}') DO (
+                taskkill /PID %%a /F >nul 2>&1
+            )
+            start "" /B cmd /c "{python_path} {os.path.join(service_path, 'app.py')} {port} >> {os.path.join(service_path, 'service.log')} 2>&1"
+            echo {service_name} started on port {port}
+            """
+
+        stop_content = f"""@echo off
+            cd /d %~dp0
+            REM Stop {service_name} on port {port}
+            FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr :{port}') DO (
+                taskkill /PID %%a /F >nul 2>&1
+            )
+            echo {service_name} stopped
+            """
+
+        with open(start_bat, "w", encoding="utf-8") as f:
+            f.write(start_content)
+        with open(stop_bat, "w", encoding="utf-8") as f:
+            f.write(stop_content)
+
+    def init_service_db(service_path):
+        """初始化 service 数据库 (可自定义每个 service 的 db 脚本)"""
+        init_file = os.path.join(service_path, "init_db.py")
+        if os.path.exists(init_file):
+            subprocess.run([PYTHON_PATH, init_file])
+
+    def services_register(SERVICES_PATH):
+        folder_list = os.listdir(SERVICES_PATH)        
+        for folder in folder_list:
+
+            service_path = os.path.join(SERVICES_PATH, folder).lower()
+
+            if not os.path.isdir(service_path):
+                continue
+
+            # split folder name
+            parts = folder.split("_", 1)
+
+            if len(parts) != 2:
+                print(f"Invalid service folder name: {folder}")
+                continue
+
+            port = int(parts[0])
+            name = parts[1]
+            path = service_path
+            url = f"{Config.GATEWAY_URL}:{port}"
+            service = Service.query.filter_by(name=name).first()
+
+            if not service:
+                # 新服务
+                service = Service(
+                    name=name,                                
+                    desc = f"{name} serv",
+                    database = "",
+                    port=port,
+                    url=url,
+                    path=path,
+                    
+                    status = "running"
+                )
+                db.session.add(service)
+                db.session.commit()
+                print(f"New service detected: {folder}")
+
+                # 生成 start/stop 脚本
+                Utility.generate_service_scripts(folder, port, service_path, PYTHON_PATH)
+                print(f"Start/stop scripts generated for {service.name}")
+
+                # 初始化数据库
+                Utility.create_service_database(service.name)
+                print(f"DB created for {service.name}")
+                Utility.service_start(service.name)
+
+            else:
+                if service.path != service_path or service.port != port:
+                    service.path = service_path
+                    service.port = port
+                    db.session.commit()
+                    print(f"Service {folder} updated")                
+
+        db_services = {s.name: s for s in Service.query.all()}
+        # 删除已不存在的 service
+        current_set = set(folder_list)
+        for name, service in db_services.items():
+            searchname = f"{service.port}_{service.name}" 
+            if searchname not in current_set:
+                Utility.service_stop(service.name)
+                db.session.delete(service)
+                db.session.commit()
+                Utility.drop_service_database(service["database"])
+                print(f"Removed service {name} from DB")
+
+
+    ADMIN_DB = "postgres"
+    
+    def create_service_database(service_name):
+        
+        db_name = f"service_{service_name}"
+        conn = psycopg2.connect(
+            dbname=Utility.ADMIN_DB,
+            user="postgres",
+            password=Config.SQLALCHEMY_DATABASE_KEY,
+            host="localhost"
+        )
+
+        conn.autocommit = True
+        cur = conn.cursor()
+
+        cur.execute(f"SELECT 1 FROM pg_database WHERE datname='{db_name}'")
+        exists = cur.fetchone()
+
+        if not exists:
+            cur.execute(f'CREATE DATABASE "{db_name}"')
+            print(f"Database created: {db_name}")
+
+        cur.close()
+        conn.close()
+
+        return db_name
+    
+    def drop_service_database(db_name):
+
+        conn = psycopg2.connect(
+            dbname=Utility.ADMIN_DB,
+            user="postgres",
+            password="password",
+            host="localhost"
+        )
+
+        conn.autocommit = True
+        cur = conn.cursor()
+
+        # terminate existing connections
+        cur.execute(f"""
+            SELECT pg_terminate_backend(pid)
+            FROM pg_stat_activity
+            WHERE datname = '{db_name}'
+            AND pid <> pg_backend_pid();
+        """)
+
+        # drop database
+        cur.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
+
+        print(f"Database dropped: {db_name}")
+
+        cur.close()
+        conn.close()        
+
+    """
+    Inside the service:
+
+    DATABASE_URL = f"postgresql://postgres:password@localhost/{service_db}"
+
+    engine = create_engine(DATABASE_URL)
+
+    Then service can create its own tables:
+
+    db.create_all()    
+    """        

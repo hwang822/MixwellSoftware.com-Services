@@ -30,9 +30,9 @@ servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
 
 @app.route("/<servicename>")
 def serivce_access(servicename):
-    services = Utility.service_get(servicename)    
-    servicesurl = 'http://127.0.0.1:8001'
-    return redirect(servicesurl)
+    service = Utility.service_get(servicename)    
+    if service:
+        return redirect(service.url)
 
 @app.route("/")
 def home():
@@ -157,7 +157,8 @@ def service_router(servicename):
     return f"{service.name} is {servicename}"
 
 def home_insital():
-    services = Utility.services_register(SERVICES_PATH)
+    Utility.services_register(SERVICES_PATH)    
+#    Utility.sync_services()
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":
