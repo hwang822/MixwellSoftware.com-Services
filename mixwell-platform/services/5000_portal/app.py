@@ -162,7 +162,7 @@ def service_router(servicename):
         return "Service not found"
     return f"{service.name} is {servicename}"
 
-def home_insital():
+def home_insital():    
     Utility.services_register(SERVICES_PATH, servicePort)    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
