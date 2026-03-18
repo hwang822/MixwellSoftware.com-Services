@@ -24,8 +24,8 @@ authUrl = f"http://{Config.SERVICE_URL}:{servicePort}/login?next=http://{Config.
 #app.config.from_object(Config)
 dbname = f"{servicedb}_{serviceport}"
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
-app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}"
-db.init_app(app)
+#app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}"
+#db.init_app(app)
 
 SERVICES_PATH = f"{BASE_DIR}\\services"
 
@@ -188,10 +188,10 @@ def service_router(servicename):
     return f"{service.name} is {servicename}"
 
 def home_insital():        
-#    dbname = f"auth_{servicePort}"    
-#    Utility.create_service_database(dbname)
-#    app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}" 
-#    db.init_app(app)    
+    dbname = f"auth_{servicePort}"    
+    Utility.create_service_database(dbname)
+    app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
+    db.init_app(app)    
 
     Utility.services_register(SERVICES_PATH, int(servicePort))    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)

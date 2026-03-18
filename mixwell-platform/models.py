@@ -412,6 +412,7 @@ class Utility:
     def services_register(SERVICES_PATH, base_port):
         try:
             folder_list = os.listdir(SERVICES_PATH)        
+            port = base_port+1            
             for folder in folder_list:
 
                 service_path = os.path.join(SERVICES_PATH, folder).lower()
@@ -420,15 +421,17 @@ class Utility:
                     continue
 
                 # split folder name
-                parts = folder.split("_", 1)
-                if len(parts) != 2:
-                    print(f"Invalid service folder name: {folder}")
-                    continue
+                #parts = folder.split("_", 1)
 
-                port = int(parts[0])
-                if port < base_port : # base_port would be 5000 or 8000 
-                    port = base_port + port - 5000
-                name = parts[1]                
+                #if len(parts) != 2:
+                #    print(f"Invalid service folder name: {folder}")
+                #    continue
+
+                #port = int(parts[0])
+                #if port < base_port : # base_port would be 5000 or 8000 
+                #    port = base_port + port - 5000
+                port = port + 1
+                name = folder                
                 path = service_path
                 url = f"{Config.GATEWAY_URL}:{port}"
 
