@@ -7,7 +7,7 @@ import sys
 from flask import render_template, request
 import psutil
 import psycopg2
-from sqlalchemy import func
+from sqlalchemy import create_engine, func
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
@@ -30,7 +30,7 @@ from config.settings import Config
 PLATFORM_DIR = os.path.join(BASE_DIR, "MixwellSoftware.com-Services", "mixwell-platform") # r"C:\Workarea\MixwellSoftware.com-Services\mixwell-platform"
 SERVICES_DIR = os.path.join(PLATFORM_DIR, "services")
 PYTHON_PATH = os.path.join(PLATFORM_DIR, "venv", "Scripts", "python.exe")
-ADMIN_DB = Config.SQLALCHEMY_DATABASE_KEY,
+ADMIN_DB = "postgres"
 
 
 class User(UserMixin, db.Model):
@@ -86,44 +86,7 @@ class Utility:
             return servicename
         except:
             return service
-    
-    
-    def service_start(servicename, servicepath):
-        try:
-            service = Service.query.filter_by(name=servicename).first()
-            if service:
-                port = Utility.is_port_open(service.port)
-                if port:                
-                    Utility.service_stop(servicename)
-
-                #start_bat = os.path.join(service.path, f"{service.port}_{service.name}_start.bat")
-                #if os.path.exists(start_bat):
-            app_file = os.path.join(servicepath, "app.py")
-            if os.path.exists(app_file):            
-                proc = subprocess.Popen(
-                    [PYTHON_PATH, app_file],
-                    creationflags=subprocess.CREATE_NO_WINDOW
-                )            
-                return proc                
-        except:
-            return None
-
-    def service_stop1(servicename):
-        try:
-            service = Service.query.filter_by(name=servicename).first()
-            if service:
-                port = Utility.is_port_open(service.port)
-                if port:                
-                    stop_bat = os.path.join(service.path, f"{service.port}_{service.name}_stop.bat")
-                    if os.path.exists(stop_bat):
-                        subprocess.Popen([stop_bat], shell=True)        
-                    service.status = "stopped"
-                    service.pid = None
-                    db.session.commit()
-                    return service
-        except:
-            return None
-    
+            
     def service_get(servicename):
         try:
             service = Service.query.filter_by(name=servicename).first()
@@ -468,7 +431,6 @@ class Utility:
                 name = parts[1]                
                 path = service_path
                 url = f"{Config.GATEWAY_URL}:{port}"
-                service = Service.query.filter_by(name=name).first()
 
                 # 初始化数据库
                 dbname = f"{name}_{port}"
@@ -476,12 +438,12 @@ class Utility:
                 print(f"DB created for {dbname}")
 
                 # Start Service
-                prodc = Utility.service_start(name, service_path)                
+                prodc = Utility.service_start(name, service_path, dbname)                
                 if prodc:
                     status = "running"
                 else:
                     status = "stopped"
-
+                service = Service.query.filter_by(name=name).first()
                 if not service:
                     # 新服务
                     service = Service(
@@ -491,7 +453,7 @@ class Utility:
                         port=port,
                         url=url,
                         path=path,
-                        pid = prodc.pid,                        
+                        #pid = prodc.pid,                        
                         status = status
                     )
                     db.session.add(service)
@@ -527,14 +489,20 @@ class Utility:
         except:
             return None
 
-    def create_service_database(service_name):
+    import psycopg2    
+    from sqlalchemy import create_engine
+
+
+    def create_service_database(db_name):
+        
         try:
-            db_name = service_name
+            #db_name = service_name
             conn = psycopg2.connect(
                 dbname=ADMIN_DB,
                 user=ADMIN_DB,
                 password=Config.SQLALCHEMY_DATABASE_KEY,
-                host=Config.SERVICE_URL
+                host="localhost",
+                port="5432"
             )
 
             conn.autocommit = True
@@ -550,8 +518,21 @@ class Utility:
             cur.close()
             conn.close()
 
+
+            DB_USER = ADMIN_DB
+            DB_PASSWORD = ADMIN_DB
+            DB_HOST = "localhost"
+            DB_PORT = "5432"
+
+            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
+
+            engine = create_engine(DATABASE_URL)
+
             return db_name
-        except:
+        except psycopg2.Error as e:
+            print("PG ERROR", e)
+            print("PG pgerror", e.pgerror)
+            print("PG pgcode", e.pgcode)
             return None
     
     def drop_service_database(db_name):
@@ -560,7 +541,7 @@ class Utility:
                 dbname=ADMIN_DB,
                 user=ADMIN_DB,
                 password=Config.SQLALCHEMY_DATABASE_KEY,
-                host=Config.SERVICE_URL
+                host="localhost"
             )
 
             conn.autocommit = True
@@ -592,7 +573,41 @@ class Utility:
                 return s.connect_ex(("127.0.0.1", port)) == 0
         except:
             return False
-        
+
+    def service_start(servicename, servicepath, app_db):
+        proc = None
+        try:
+            service = Service.query.filter_by(name=servicename).first()
+            if service:
+                #port = Utility.is_port_open(service.port)
+                #if port:                
+                Utility.service_stop(servicename)            
+            app_file = os.path.join(servicepath, f"app.py")
+            if os.path.exists(app_file):                            
+                proc = subprocess.Popen(
+                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"],
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )            
+        except:
+            return None
+        return proc                
+    
+    def service_stop(servicename):
+            service = Service.query.filter_by(name=servicename).first()
+            try:
+                if service.pid:
+                    p = psutil.Process(service.pid)
+                    p.kill()
+                    #p.terminate()  # 或 p.kill() 强制杀掉
+                    #p.wait(timeout=5)
+            except Exception as e:
+                print(e)
+            service.status = "stopped"
+            service.pid = None
+            db.session.commit()
+            return service
+
+
     def service_view(service_id):
         try:        
             service = Utility.service_get(service_id)
@@ -608,45 +623,4 @@ class Utility:
         except:
             return False
     
-    """
-    def service_start(servicename):
-        try:
-            service = Service.query.filter_by(name=servicename).first()
-            app_file = os.path.join(service.path, "app.py")
-
-            # Windows
-            if os.name == 'nt':
-                proc = subprocess.Popen(
-                    [sys.executable, app_file],
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
-                )
-            else:  # Linux / macOS
-                proc = subprocess.Popen(
-                    [sys.executable, app_file],
-                    start_new_session=True
-                )
-
-            service.status = "running"
-            service.pid = proc.pid
-            db.session.commit()
-            return service
-        except Exception as e:
-            print(e)
-            return None
-
-    """
-    def service_stop(servicename):
-        service = Service.query.filter_by(name=servicename).first()
-        try:
-            if service.pid:
-                p = psutil.Process(service.pid)
-                p.kill()
-                #p.terminate()  # 或 p.kill() 强制杀掉
-                #p.wait(timeout=5)
-        except Exception as e:
-            print(e)
-        service.status = "stopped"
-        service.pid = None
-        db.session.commit()
-        return service
     

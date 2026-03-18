@@ -1,17 +1,13 @@
 import os, sys
 from flask import Blueprint, Flask, request, send_from_directory, abort, render_template_string
 
-#BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-#sys.path.insert(0, BASE_DIR)
 app = Flask(__name__)
-
-folder_name = os.path.basename(os.path.dirname(__file__))
-servicePort, serviceName = folder_name.split("_", 1)
-servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
-
+serviceport = int(sys.argv[1])
+servicedb = sys.argv[2]
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+current_path = app.root_path
 
 videoService = Blueprint("videoService", __name__)
-
 current_path = os.path.join(videoService.root_path, "Videos")
 #current_path = os.getcwd()  # Get current working directory
 print(current_path)
@@ -74,4 +70,4 @@ def create_app():
     return app
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=servicePort)
+    create_app().run(host="127.0.0.1", port=serviceport)

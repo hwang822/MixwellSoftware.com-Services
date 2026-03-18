@@ -3,14 +3,28 @@ import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, session
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+app = Flask(__name__)
+
+BASE_DIR = f"{app.root_path}/../"  
+# os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 sys.path.insert(0, BASE_DIR)
 
 from config.settings import Config
 from models import Utility, db, Utility, User
 
-app = Flask(__name__)
-app.config.from_object(Config)
+serviceport = 5000 # int(sys.argv[1])
+servicedb = "auth"  #sys.argv[2]
+
+serviceName = "portal"
+servicePort = Config.PORTAL_PORT
+
+authUrl = f"http://{Config.SERVICE_URL}:{servicePort}/login?next=http://{Config.SERVICE_URL}:{servicePort}"
+
+#Config.SQLALCHEMY_DATABASE_URI = f"{auth_db}"
+#app.config.from_object(Config)
+dbname = f"{servicedb}_{serviceport}"
+auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
+app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}"
 db.init_app(app)
 
 SERVICES_PATH = f"{BASE_DIR}\\services"
@@ -22,15 +36,21 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
+
+
 #folder_name = os.path.basename(os.path.dirname(__file__))
 #servicePort, serviceName = folder_name.split("_", 1)
+#serviceport = int(sys.argv[1])
+#servicedb = sys.argv[2]
+#servicedb = f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{servicedb}" 
 
-serviceName = "portal"
-servicePort = Config.PORTAL_PORT
-servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort) 
+#serviceport = int(sys.argv[1])
+#serviceDB = sys.argv[2]
 
-authUrl = f"http://{Config.SERVICE_URL}:{servicePort}/login?next=http://{Config.SERVICE_URL}:{servicePort}"
+#servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort) 
 
+#authdb = f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{servicedb}"
 # ---------- Login, siginup, logout ROUTES ----------
 
 @app.route("/service/<servicename>")
@@ -167,12 +187,17 @@ def service_router(servicename):
         return "Service not found"
     return f"{service.name} is {servicename}"
 
-def home_insital():    
-    Utility.services_register(SERVICES_PATH, servicePort)    
+def home_insital():        
+#    dbname = f"auth_{servicePort}"    
+#    Utility.create_service_database(dbname)
+#    app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}" 
+#    db.init_app(app)    
+
+    Utility.services_register(SERVICES_PATH, int(servicePort))    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":
     with app.app_context():        
-        db.create_all()
         home_insital()    
+        db.create_all()
     app.run(port=servicePort, debug=False, use_reloader=False)

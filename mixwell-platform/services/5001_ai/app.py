@@ -5,12 +5,14 @@ from flask import Flask, render_template
 #sys.path.insert(0, BASE_DIR)
 app = Flask(__name__)
 
-folder_name = os.path.basename(os.path.dirname(__file__))
-servicePort, serviceName = folder_name.split("_", 1)
-servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
+serviceport = sys.argv[0]
+servicedb = sys.argv[1]
+app.config["SQLALCHEMY_DATABASE_URI"] = servicedb 
+#db.init_app(app)
+
 
 @app.route("/")
 def home():    
-    return render_template(f"{serviceName}.html")        
+    return render_template("ai.html")        
 if __name__ == "__main__":
-    app.run(port=servicePort)
+    app.run(port=serviceport)

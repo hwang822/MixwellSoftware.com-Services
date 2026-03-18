@@ -1,6 +1,11 @@
 from flask import Flask, Blueprint
-import os
 import sys
+
+app = Flask(__name__)
+
+serviceport = int(sys.argv[1])
+servicedb = sys.argv[2]
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
 
 registryService = Blueprint("registryService", __name__)
 
@@ -59,17 +64,7 @@ def create_app():
     app.register_blueprint(registryService)
     return app
 
-import os, sys
-from flask import Flask
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-sys.path.insert(0, BASE_DIR)
-app = Flask(__name__)
-
-folder_name = os.path.basename(os.path.dirname(__file__))
-servicePort, serviceName = folder_name.split("_", 1)
-servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
 
 if __name__ == "__main__":
-    create_app().run(host="127.0.0.1", port=servicePort) 
+    create_app().run(host="127.0.0.1", port=serviceport) 
 

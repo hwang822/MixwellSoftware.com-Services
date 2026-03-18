@@ -1,10 +1,13 @@
 
 from flask import Flask, Blueprint, Response, render_template
-import os, sys, cv2
+import sys, cv2
 
-folder_name = os.path.basename(os.path.dirname(__file__))
-servicePort, serviceName = folder_name.split("_", 1)
-servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort)
+app = Flask(__name__)
+serviceport = int(sys.argv[1])
+servicedb = sys.argv[2]
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+
+
 
 camService = Blueprint("camService", __name__)
 
@@ -37,7 +40,6 @@ def video_feed():
     return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 def create_app():
-    app = Flask(__name__)
     app.register_blueprint(camService)
     return app
 
