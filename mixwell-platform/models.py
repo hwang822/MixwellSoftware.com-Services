@@ -5,6 +5,7 @@ import smtplib
 import socket
 import sys
 from flask import render_template, request
+import psutil
 import psycopg2
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -87,36 +88,39 @@ class Utility:
             return service
     
     
-    def service_start(servicename):
+    def service_start(servicename, servicepath):
         try:
-            Utility.service_stop(servicename)
             service = Service.query.filter_by(name=servicename).first()
             if service:
-                start_bat = os.path.join(service.path, f"{service.port}_{service.name}_start.bat")
-                if os.path.exists(start_bat):            
-                    subprocess.Popen(
-                        [start_bat],
-                        creationflags=subprocess.CREATE_NO_WINDOW
-                    )            
-                    port = Utility.is_port_open(service.port)        
-                    if port:
-                        service.status = "running"
-                        db.session.commit()
-                return service
+                port = Utility.is_port_open(service.port)
+                if port:                
+                    Utility.service_stop(servicename)
+
+                #start_bat = os.path.join(service.path, f"{service.port}_{service.name}_start.bat")
+                #if os.path.exists(start_bat):
+            app_file = os.path.join(servicepath, "app.py")
+            if os.path.exists(app_file):            
+                proc = subprocess.Popen(
+                    [PYTHON_PATH, app_file],
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )            
+                return proc                
         except:
             return None
 
-    def service_stop(servicename):
+    def service_stop1(servicename):
         try:
             service = Service.query.filter_by(name=servicename).first()
             if service:
-                stop_bat = os.path.join(service.path, f"{service.port}_{service.name}_stop.bat")
-                if os.path.exists(stop_bat):
-                    subprocess.Popen([stop_bat], shell=True)        
-                service.status = "stopped"
-                service.pid = None
-                db.session.commit()
-                return service
+                port = Utility.is_port_open(service.port)
+                if port:                
+                    stop_bat = os.path.join(service.path, f"{service.port}_{service.name}_stop.bat")
+                    if os.path.exists(stop_bat):
+                        subprocess.Popen([stop_bat], shell=True)        
+                    service.status = "stopped"
+                    service.pid = None
+                    db.session.commit()
+                    return service
         except:
             return None
     
@@ -461,42 +465,53 @@ class Utility:
                 port = int(parts[0])
                 if port < base_port : # base_port would be 5000 or 8000 
                     port = base_port + port - 5000
-                name = parts[1]
+                name = parts[1]                
                 path = service_path
                 url = f"{Config.GATEWAY_URL}:{port}"
                 service = Service.query.filter_by(name=name).first()
+
+                # 初始化数据库
+                dbname = f"{name}_{port}"
+                Utility.create_service_database(dbname)
+                print(f"DB created for {dbname}")
+
+                # Start Service
+                prodc = Utility.service_start(name, service_path)                
+                if prodc:
+                    status = "running"
+                else:
+                    status = "stopped"
 
                 if not service:
                     # 新服务
                     service = Service(
                         name=name,                                
                         desc = f"{name} serv",
-                        database = "",
+                        database = dbname,
                         port=port,
                         url=url,
                         path=path,
-                        
-                        status = "running"
+                        pid = prodc.pid,                        
+                        status = status
                     )
                     db.session.add(service)
                     db.session.commit()
                     print(f"New service detected: {folder}")
 
-                    # 初始化数据库
-                    dbname = f"{service.name}_{port}"
-                    Utility.create_service_database(dbname)
-                    print(f"DB created for {service.name}")
 
                     # 生成 start/stop 脚本
-                    Utility.generate_service_scripts(folder, port, service_path, PYTHON_PATH)
-                    print(f"Start/stop scripts generated for {service.name}")
+                    #Utility.generate_service_scripts(folder, port, service_path, PYTHON_PATH)
+                    #print(f"Start/stop scripts generated for {service.name}")
 
                 else:
-                    if service.path != service_path or service.port != port:
-                        service.path = service_path
-                        service.port = port
-                        db.session.commit()
-                        print(f"Service {folder} updated")                
+                    service.database = dbname,
+                    service.port=port,
+                    service.url=url,
+                    service.path=path,
+                    service.pid = prodc.pid,                        
+                    service.status = status
+                    db.session.commit()
+                    print(f"Service {folder} updated")
     
             db_services = {s.name: s for s in Service.query.all()}
             # 删除已不存在的 service
@@ -504,7 +519,7 @@ class Utility:
             for name, service in db_services.items():
                 searchname = f"{service.port}_{service.name}" 
                 if searchname not in current_set:
-                    Utility.service_stop(service.name)
+                    #Utility.service_stop(service.name)
                     db.session.delete(service)
                     db.session.commit()
                     Utility.drop_service_database(service["database"])
@@ -592,4 +607,46 @@ class Utility:
                 return None
         except:
             return False
-        
+    
+    """
+    def service_start(servicename):
+        try:
+            service = Service.query.filter_by(name=servicename).first()
+            app_file = os.path.join(service.path, "app.py")
+
+            # Windows
+            if os.name == 'nt':
+                proc = subprocess.Popen(
+                    [sys.executable, app_file],
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+                )
+            else:  # Linux / macOS
+                proc = subprocess.Popen(
+                    [sys.executable, app_file],
+                    start_new_session=True
+                )
+
+            service.status = "running"
+            service.pid = proc.pid
+            db.session.commit()
+            return service
+        except Exception as e:
+            print(e)
+            return None
+
+    """
+    def service_stop(servicename):
+        service = Service.query.filter_by(name=servicename).first()
+        try:
+            if service.pid:
+                p = psutil.Process(service.pid)
+                p.kill()
+                #p.terminate()  # 或 p.kill() 强制杀掉
+                #p.wait(timeout=5)
+        except Exception as e:
+            print(e)
+        service.status = "stopped"
+        service.pid = None
+        db.session.commit()
+        return service
+    

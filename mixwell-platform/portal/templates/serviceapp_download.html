@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.download-card {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+}
+.platform-btn {
+    margin-top: 15px;
+    width: 100%;
+}
+.qr-img {
+    width: 200px;
+    margin-top: 15px;
+}
+.hidden {
+    display: none;
+}
+</style>
+
+<div class="download-card">
+
+    <!--h2>{{ service }}</h2-->
+    <p id="detect-msg">Detecting your device...</p>
+
+    <!-- Windows -->
+    <div id="windows-section" class="hidden">
+        <h4>Windows App</h4>
+        <button onclick="downloadWindows()" 
+                class="btn btn-primary platform-btn">
+            Download Windows (.exe)
+        </button>
+    </div>
+
+    <!-- Android -->
+    <div id="android-section" class="hidden">
+        <h4>Android App</h4>
+        <a href="{{ service.android_url }}" 
+           class="btn btn-success platform-btn">
+            Download Android APK
+        </a>
+        <p class="mt-2">Or scan QR:</p>
+        <img src="{{ url_for('static', filename='Service_Android_QR.png') }}" 
+             class="qr-img">
+    </div>
+
+    <!-- iOS -->
+    <div id="ios-section" class="hidden">
+        <h4>iOS App</h4>
+        <a href="{{ service.ios_url }}" 
+           class="btn btn-dark platform-btn">
+            Install via TestFlight
+        </a>
+        <p class="mt-2">Or scan QR:</p>
+        <img src="{{ url_for('static', filename='iOS_QR.png') }}" 
+             class="qr-img">
+    </div>
+
+</div>
+
+<a href="/dashboard" class="btn btn-secondary mt-3">
+Back to Dashboard
+</a>
+
+<script>
+function detectPlatform() {
+    const ua = navigator.userAgent.toLowerCase();
+    const msg = document.getElementById("detect-msg");
+
+    if (ua.includes("windows")) {
+        showSection("windows-section");
+        msg.innerText = "Windows device detected.";
+        setTimeout(downloadWindows, 2000);
+    }
+    else if (ua.includes("android")) {
+        showSection("android-section");
+        msg.innerText = "Android device detected.";
+    }
+    else if (ua.includes("iphone") || ua.includes("ipad")) {
+        showSection("ios-section");
+        msg.innerText = "iOS device detected.";
+    }
+    else {
+        msg.innerText = "Device not detected. Please choose your platform below.";
+        showAll();
+    }
+}
+
+function showSection(id) {
+    document.getElementById(id).classList.remove("hidden");
+}
+
+function showAll() {
+    showSection("windows-section");
+    showSection("android-section");
+    showSection("ios-section");
+}
+
+function downloadWindows() {
+    window.location.href = "{{ service.url }}";
+}
+
+detectPlatform();
+</script>
+
+{% endblock %}
+
