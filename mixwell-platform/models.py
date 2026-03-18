@@ -439,11 +439,13 @@ class Utility:
 
                 # Start Service
                 prodc = Utility.service_start(name, service_path, dbname)                
+                pid = None
                 if prodc:
+                    pid = prodc.pid
                     status = "running"
                 else:
                     status = "stopped"
-                service = Service.query.filter_by(name=name).first()
+                    service = Service.query.filter_by(name=name).first()
                 if not service:
                     # 新服务
                     service = Service(
@@ -453,7 +455,7 @@ class Utility:
                         port=port,
                         url=url,
                         path=path,
-                        #pid = prodc.pid,                        
+                        pid = pid,                        
                         status = status
                     )
                     db.session.add(service)
@@ -470,7 +472,7 @@ class Utility:
                     service.port=port,
                     service.url=url,
                     service.path=path,
-                    service.pid = prodc.pid,                        
+                    service.pid = pid,                        
                     service.status = status
                     db.session.commit()
                     print(f"Service {folder} updated")
