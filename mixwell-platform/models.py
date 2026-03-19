@@ -438,7 +438,7 @@ class Utility:
                 print(f"DB created for {dbname}")
 
                 # Start Service
-                prodc = Utility.service_start(name, port, service_path, dbname)                
+                prodc = Utility.service_start(name, port, service_path)                
                 pid = None
                 if prodc:
                     pid = prodc.pid
@@ -576,7 +576,46 @@ class Utility:
         except:
             return False
 
-    def service_start(servicename, port, servicepath, app_db):
+    def service_start1(servicename, port, servicepath):
+        try:
+            service = Service.query.filter_by(name=servicename).first()
+
+            if service:
+                Utility.service_stop(servicename)
+
+            app_file = os.path.join(servicepath, "app.py")
+
+            base_db_url = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
+            app_db = f"{base_db_url}/{servicename}_{port}"
+            
+            """
+            # 🔥 构造 DB URL
+            base_db_url = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
+            db_name = f"{servicename}_{port}"
+            app_db = f"{base_db_url}/{db_name}"
+
+            base = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
+            db_name = f"{servicename}_{port}"
+            servicedb = f"{base}/{db_name}"            
+            """
+
+            if os.path.exists(app_file):
+                proc = subprocess.Popen(
+                    [
+                        PYTHON_PATH,
+                        app_file,
+                        str(port),
+                        app_db
+                    ],
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+                return proc
+
+        except Exception as e:
+            print("Service start error:", e)
+            return None
+
+    def service_start(servicename, port, servicepath):
         proc = None
         try:
             service = Service.query.filter_by(name=servicename).first()

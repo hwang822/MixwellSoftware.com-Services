@@ -28,8 +28,22 @@ BASE_PATH/core/settings.py
 
 BASE_PATH/core/serviceSetup.py
 
+#############################
+✅ 正确生成 requirements.txt
+
+在你的 dev 环境 里运行：
+
+venv\Scripts\pip freeze > requirements.txt
+📄 requirements.txt 会长这样：
+Flask==3.0.2
+SQLAlchemy==2.0.29
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+numpy==1.26.4
 
 
+build install independence 
+pip install -r requirements.txt
 
 
 ####################################
