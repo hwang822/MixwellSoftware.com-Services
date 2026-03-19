@@ -5,8 +5,8 @@ from flask import Flask, render_template
 #sys.path.insert(0, BASE_DIR)
 app = Flask(__name__)
 
-serviceport = sys.argv[0]
-servicedb = sys.argv[1]
+serviceport = sys.argv[1]
+servicedb = sys.argv[2]
 app.config["SQLALCHEMY_DATABASE_URI"] = servicedb 
 #db.init_app(app)
 

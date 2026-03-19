@@ -7,15 +7,13 @@ import sys
 from flask import render_template, request
 import psutil
 import psycopg2
-from sqlalchemy import create_engine, func
+from sqlalchemy import func
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
 import subprocess
 import jwt # python -m pip install PyJWT
 import subprocess
-import sys
-import os
 
 db = SQLAlchemy()
 
@@ -27,11 +25,10 @@ from config.settings import Config
 # ----------------------------
 # 配置路径
 # ----------------------------
-PLATFORM_DIR = os.path.join(BASE_DIR, "MixwellSoftware.com-Services", "mixwell-platform") # r"C:\Workarea\MixwellSoftware.com-Services\mixwell-platform"
+PLATFORM_DIR = os.path.join(BASE_DIR, "MixwellSoftware.com-Services", "mixwell-platform") 
 SERVICES_DIR = os.path.join(PLATFORM_DIR, "services")
 PYTHON_PATH = os.path.join(PLATFORM_DIR, "venv", "Scripts", "python.exe")
 ADMIN_DB = "postgres"
-
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -130,7 +127,7 @@ class Utility:
         elif user.is_verified == False:
             return Utility.auth_response(400, "Waitting verify email for approve.", user)
         else:
-            login_user(user)
+            #login_user(user)
             return Utility.auth_response(200, "Login Scussfully!", user)
 
     def users_get_all():
@@ -412,7 +409,7 @@ class Utility:
     def services_register(SERVICES_PATH, base_port):
         try:
             folder_list = os.listdir(SERVICES_PATH)        
-            port = base_port+1            
+            port = base_port            
             for folder in folder_list:
 
                 service_path = os.path.join(SERVICES_PATH, folder).lower()
@@ -441,14 +438,14 @@ class Utility:
                 print(f"DB created for {dbname}")
 
                 # Start Service
-                prodc = Utility.service_start(name, service_path, dbname)                
+                prodc = Utility.service_start(name, port, service_path, dbname)                
                 pid = None
                 if prodc:
                     pid = prodc.pid
                     status = "running"
                 else:
                     status = "stopped"
-                    service = Service.query.filter_by(name=name).first()
+                service = Service.query.filter_by(name=name).first()
                 if not service:
                     # 新服务
                     service = Service(
@@ -524,14 +521,14 @@ class Utility:
             conn.close()
 
 
-            DB_USER = ADMIN_DB
-            DB_PASSWORD = ADMIN_DB
-            DB_HOST = "localhost"
-            DB_PORT = "5432"
+            #DB_USER = ADMIN_DB
+            #DB_PASSWORD = ADMIN_DB
+            #DB_HOST = "localhost"
+            #DB_PORT = "5432"
 
-            DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
+            #DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
 
-            engine = create_engine(DATABASE_URL)
+            #engine = create_engine(DATABASE_URL)
 
             return db_name
         except psycopg2.Error as e:
@@ -579,7 +576,7 @@ class Utility:
         except:
             return False
 
-    def service_start(servicename, servicepath, app_db):
+    def service_start(servicename, port, servicepath, app_db):
         proc = None
         try:
             service = Service.query.filter_by(name=servicename).first()
@@ -588,10 +585,16 @@ class Utility:
                 #if port:                
                 Utility.service_stop(servicename)            
             app_file = os.path.join(servicepath, f"app.py")
+            app_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{port}"
             if os.path.exists(app_file):                            
-                proc = subprocess.Popen(
-                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"],
-                    creationflags=subprocess.CREATE_NO_WINDOW
+                proc = subprocess.Popen([
+                        PYTHON_PATH,
+                        app_file,
+                        str(port),
+                        app_db]                    
+#                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"
+                    
+                    ,creationflags=subprocess.CREATE_NO_WINDOW
                 )            
         except:
             return None
@@ -626,6 +629,4 @@ class Utility:
                 print("Service is NOT running ❌")        
                 return None
         except:
-            return False
-    
-    
+            return False    

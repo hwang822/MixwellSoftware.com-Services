@@ -1,10 +1,12 @@
-import os
 import sys
 from flask import Flask, render_template
 from flask_login import LoginManager
-from models import Utility, db, Utility, User
 
 app = Flask(__name__)
+BASE_DIR = f"{app.root_path}/../../"  
+sys.path.insert(0, BASE_DIR)
+
+from models import Utility, db, Utility, User
 
 serviceport = int(sys.argv[1])
 servicedb = sys.argv[2]

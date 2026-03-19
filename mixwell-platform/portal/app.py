@@ -1,4 +1,3 @@
-import os
 import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, session
@@ -6,28 +5,10 @@ from flask import Flask, flash, make_response, redirect, render_template, reques
 app = Flask(__name__)
 
 BASE_DIR = f"{app.root_path}/../"  
-# os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
 sys.path.insert(0, BASE_DIR)
 
 from config.settings import Config
 from models import Utility, db, Utility, User
-
-serviceport = 5000 # int(sys.argv[1])
-servicedb = "auth"  #sys.argv[2]
-
-serviceName = "portal"
-servicePort = Config.PORTAL_PORT
-
-authUrl = f"http://{Config.SERVICE_URL}:{servicePort}/login?next=http://{Config.SERVICE_URL}:{servicePort}"
-
-#Config.SQLALCHEMY_DATABASE_URI = f"{auth_db}"
-#app.config.from_object(Config)
-dbname = f"{servicedb}_{serviceport}"
-auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
-#app.config["SQLALCHEMY_DATABASE_URI"] = auth_db # f"postgresql+psycopg2://postgres:delanyin00@localhost/{dbname}" # f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{dbname}"
-#db.init_app(app)
-
-SERVICES_PATH = f"{BASE_DIR}\\services"
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -37,21 +18,27 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+serviceport = 5000 # 5000 # int(sys.argv[1])
+
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else int(serviceport) 
+
+servicedb = "auth"  #sys.argv[2]
+serviceName = "portal"
+
+authUrl = f"http://{Config.SERVICE_URL}:{serviceport}/login?next=http://{Config.SERVICE_URL}:{serviceport}"
+
+dbname = f"{servicedb}_{serviceport}"
+auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
 
 
-#folder_name = os.path.basename(os.path.dirname(__file__))
-#servicePort, serviceName = folder_name.split("_", 1)
-#serviceport = int(sys.argv[1])
-#servicedb = sys.argv[2]
-#servicedb = f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{servicedb}" 
+SERVICES_PATH = f"{BASE_DIR}\\services"
 
-#serviceport = int(sys.argv[1])
-#serviceDB = sys.argv[2]
-
-#servicePort = int(sys.argv[1]) if len(sys.argv) > 1 else int(servicePort) 
-
-#authdb = f"{app.config["SQLALCHEMY_DATABASE_URI"]}/{servicedb}"
-# ---------- Login, siginup, logout ROUTES ----------
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 @app.route("/service/<servicename>")
 def serivce_access(servicename):
@@ -83,12 +70,12 @@ def home():
 @app.route("/signup", methods=["GET", "POST"])  
 def signup():    
     if request.method == "GET":      
-        session.pop('_flashes', None)  
+        #session.pop('_flashes', None)  
         return render_template("signup.html")
     email = request.form["username"]
     password = request.form["password"]        
     response = Utility.user_signup(email, password, False, False)
-    flash(response["message"])
+    #flash(response["message"])
     if response["status"] == 400:  
         return redirect("/signup")
     return redirect("/login")
@@ -96,16 +83,16 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 def login():          
     if request.method == "GET":
-        session.pop('_flashes', None)        
+        #session.pop('_flashes', None)        
         return render_template("login.html")                
     email = request.form["username"]
     password = request.form["password"]    
     response = Utility.user_login(email, password)    
-    flash(response["message"])
+    #flash(response["message"])
     if response["status"] == 400:
         return redirect("/login")
     else :  
-        flash(response["message"])
+        #flash(response["message"])
         currentuser = response["data"]
         next_url = request.args.get("next")
         servicename = request.args.get("service")
@@ -168,36 +155,18 @@ def service_view(serviceid):
         return redirect(service.url)
     return redirect("/")
 
-"""
-@app.route("/services/service_start/<servicename>")
-def service_start(servicename): 
-    Utility.service_start(servicename)
-    return redirect("/")
-
-@app.route("/services/service_stop/<servicename>")
-def service_stop(servicename): 
-    Utility.service_stop(servicename)
-    return redirect("/")
-"""
-
-@app.route("/<servicename>")
-def service_router(servicename):
-    service = Utility.service_start(servicename)
-    if not service:
-        return "Service not found"
-    return f"{service.name} is {servicename}"
-
 def home_insital():        
-    dbname = f"auth_{servicePort}"    
+    dbname = f"auth_{serviceport}"    
     Utility.create_service_database(dbname)
     app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
     db.init_app(app)    
+    db.create_all()
 
-    Utility.services_register(SERVICES_PATH, int(servicePort))    
+    Utility.services_register(SERVICES_PATH, int(serviceport))    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":
     with app.app_context():        
         home_insital()    
-        db.create_all()
-    app.run(port=servicePort, debug=False, use_reloader=False)
+        
+    app.run(port=serviceport, debug=False, use_reloader=False)
