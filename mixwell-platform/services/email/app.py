@@ -15,7 +15,7 @@ def send_email():
 
 @emailService.route("/")
 def Email_home():
-    return render_template(f"{serviceName}.html")
+    return render_template("email.html")
 
 @emailService.route("/email/", methods=["GET", "POST"])
 def sendEmail():
@@ -29,7 +29,7 @@ def sendEmail():
     return render_template("EmailService.html")
 
 def create_app():
-    app = Flask(__name__)
+    #app = Flask(__name__)
     app.register_blueprint(emailService)
     return app
 
