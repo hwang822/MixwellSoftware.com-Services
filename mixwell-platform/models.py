@@ -133,13 +133,13 @@ class Utility:
     def users_get_all():
         return User.query.all()
 
-    def user_get(userid):         
-        user = User.query.filter_by(id=userid).first()
+    def user_get(userid):                 
+        user = User.query.get_or_404(userid)
         return user
                 
     def user_remove(userid):
-        User.query.filter_by(id=userid).delete()
         UserService.query.filter_by(user_id=userid).delete()
+        User.query.filter_by(id=userid).delete()
         db.session.commit()
         return userid
 

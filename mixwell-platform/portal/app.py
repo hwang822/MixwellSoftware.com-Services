@@ -127,7 +127,7 @@ def user_approve(userid):
 @app.route("/users/user_verify/<token>")
 def user_verify(token):
     Utility.user_verify(token)
-    return redirect("/")
+    #return redirect("/")
 
 @app.route("/users/user_add_service", methods=["POST"])
 def user_add_service():
