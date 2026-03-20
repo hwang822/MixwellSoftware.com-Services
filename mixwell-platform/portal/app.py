@@ -20,7 +20,7 @@ def load_user(user_id):
 
 serviceport = 5000 # 5000 # int(sys.argv[1])
 
-serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else int(serviceport) 
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 servicedb = "auth"  #sys.argv[2]
 serviceName = "portal"

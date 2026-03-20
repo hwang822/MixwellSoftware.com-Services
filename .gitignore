@@ -4,6 +4,9 @@
 *.log
 *.db
 *.csv
-__pycache__/
+*.pyc
 .env
+venv/
+__pycache__/
 **/MixwellSoftware.com-Services/
+
