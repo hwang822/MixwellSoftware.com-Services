@@ -1,6 +1,9 @@
 import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, session
+from flask import Flask, render_template, send_file
+import qrcode
+import os
 
 app = Flask(__name__)
 
@@ -18,17 +21,24 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-serviceport = 5000
+serviceport = 5500
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 
 servicedb = "auth"  #sys.argv[2]
-serviceName = "portal"
+dbport = 5000
+
+serviceName = "gateway"
 
 authUrl = f"http://{Config.SERVICE_URL}:{serviceport}/login?next=http://{Config.SERVICE_URL}:{serviceport}"
 
-dbname = f"{servicedb}_{serviceport}"
+dbname = "auth_5000"
+if serviceport >= 8000:
+    dbname = "auth_8000"
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
+db.init_app(app)    
 
 
 SERVICES_PATH = f"{BASE_DIR}\\services"
@@ -54,15 +64,8 @@ def home():
     services = Utility.services_get_all()
     user = Utility.user_check(serviceName)
     if not user:
-        return render_template(f"{serviceName}.html", services = services)    
-    try:
-        if user.is_admin:
-            users = Utility.users_list()
-            return render_template("admin_dashboard.html", services = services, users = users)     
-        else:
-            return redirect(f"http://localhost:5007/user/{user.id}") #, username = user.email, user_with_services = user_with_services)
-    except:
-        return render_template("admin_dashboard.html", services = services)    
+        return render_template("portal.html", services = services)    
+    return redirect(f"http://localhost:5007/user/{user.id}") #, username = user.email, user_with_services = user_with_services)
 
 # -------------------------
 # user signup, login, logout request from auth UI 
@@ -114,63 +117,62 @@ def logout():
     logout_user()
     return render_template(f"{serviceName}.html")
 
-@app.route("/users/user_remove/<int:userid>") 
-def user_remove(userid):
-    Utility.user_remove(userid)
-    return redirect("/")
-
-@app.route("/users/user_approve/<int:userid>")
-def user_approve(userid):
-    Utility.user_approve(userid)
-    return redirect("/")
-
-@app.route("/users/user_verify/<token>")
-def user_verify(token):
-    Utility.user_verify(token)
-    #return redirect("/")
-
-@app.route("/users/user_add_service", methods=["POST"])
-def user_add_service():
-    userid = request.form.get("userid")
-    serviceid = request.form.get("serviceid")
-    Utility.user_add_service(userid, serviceid)
-    return redirect("/")    
-
-@app.route("/users/user_remove_service", methods=["POST"])
-def user_remove_service():
-    userid = int(request.form.get("userid"))
-    serviceid = int(request.form.get("serviceid"))
-    Utility.user_remove_service(userid, serviceid)
-    return redirect("/")    
-
-@app.route("/services/service_remove/<int:serviceid>")
-def service_remove(serviceid):
-    Utility.service_remove(serviceid)
-    return redirect("/")
-
-@app.route("/services/service_view/<int:serviceid>")
-def service_view(serviceid): 
-    service = Utility.service_view(serviceid)
-    if service: 
-        return redirect(service.url)
-    return redirect("/")
-
 @app.route("/services/service_download/<servicename>")
 def service_download(servicename):     
     return render_template("servicedownload.html")
 
-def home_insital():        
-    dbname = f"auth_{serviceport}"    
-    Utility.create_service_database(dbname)
-    app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
-    db.init_app(app)    
-    db.create_all()
 
-    Utility.services_register(SERVICES_PATH, serviceport)    
-    Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
-    
+# -----------------------------
+# Download page
+# -----------------------------
+@app.route("/download")
+def download_page():
+    return render_template("download.html")
+
+
+# -----------------------------
+# Windows EXE
+# -----------------------------
+@app.route("/download/win")
+def download_win():
+    return send_file(
+        "static/downloads/Mixwell.exe",
+        as_attachment=True
+    )
+
+
+# -----------------------------
+# Android APK
+# -----------------------------
+@app.route("/download/apk")
+def download_apk():
+    return send_file(
+        "static/downloads/mixwell.apk",
+        as_attachment=True
+    )
+
+
+# -----------------------------
+# QR Generator
+# -----------------------------
+@app.route("/qrcode/<platform>")
+def generate_qr(platform):
+    if platform == "ios":
+        url = BASE_URL   # iOS 用 Web/PWA
+    elif platform == "android":
+        url = BASE_URL + "/download/apk"
+    else:
+        url = BASE_URL
+
+    img = qrcode.make(url)
+    path = f"static/qrcode_{platform}.png"
+    img.save(path)
+
+    return send_file(path, mimetype="image/png")
+
 if __name__ == "__main__":
-    with app.app_context():        
-        home_insital()    
-    print (f"run portal poat at {serviceport}")    
+    with app.app_context():    
+        db.create_all()        
     app.run(port=serviceport, debug=False, use_reloader=False)
+
+# GatewayRoute.py

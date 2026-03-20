@@ -12,7 +12,15 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3">
 
-<a class="navbar-brand" href="/">Mixwell Software</a>
+<!--a class="navbar-brand" href="/">Mixwell Software</a-->
+
+<a class="navbar-brand d-flex align-items-center" href="/">
+    <img src="{{ url_for('static', filename='logo.png') }}" 
+         alt="Mixwell Logo"
+         class="me-2"
+         style="height: 45px;">
+    <!--span class="fw-bold">Mixwell Software</span-->
+</a>
 
 <div class="collapse navbar-collapse">
 

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mixwell Software</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            margin-top: 80px;
+        }
+        .card {
+            display: inline-block;
+            margin: 20px;
+            padding: 30px;
+            background: white;
+            color: black;
+            border-radius: 12px;
+            width: 260px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        img {
+            width: 140px;
+        }
+        button {
+            padding: 12px 25px;
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Mixwell Software</h1>
+<p>Secure Multi-Service Platform</p>
+
+<div class="container">
+
+    <div class="card">
+        <h3>Windows</h3>
+        <p>Version 1.0.0</p>
+        <a href="/download/win">
+            <button>Download</button>
+        </a>
+    </div>
+
+    <div class="card">
+        <h3>iOS</h3>
+        <p>Scan to open</p>
+        <img src="/qrcode/ios">
+    </div>
+
+    <div class="card">
+        <h3>Android</h3>
+        <p>Version 1.0.0</p>
+        <img src="/qrcode/android">
+    </div>
+
+</div>
+
+</body>
+</html>
+{% endblock %}
