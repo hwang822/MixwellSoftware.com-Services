@@ -18,7 +18,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-serviceport = 8000
+serviceport = 5000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 
