@@ -10,7 +10,7 @@ set PROJECT_DIR=%BASE_DIR%MixwellSoftware.com-Services
 set PLATFORM_DIR=%PROJECT_DIR%\mixwell-platform
 set SERVICES_DIR=%PLATFORM_DIR%\services
 set LOGFILE=%BASE_DIR%deploy.log
-set PORTAL_PORT = 8000
+set PORTAL_PORT=8000
 
 REM 清空日志
 del %LOGFILE% 2>nul

@@ -66,5 +66,6 @@ def create_app():
 
 
 if __name__ == "__main__":
+    print (f"start running {app.route_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport) 
 

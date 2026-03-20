@@ -33,4 +33,5 @@ def userhome(userid):
     return render_template("user.html", username = user.email, user_with_services = userswithservices)
     
 if __name__ == "__main__":
+    print (f"start running {app.route_path} at {serviceport}")    
     app.run(port=serviceport, debug=False, use_reloader=False)

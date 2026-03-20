@@ -505,16 +505,6 @@ class Utility:
             cur.close()
             conn.close()
 
-
-            #DB_USER = ADMIN_DB
-            #DB_PASSWORD = ADMIN_DB
-            #DB_HOST = "localhost"
-            #DB_PORT = "5432"
-
-            #DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
-
-            #engine = create_engine(DATABASE_URL)
-
             return db_name
         except psycopg2.Error as e:
             print("PG ERROR", e)
@@ -638,8 +628,7 @@ class Utility:
             service.pid = None
             db.session.commit()
             return service
-
-
+    
     def service_view(service_id):
         try:        
             service = Utility.service_get(service_id)

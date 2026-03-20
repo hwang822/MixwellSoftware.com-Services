@@ -168,5 +168,5 @@ def home_insital():
 if __name__ == "__main__":
     with app.app_context():        
         home_insital()    
-        
+    print (f"run portal poat at {serviceport}")    
     app.run(port=serviceport, debug=False, use_reloader=False)
