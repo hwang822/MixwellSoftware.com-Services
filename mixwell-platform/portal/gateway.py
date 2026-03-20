@@ -2,8 +2,6 @@ import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, session
 from flask import Flask, render_template, send_file
-import qrcode
-import os
 
 app = Flask(__name__)
 
@@ -20,8 +18,8 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
-serviceport = 5500
+BASE_URL = "http://mixwellsoftware:8500"
+serviceport = 8500
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 
@@ -151,25 +149,16 @@ def download_apk():
         as_attachment=True
     )
 
-
 # -----------------------------
 # QR Generator
 # -----------------------------
 @app.route("/qrcode/<platform>")
 def generate_qr(platform):
-    if platform == "ios":
-        url = BASE_URL   # iOS 用 Web/PWA
-    elif platform == "android":
-        url = BASE_URL + "/download/apk"
-    else:
-        url = BASE_URL
-
-    img = qrcode.make(url)
-    path = f"static/qrcode_{platform}.png"
-    img.save(path)
-
-    return send_file(path, mimetype="image/png")
-
+#    Utility.generate_qr("ios")
+#    Utility.generate_qr("android")
+#    Utility.generate_qr("windows")
+    return 
+                            
 if __name__ == "__main__":
     with app.app_context():    
         db.create_all()        

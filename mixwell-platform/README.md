@@ -45,6 +45,23 @@ numpy==1.26.4
 build install independence 
 pip install -r requirements.txt
 
+重新创建 venv（标准流程）
+🚀 1️⃣ 删除错误的 venv
+rmdir /s /q venv
+🚀 2️⃣ 重新创建 venv
+python -m venv venv
+🚀 3️⃣ 激活
+venv\Scripts\activate
+🚀 4️⃣ 升级 pip（推荐）
+python -m pip install --upgrade pip
+🚀 5️⃣ 安装依赖（关键）
+
+如果你有 requirements.txt：
+
+pip install -r requirements.txt
+
+
+
 
 ####################################
 

@@ -4,7 +4,7 @@ import os
 import smtplib
 import socket
 import sys
-from flask import render_template, request
+from flask import render_template, request, send_file
 import psutil
 import psycopg2
 from sqlalchemy import func
@@ -14,8 +14,11 @@ from flask_sqlalchemy import SQLAlchemy
 import subprocess
 import jwt # python -m pip install PyJWT
 import subprocess
+import qrcode
 
 db = SQLAlchemy()
+
+BASE_URL = "http://mixwellsoftware:8500"
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
@@ -643,3 +646,32 @@ class Utility:
                 return None
         except:
             return False    
+
+    # -----------------------------
+    # QR Generator
+    # -----------------------------
+    def generate_qr(platform):
+        if platform == "ios":
+            url = BASE_URL   # iOS 用 Web/PWA
+        elif platform == "android":
+            url = BASE_URL + "/download/apk"
+        else:
+            url = BASE_URL
+
+        img = qrcode.make(url)
+        folder = os.path.join("portal", "static")
+        os.makedirs(folder, exist_ok=True)   # ⭐ 自动创建目录
+        path = os.path.join(f"{PLATFORM_DIR}\{folder}", f"qrcode_{platform}.png")        
+        img.save(path)
+        print("Saved to:", os.path.abspath(path))
+        #return send_file(path, mimetype="image/png")
+    
+    #generate_qr("ios")
+    #generate_qr("android")
+    #generate_qr("windows")
+
+
+    # -----------------------------
+    # Windows App Generator
+    # -----------------------------
+    
