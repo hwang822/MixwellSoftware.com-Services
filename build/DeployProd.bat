@@ -66,7 +66,7 @@ echo Starting services...
 echo Starting services... >> %LOGFILE%
 
 call :KillPort %PORTAL_PORT%
-%PYTHON% %PLATFORM_DIR%\portal\app.py PORTAL_PORT
+%PYTHON% %PLATFORM_DIR%\portal\app.py %PORTAL_PORT%
 
 REM for /D %%D in ("%SERVICES_DIR%\*") do (
 REM     call :StartService "%%~fD" "%%~nxD"
