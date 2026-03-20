@@ -51,7 +51,7 @@ pip install -r requirements.txt
 FLASK request data from A to B.
 Service A → send one string (route path) or one integer (user_id) + status
 Service B → receive it
-#####################################
+#####################################z
 
 METHOD 1 — Send as JSON (Most Common & Cleanest)
 
