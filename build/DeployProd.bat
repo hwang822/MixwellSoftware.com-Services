@@ -48,13 +48,13 @@ if not exist "%PLATFORM_DIR%\venv" (
 
 echo Installing dependencies...
 echo Installing dependencies... >> %LOGFILE%
-"%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt" >> %LOGFILE% 2>&1
+"%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
 
 REM Copy .env file to build directory
 SET SOURCE_ENV=..\mixwell-platform\.env
 SET TARGET_ENV=%PLATFORM_DIR%\.env
 echo Copying .env file...
-copy /Y "%SOURCE_ENV%" "%TARGET_ENV%"
+copy /Y "%SOURCE_ENV%" "%TARGET_ENV%"  >> %LOGFILE%
 
 set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe
 
@@ -65,8 +65,8 @@ echo.
 echo Starting services...
 echo Starting services... >> %LOGFILE%
 
-call :KillPort %PORTAL_PORT%
-%PYTHON% %PLATFORM_DIR%\portal\app.py %PORTAL_PORT%
+call :KillPort %PORTAL_PORT%  >> %LOGFILE% 
+%PYTHON% %PLATFORM_DIR%\portal\app.py %PORTAL_PORT% >> %LOGFILE%
 
 REM for /D %%D in ("%SERVICES_DIR%\*") do (
 REM     call :StartService "%%~fD" "%%~nxD"
