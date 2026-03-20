@@ -11,5 +11,5 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}"
 def home():    
     return render_template("data.html")        
 if __name__ == "__main__":
-    print (f"start running {app.route_path} at {serviceport}")    
+    print (f"start running {app.root_path} at {serviceport}")    
     app.run(port=serviceport)
