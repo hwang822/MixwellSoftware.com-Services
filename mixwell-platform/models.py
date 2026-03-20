@@ -417,16 +417,6 @@ class Utility:
                 if not os.path.isdir(service_path):
                     continue
 
-                # split folder name
-                #parts = folder.split("_", 1)
-
-                #if len(parts) != 2:
-                #    print(f"Invalid service folder name: {folder}")
-                #    continue
-
-                #port = int(parts[0])
-                #if port < base_port : # base_port would be 5000 or 8000 
-                #    port = base_port + port - 5000
                 port = port + 1
                 name = folder                
                 path = service_path
@@ -435,7 +425,7 @@ class Utility:
                 # 初始化数据库
                 dbname = f"{name}_{port}"
                 Utility.create_service_database(dbname)
-                print(f"DB created for {dbname}")
+                print(f"created service {dbname} db")
 
                 # Start Service
                 prodc = Utility.service_start(name, port, service_path)                
@@ -445,6 +435,7 @@ class Utility:
                     status = "running"
                 else:
                     status = "stopped"
+                print(f"started service {name} {port} {service_path}")
                 service = Service.query.filter_by(name=name).first()
                 if not service:
                     # 新服务
@@ -461,12 +452,6 @@ class Utility:
                     db.session.add(service)
                     db.session.commit()
                     print(f"New service detected: {folder}")
-
-
-                    # 生成 start/stop 脚本
-                    #Utility.generate_service_scripts(folder, port, service_path, PYTHON_PATH)
-                    #print(f"Start/stop scripts generated for {service.name}")
-
                 else:
                     service.database = dbname,
                     service.port=port,

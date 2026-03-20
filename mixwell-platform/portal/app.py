@@ -18,9 +18,9 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-serviceport = 5000 # 5000 # int(sys.argv[1])
-
+serviceport = 8000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+print (f"Portal Service port# {serviceport}")
 
 servicedb = "auth"  #sys.argv[2]
 serviceName = "portal"
@@ -162,7 +162,7 @@ def home_insital():
     db.init_app(app)    
     db.create_all()
 
-    Utility.services_register(SERVICES_PATH, int(serviceport))    
+    Utility.services_register(SERVICES_PATH, serviceport)    
     Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
     
 if __name__ == "__main__":
