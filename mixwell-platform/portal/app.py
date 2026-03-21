@@ -47,7 +47,7 @@ def serivce_access(servicename):
         return redirect(authUrl)    
     service = Utility.service_get(servicename)    
     if service:
-        return redirect(f"{service.url}/user/{user.id}")
+        return redirect(f"{service.url}")
     
 @app.route("/")
 def home():

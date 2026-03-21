@@ -24,7 +24,7 @@ serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport
 print (f"Portal Service port# {serviceport}")
 
 servicedb = "auth"  #sys.argv[2]
-dbport = 5000
+dbport = 8000
 
 serviceName = "gateway"
 
@@ -50,6 +50,7 @@ def load_user(user_id):
 
 @app.route("/service/<servicename>")
 def serivce_access(servicename):
+    service = Utility.service_get(servicename)
     user = Utility.user_check(servicename)    
     if not user:
         return redirect(authUrl)    
@@ -58,7 +59,7 @@ def serivce_access(servicename):
         return redirect(f"{service.url}/user/{user.id}")
     
 @app.route("/")
-def home():
+def home():  #https://services.mixwellsoftware.com/
     services = Utility.services_get_all()
     user = Utility.user_check(serviceName)
     if not user:
