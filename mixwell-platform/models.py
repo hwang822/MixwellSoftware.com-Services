@@ -419,9 +419,9 @@ class Utility:
 
                 if not os.path.isdir(service_path):
                     continue
-
-                port = port + 1
-                name = folder                
+                result = folder.split("_")
+                port = base_port + int(result[1])
+                name = result[0]                
                 path = service_path
                 url = f"{Config.GATEWAY_URL}:{port}"
 
