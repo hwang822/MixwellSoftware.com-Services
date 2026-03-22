@@ -1,6 +1,6 @@
 import sys
 from flask_login import LoginManager, logout_user
-from flask import Flask, flash, make_response, redirect, render_template, request, send_file, session
+from flask import Flask, flash, make_response, redirect, render_template, request, send_file
 
 app = Flask(__name__)
 
@@ -57,12 +57,12 @@ def home():
 @app.route("/signup", methods=["GET", "POST"])  
 def signup():    
     if request.method == "GET":      
-        session.pop('_flashes', None)  
+        #session.pop('_flashes', None)  
         return render_template("signup.html")
     email = request.form["username"]
     password = request.form["password"]        
     response = Utility.user_signup(email, password, False, False)
-    flash(response["message"])
+    #flash(response["message"])
     if response["status"] == 400:  
         return redirect("/signup")
     return redirect("/login")
@@ -70,16 +70,16 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 def login():          
     if request.method == "GET":
-        session.pop('_flashes', None)        
+        #session.pop('_flashes', None)        
         return render_template("login.html")                
     email = request.form["username"]
     password = request.form["password"]    
     response = Utility.user_login(email, password)    
-    flash(response["message"])
+    #flash(response["message"])
     if response["status"] == 400:
         return redirect("/login")
     else :  
-        flash(response["message"])
+        #flash(response["message"])
         currentuser = response["data"]
         next_url = request.args.get("next")
         servicename = request.args.get("service")
