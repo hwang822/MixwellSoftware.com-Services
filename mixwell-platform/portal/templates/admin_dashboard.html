@@ -87,7 +87,6 @@
         
         <th>URL</th>
         <th>Status</th>
-        <th>PID</th>
         <th>Action</th>
     </tr>
     {% for service in services %}
@@ -96,7 +95,6 @@
             <td>{{ service.name }}</td>
             <td>{{ service.url }}</td>
             <td>{{ service.status }}</td>
-            <td>{{ service.pid }}</td>
             <td>    
                 <a href="#"
                     onclick="openService('{{ service.url }}','{{ service.name }}'); return false;"

@@ -15,6 +15,8 @@ import subprocess
 import jwt # python -m pip install PyJWT
 import subprocess
 import qrcode
+import psycopg2    
+import webview  
 
 db = SQLAlchemy()
 
@@ -429,16 +431,6 @@ class Utility:
                 dbname = f"{name}_{port}"
                 Utility.create_service_database(dbname)
                 print(f"created service {dbname} db")
-
-                # Start Service
-                prodc = Utility.service_start(name, port, service_path)                
-                pid = None
-                if prodc:
-                    pid = prodc.pid
-                    status = "running"
-                else:
-                    status = "stopped"
-                print(f"started service {name} {port} {service_path}")
                 service = Service.query.filter_by(name=name).first()
                 if not service:
                     # 新服务
@@ -449,27 +441,25 @@ class Utility:
                         port=port,
                         url=url,
                         path=path,
-                        pid = pid,                        
-                        status = status
+                        status = "running"
                     )
                     db.session.add(service)
                     db.session.commit()
                     print(f"New service detected: {folder}")
-                else:
-                    service.database = dbname,
-                    service.port=port,
-                    service.url=url,
-                    service.path=path,
-                    service.pid = pid,                        
-                    service.status = status
-                    db.session.commit()
-                    print(f"Service {folder} updated")
-    
-            db_services = {s.name: s for s in Service.query.all()}
+
+                # Start Service
+                Utility.service_start(name, port, service_path)                
+                print(f"started service {name} {port} {service_path}")
+
+            db_services = {s.database: s for s in Service.query.all()}
             # 删除已不存在的 service
             current_set = set(folder_list)
-            for name, service in db_services.items():
-                searchname = f"{service.port}_{service.name}" 
+            for name, service in db_services.items():                
+                if service.port <= int(Config.PORTAL_PORT_PORD):
+                    port = service.port-int(Config.PORTAL_PORT)
+                else:
+                    port = service.port-int(Config.PORTAL_PORT_PORD)
+                searchname = f"{service.name}_{str(port).zfill(3)}" 
                 if searchname not in current_set:
                     #Utility.service_stop(service.name)
                     db.session.delete(service)
@@ -479,14 +469,12 @@ class Utility:
         except:
             return None
 
-    import psycopg2    
     from sqlalchemy import create_engine
 
 
     def create_service_database(db_name):
         
         try:
-            #db_name = service_name
             conn = psycopg2.connect(
                 dbname=ADMIN_DB,
                 user=ADMIN_DB,
@@ -670,8 +658,14 @@ class Utility:
     #generate_qr("android")
     #generate_qr("windows")
 
+    # -----------------------------
+    # app_service.py Generator
+    # -----------------------------
 
-    # -----------------------------
-    # Windows App Generator
-    # -----------------------------
-    
+    #pip install pywebview
+    def generate_app(service_name):
+        webview.create_window(
+            f"Mixwell {service_name} Service",
+            f"https://www.mixwellsoftware.com/service/{service_name}"
+        )
+        webview.start() 

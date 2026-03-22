@@ -41,14 +41,15 @@
 <body>
 
 <h1>Mixwell Software</h1>
-<p>Secure Multi-Service Platform</p>
+<!--p>Secure Multi-Service Platform</p-->
+
+<p>Select platform type for {{ servicename }} service app download</p>
 
 <div class="container">
-
     <div class="card">
         <h3>Windows</h3>
         <p>Version 1.0.0</p>
-        <a href="/download/win">
+        <a href="/services/download/win/{{ servicename }}">
             <button>Download</button>
         </a>
     </div>
@@ -56,15 +57,16 @@
     <div class="card">
         <h3>iOS</h3>
         <p>Scan to open</p>
-        <img src="/qrcode/ios">
+        <img src="/static/qrcode_ios">
+        <!--img src="/qrcode/ios"-->
     </div>
 
     <div class="card">
         <h3>Android</h3>
         <p>Version 1.0.0</p>
-        <img src="/qrcode/android">
+        <img src="/qrcode/qrcode_android">
+        <!--img src="/qrcode/android"-->
     </div>
-
 </div>
 
 </body>

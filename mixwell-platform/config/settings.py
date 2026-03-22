@@ -29,4 +29,5 @@ class Config:
     ADMIN_NAME = os.getenv("ADMIN_NAME")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
     PORTAL_PORT = os.getenv("PORTAL_PORT")
+    PORTAL_PORT_PORD = os.getenv("PORTAL_PORT_PORD")    
     VERIFY_URL = os.getenv("VERIFY_URL")

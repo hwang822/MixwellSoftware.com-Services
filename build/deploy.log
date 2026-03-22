@@ -1,10 +1,49 @@
 ===================================== 
-Build started: Fri 03/20/2026 23:42:23.83 
+Build started: Sat 03/21/2026 21:39:15.82 
 ===================================== 
-Updating repository... 
-Installing dependencies... 
+Cloning repository... 
         1 file(s) copied.
 Starting services... 
-Portal FAILED 
-===================================== 
-Build finished: Fri 03/20/2026 23:42:33.50 
+Portal Service port# 8000
+created service ai_8001 db
+started service ai 8001 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\ai_001
+New service detected: ai_001
+created service cam_8002 db
+process PID not found (pid=31556)
+started service cam 8002 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\cam_002
+Service cam_002 updated
+created service data_8003 db
+process PID not found (pid=13816)
+started service data 8003 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\data_003
+Service data_003 updated
+created service email_8004 db
+process PID not found (pid=29908)
+started service email 8004 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\email_004
+Service email_004 updated
+created service rdp_8005 db
+process PID not found (pid=1940)
+started service rdp 8005 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\rdp_005
+Service rdp_005 updated
+created service registry_8006 db
+process PID not found (pid=24056)
+started service registry 8006 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\registry_006
+Service registry_006 updated
+created service service1_8007 db
+process PID not found (pid=25260)
+started service service1 8007 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\service1_007
+Service service1_007 updated
+created service service2_8008 db
+process PID not found (pid=836)
+started service service2 8008 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\service2_008
+Service service2_008 updated
+created service user_8009 db
+process PID not found (pid=27188)
+started service user 8009 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\user_009
+Service user_009 updated
+created service video_8010 db
+process PID not found (pid=24060)
+started service video 8010 c:\workarea\mixwellsoftware.com-services\build\mixwellsoftware.com-services\mixwell-platform\portal/../\services\video_010
+Service video_010 updated
+run portal poat at 8000
+ * Serving Flask app 'app'
+ * Debug mode: off

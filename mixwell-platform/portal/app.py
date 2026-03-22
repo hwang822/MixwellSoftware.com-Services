@@ -1,6 +1,6 @@
 import sys
 from flask_login import LoginManager, logout_user
-from flask import Flask, flash, make_response, redirect, render_template, request, session
+from flask import Flask, flash, make_response, redirect, render_template, request, send_file, session
 
 app = Flask(__name__)
 
@@ -17,19 +17,15 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
-serviceport = 8000 # Config.PORTAL_PORT
+serviceport = int(Config.PORTAL_PORT)
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 
-servicedb = "auth"  #sys.argv[2]
+servicedb = "auth"  
 serviceName = "portal"
-
-#authUrl = f"{Config.SERVICE_URL}:{serviceport}/login?next={Config.SERVICE_URL}:{serviceport}"
 
 dbname = f"{servicedb}_{serviceport}"
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
-
 
 SERVICES_PATH = f"{BASE_DIR}\\services"
 
@@ -61,12 +57,12 @@ def home():
 @app.route("/signup", methods=["GET", "POST"])  
 def signup():    
     if request.method == "GET":      
-        #session.pop('_flashes', None)  
+        session.pop('_flashes', None)  
         return render_template("signup.html")
     email = request.form["username"]
     password = request.form["password"]        
     response = Utility.user_signup(email, password, False, False)
-    #flash(response["message"])
+    flash(response["message"])
     if response["status"] == 400:  
         return redirect("/signup")
     return redirect("/login")
@@ -74,16 +70,16 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 def login():          
     if request.method == "GET":
-        #session.pop('_flashes', None)        
+        session.pop('_flashes', None)        
         return render_template("login.html")                
     email = request.form["username"]
     password = request.form["password"]    
     response = Utility.user_login(email, password)    
-    #flash(response["message"])
+    flash(response["message"])
     if response["status"] == 400:
         return redirect("/login")
     else :  
-        #flash(response["message"])
+        flash(response["message"])
         currentuser = response["data"]
         next_url = request.args.get("next")
         servicename = request.args.get("service")
@@ -109,15 +105,11 @@ def logout():
 def serivce_access(servicename):
     user = Utility.user_check(servicename)    
     if not user:
-        #authUrl = f"{Config.SERVICE_URL}:{serviceport}/login?next={Config.SERVICE_URL}:{service.port}"
-        #return redirect(authUrl)
         return redirect(f"/login?next=/service/{servicename}")    
     service = Utility.service_get(servicename)
     if not service:
         return f"{servicename} service is not avalaible!"
-    #service = Utility.service_get(servicename)    
     return redirect(f"{service.url}")
-
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):
@@ -132,7 +124,6 @@ def user_approve(userid):
 @app.route("/users/user_verify/<token>")
 def user_verify(token):
     Utility.user_verify(token)
-    #return redirect("/")
 
 @app.route("/users/user_add_service", methods=["POST"])
 def user_add_service():
@@ -162,7 +153,14 @@ def service_view(serviceid):
 
 @app.route("/services/service_download/<servicename>")
 def service_download(servicename):     
-    return render_template("servicedownload.html")
+    return render_template("servicedownload.html", servicename = servicename)
+
+@app.route("/services//download/win/<servicename>")
+def download_win(servicename):
+    return send_file(
+        f"static/downloads/app_{servicename}.exe",
+        as_attachment=True
+    )
 
 def home_insital():        
     dbname = f"auth_{serviceport}"    
