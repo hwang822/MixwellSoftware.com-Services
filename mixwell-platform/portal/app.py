@@ -18,14 +18,14 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-serviceport = Config.PORTAL_PORT
+serviceport = 8000 # Config.PORTAL_PORT
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 
 servicedb = "auth"  #sys.argv[2]
 serviceName = "portal"
 
-authUrl = f"http://{Config.SERVICE_URL}:{serviceport}/login?next=http://{Config.SERVICE_URL}:{serviceport}"
+#authUrl = f"{Config.SERVICE_URL}:{serviceport}/login?next={Config.SERVICE_URL}:{serviceport}"
 
 dbname = f"{servicedb}_{serviceport}"
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
@@ -39,15 +39,6 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-@app.route("/service/<servicename>")
-def serivce_access(servicename):
-    user = Utility.user_check(servicename)    
-    if not user:
-        return redirect(authUrl)    
-    service = Utility.service_get(servicename)    
-    if service:
-        return redirect(f"{service.url}")
     
 @app.route("/")
 def home():
@@ -113,6 +104,20 @@ def login():
 def logout():    
     logout_user()
     return render_template(f"{serviceName}.html")
+
+@app.route("/service/<servicename>")
+def serivce_access(servicename):
+    user = Utility.user_check(servicename)    
+    if not user:
+        #authUrl = f"{Config.SERVICE_URL}:{serviceport}/login?next={Config.SERVICE_URL}:{service.port}"
+        #return redirect(authUrl)
+        return redirect(f"/login?next=/service/{servicename}")    
+    service = Utility.service_get(servicename)
+    if not service:
+        return f"{servicename} service is not avalaible!"
+    #service = Utility.service_get(servicename)    
+    return redirect(f"{service.url}")
+
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):

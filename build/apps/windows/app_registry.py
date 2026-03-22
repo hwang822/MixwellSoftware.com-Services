@@ -1,7 +1,7 @@
 import webview  
 #pip install pywebview
 webview.create_window(
-    "Mixwell Registry Services",
-    "https://www.mixwellsoftware.com/redistry"
+    "Mixwell Registry Service",
+    "https://www.mixwellsoftware.com/service/registry"
 )
 webview.start()
