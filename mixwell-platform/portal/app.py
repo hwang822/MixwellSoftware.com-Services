@@ -192,10 +192,21 @@ def service_view(serviceid):
 def service_download(servicename):     
     return render_template("servicedownload.html", servicename = servicename)
 
-@app.route("/services//download/win/<servicename>")
+@app.route("/services/download/win/<servicename>")
 def download_win(servicename):
     return send_file(
         f"static/downloads/app_{servicename}.exe",
+        as_attachment=True
+    )
+
+@app.route("/services/download/ios")
+def download_ios():
+    return "Redirect to PWA or App Store"
+
+@app.route("/services/download/android/<servicename>")
+def download_android(servicename):
+    return send_file(
+        f"static/downloads/app_{servicename}.apk",
         as_attachment=True
     )
 

@@ -667,7 +667,7 @@ class Utility:
         elif platform == "android":
             url = BASE_URL + "/download/apk"
         else:
-            url = BASE_URL
+            url = BASE_URL + "/download/iea"
 
         img = qrcode.make(url)
         folder = os.path.join("portal", "static")
