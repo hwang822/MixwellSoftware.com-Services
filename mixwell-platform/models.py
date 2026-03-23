@@ -331,7 +331,10 @@ class Utility:
             db.session.query(
                 User.id.label("user_id"),
                 User.email,
-
+                User.is_admin,
+                User.is_verified,
+                User.ip,
+                User.location,
                 func.json_agg(
                     func.json_build_object(
                         "id", Service.id,
@@ -368,6 +371,10 @@ class Utility:
             users.append({
                 "user_id": r.user_id,
                 "email": r.email,
+                "is_admin": r.is_admin,
+                "is_verified": r.is_verified,
+                "ip": r.ip,
+                "location": r.location,
                 "service_count": len(with_services),
                 "with_services": with_services,
                 "without_services": without_services
