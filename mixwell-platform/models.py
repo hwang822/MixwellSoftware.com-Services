@@ -17,6 +17,7 @@ import subprocess
 import qrcode
 import psycopg2    
 import webview  
+import requests
 
 db = SQLAlchemy()
 
@@ -40,6 +41,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(200))
+    ip = db.Column(db.String(20))
+    location = db.Column(db.String(200))
     is_admin = db.Column(db.Boolean, default=False)
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime)
@@ -100,6 +103,13 @@ class Utility:
     # users methods
     ####################################
 
+    def user_location():
+#        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        res = requests.get(f"http://ip-api.com/json").json()
+        location = f"{res["city"]}, {res["regionName"]}, {res["country"]}" 
+        return  
+
+
     def user_signup(email, password, is_verified, is_admin):         
         user = User.query.filter_by(email=email).first()   
         if user is None:
@@ -108,6 +118,8 @@ class Utility:
                 password= generate_password_hash(password), 
                 is_verified = is_verified,
                 is_admin = is_admin,
+                ip = request.headers.get('X-Forwarded-For', request.remote_addr),
+                location = Utility.user_location(),
                 created_at = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())            
             )
             db.session.add(user)                
@@ -130,15 +142,18 @@ class Utility:
             password):
             return Utility.auth_response(400, "Invalid password.", user)
         elif user.is_verified == False:
+#            user.ip = ip
+#            user.location = Utility.user_location()
             return Utility.auth_response(400, "Waitting verify email for approve.", user)
         else:
-            #login_user(user)
+#            user.ip = ip
+#            user.location = Utility.user_location()
             return Utility.auth_response(200, "Login Scussfully!", user)
 
     def users_get_all():
         return User.query.all()
 
-    def user_get(userid):                 
+    def user_get(userid):              
         user = User.query.get_or_404(userid)
         return user
                 
@@ -227,16 +242,18 @@ class Utility:
             )
             userid = decoded["userid"]
             user =  Utility.user_get(userid)            
-            if user.is_admin:
-                return user
-            service = Service.query.filter_by(name=servicename).first()
-            userservice = UserService.query.filter_by(   
-                user_id=userid,
-                service_id=service.id
-            ).first()
-            if not userservice:
-                return None
-            return user            
+            if servicename != "":
+                service = Service.query.filter_by(name=servicename).first()
+                userservice = UserService.query.filter_by(   
+                    user_id=userid,
+                    service_id=service.id
+                ).first()
+                if not userservice:                                
+                    return None
+                userservice.access = userservice.access + 1
+                db.session.add(userservice)
+                db.session.commit()
+            return user                    
         except:
             return None
         
@@ -259,7 +276,6 @@ class Utility:
             return userservice
         else:
             return None
-
 
     def user_add_service(userid, serviceid): #update users_services table for connect user.id and service.id        
         if not userid:
@@ -669,3 +685,32 @@ class Utility:
             f"https://www.mixwellsoftware.com/service/{service_name}"
         )
         webview.start() 
+
+    """
+    获取大致地理位置（可以）
+
+    你可以用：
+
+    ipinfo
+    ip-api
+    {
+    "country": "United States",
+    "city": "Houston",
+    "regionName": "Texas"
+    }
+    """
+
+def notify_support(service, error):
+    msg = f"""
+    Service: {service}
+    Error: {error}
+    """
+
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()
+        server.login("your_email", "password")
+        server.sendmail(
+            "your_email",
+            "support@mixwellsoftware.com",
+            msg
+        )    

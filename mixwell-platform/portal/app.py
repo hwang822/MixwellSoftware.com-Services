@@ -1,6 +1,11 @@
+import subprocess
 import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, send_file
+import requests
+
+from flask_migrate import Migrate, upgrade, init, migrate as migrate_cmd
+import os
 
 app = Flask(__name__)
 
@@ -39,7 +44,7 @@ def load_user(user_id):
 @app.route("/")
 def home():
     services = Utility.services_get_all()
-    user = Utility.user_check(serviceName)
+    user = Utility.user_check("")
     if not user:
         return render_template(f"{serviceName}.html", services = services)    
     try:
@@ -74,6 +79,7 @@ def login():
         return render_template("login.html")                
     email = request.form["username"]
     password = request.form["password"]    
+    #ip = request.headers.get('X-Forwarded-For', request.remote_addr),        
     response = Utility.user_login(email, password)    
     #flash(response["message"])
     if response["status"] == 400:
@@ -100,7 +106,7 @@ def login():
 def logout():    
     logout_user()
     return render_template(f"{serviceName}.html")
-
+"""
 @app.route("/service/<servicename>")
 def serivce_access(servicename):
     user = Utility.user_check(servicename)    
@@ -110,6 +116,37 @@ def serivce_access(servicename):
     if not service:
         return f"{servicename} service is not avalaible!"
     return redirect(f"{service.url}")
+"""
+@app.route("/service/<servicename>")
+def route_service(servicename):
+    try:
+        # ✅ 1. 验证用户
+        user = Utility.user_check(servicename)    
+        if not user:
+            return redirect(f"/login?next=/service/{servicename}")    
+
+        if not user:
+            return redirect("/login")
+
+        # ✅ 2. 查 service 信息（DB）
+        service = Utility.service_get(servicename)
+        if not service:
+            return "Service not found", 404
+        return redirect(f"{service.url}")
+
+        # ✅ 3. 记录访问
+        #record_user_service(user.id, service.id)
+            #did at 1. 验证用户
+
+        # ✅ 4. 转发（proxy）
+        # url = service.url   # e.g. http://localhost:8001
+        # resp = requests.get(url, cookies=request.cookies)
+
+        #return resp.text
+
+    except Exception as e:
+        Utility.notify_support(service, str(e))
+        return "Sorry, service is not available at the moment", 500
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):
@@ -162,16 +199,30 @@ def download_win(servicename):
         as_attachment=True
     )
 
-def home_insital():        
+def home_insital():
     dbname = f"auth_{serviceport}"    
     Utility.create_service_database(dbname)
     app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
     db.init_app(app)    
-    db.create_all()
+    Migrate(app, db)
+
+    # ⭐ 自动处理 migrations
+    migrations_dir = os.path.join(os.getcwd(), "migrations")
+
+    with app.app_context():
+        if not os.path.exists(migrations_dir):
+            print("Initializing migrations...")
+            init()
+            migrate_cmd(message="init")
+        upgrade()
 
     Utility.services_register(SERVICES_PATH, serviceport)    
-    Utility.user_signup(Config.ADMIN_NAME, Config.ADMIN_PASSWORD, True, True)
-    
+    user = Utility.user_signup(
+        Config.ADMIN_NAME,
+        Config.ADMIN_PASSWORD,
+        True,
+        True
+    )
 if __name__ == "__main__":
     with app.app_context():        
         home_insital()    

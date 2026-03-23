@@ -332,3 +332,127 @@ change password. pgAdmin 4\Servers(1)\PostgreSQL 18\Login/Group Roles\postgres->
 
 create new database ->   pgAdmin 4\Servers(1)\PostgreSQL 18\Databases (3) -> right clcik -> Create -> Database ...
 delete a database  ->   pgAdmin 4\Servers(1)\PostgreSQL 18\Databases (3) -> right clcik -> Delete/Drop -> Database ...
+
+
+##################################
+整体防护架构（推荐）
+
+User
+ ↓
+[ Gateway 8500 ]
+ ├── IP 检查
+ ├── Rate Limit
+ ├── Token 验证
+ ├── 行为分析
+ ├── 黑名单判断
+ ↓
+Service
+🔥 三、必须实现的 5 个防护（核心）
+1️⃣ IP 获取（基础）
+ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+2️⃣ 访问频率限制（最重要）
+
+👉 防止刷接口 / 爆破
+
+✅ 简单版本（推荐先用）
+from time import time
+
+ip_access = {}
+
+def is_rate_limited(ip):
+    now = time()
+    if ip not in ip_access:
+        ip_access[ip] = []
+
+    # 保留最近10秒
+    ip_access[ip] = [t for t in ip_access[ip] if now - t < 10]
+
+    if len(ip_access[ip]) > 20:
+        return True
+
+    ip_access[ip].append(now)
+    return False
+使用：
+if is_rate_limited(ip):
+    return "Too many requests", 429
+3️⃣ 黑名单（自动封禁）
+blocked_ips = set()
+
+def block_ip(ip):
+    blocked_ips.add(ip)
+if ip in blocked_ips:
+    return "Access denied", 403
+💡 自动加入黑名单
+if is_rate_limited(ip):
+    block_ip(ip)
+4️⃣ Token 校验（必须）
+if not token:
+    return redirect("/login")
+
+user = validate_token(token)
+
+if not user:
+    return "Unauthorized", 401
+5️⃣ 异常防护（你已经有思路 👍）
+try:
+    resp = requests.get(service.url, timeout=3)
+except Exception as e:
+    notify_support(service.name, str(e))
+    return "Service unavailable", 500
+🛡️ 四、进阶防护（推荐逐步加）
+🔥 6️⃣ User-Agent 过滤（挡爬虫）
+ua = request.headers.get("User-Agent", "")
+
+if "curl" in ua or "bot" in ua.lower():
+    return "Bots not allowed", 403
+🔥 7️⃣ Referer 检查
+ref = request.headers.get("Referer")
+
+if not ref:
+    return "Invalid request", 403
+🔥 8️⃣ Geo 限制（可选）
+
+你之前问 IP 地址 👍
+
+可以：
+
+loc = get_location(ip)
+
+if loc["country"] not in ["United States"]:
+    return "Access denied by region", 403
+🔥 9️⃣ 登录保护（防爆破）
+failed_login[ip] += 1
+
+if failed_login[ip] > 5:
+    block_ip(ip)
+📊 五、记录用户行为（很关键）
+log = AccessLog(
+    user_id=user.id,
+    service=service.name,
+    ip=ip,
+    time=datetime.now()
+)
+
+👉 以后你可以：
+
+分析攻击
+找异常用户
+限制行为
+📧 六、自动告警（你已经做一半了）
+
+升级一下：
+
+if "error" in str(e).lower():
+    notify_support(service, error, ip)
+🚀 七、强烈推荐（生产级）
+🔥 使用 Flask-Limiter
+from flask_limiter import Limiter
+
+limiter = Limiter(app, key_func=lambda: request.remote_addr)
+
+@app.route("/api")
+@limiter.limit("10 per second")
+def api():
+    return "OK"
+
+👉 比你手写更稳定
