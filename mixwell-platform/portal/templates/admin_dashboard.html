@@ -65,6 +65,12 @@
                 </form>
             </td>
             <td>
+                <a href="#"
+                    onclick="openService('{{ service.url }}','user'); return false;"
+                    class="btn btn-success btn-sm">
+                    View
+                </a>                
+
                 {% if user.is_verified %}
                 {% else %}
                     <a href="/users/user_approve/{{ user.id }}" class="btn btn-success btn-sm">
