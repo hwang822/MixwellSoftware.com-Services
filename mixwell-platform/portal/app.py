@@ -53,7 +53,8 @@ def home():
             return render_template("admin_dashboard.html", services = services, users = users)     
         else:
             return redirect(f"http://localhost:5007/user/{user.id}") #, username = user.email, user_with_services = user_with_services)
-    except:
+    except Exception as e:
+        print (e)
         return render_template("admin_dashboard.html", services = services)    
 
 # -------------------------
@@ -211,10 +212,13 @@ def download_android(servicename):
     )
 
 def home_insital():
-    dbname = f"auth_{serviceport}"    
+    dbname = f"auth_{serviceport}"        
     Utility.create_service_database(dbname)
     app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
     db.init_app(app)    
+    db.create_all()
+
+    """
     Migrate(app, db)
 
     # ⭐ 自动处理 migrations
@@ -226,6 +230,7 @@ def home_insital():
             init()
             migrate_cmd(message="init")
         upgrade()
+    """
 
     Utility.services_register(SERVICES_PATH, serviceport)    
     user = Utility.user_signup(

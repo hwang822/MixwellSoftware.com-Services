@@ -104,24 +104,23 @@ class Utility:
     ####################################
 
     def user_location():
-#        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        res = requests.get(f"http://ip-api.com/json").json()
-        location = f"{res["city"]}, {res["regionName"]}, {res["country"]}" 
-        return  
+        location = requests.get(f"http://ip-api.com/json").json()
+        return location 
 
 
     def user_signup(email, password, is_verified, is_admin):         
         user = User.query.filter_by(email=email).first()   
         if user is None:
+            userlocation = Utility.user_location()
             user = User(
                 email = email, 
                 password= generate_password_hash(password), 
                 is_verified = is_verified,
                 is_admin = is_admin,
-                ip = request.headers.get('X-Forwarded-For', request.remote_addr),
-                location = Utility.user_location(),
+                ip = f"{userlocation['query']}", 
+                location = f"{userlocation['city']} {userlocation['regionName']} {userlocation['zip']}, {userlocation['country']}",
                 created_at = datetime.now(timezone.utc) + timedelta(hours=12)  # can not datetime.utcnow())            
-            )
+            )                        
             db.session.add(user)                
             db.session.commit()
             try:
@@ -142,12 +141,13 @@ class Utility:
             password):
             return Utility.auth_response(400, "Invalid password.", user)
         elif user.is_verified == False:
-#            user.ip = ip
-#            user.location = Utility.user_location()
             return Utility.auth_response(400, "Waitting verify email for approve.", user)
         else:
-#            user.ip = ip
-#            user.location = Utility.user_location()
+            userlocation = Utility.user_location()
+            user.ip = f"{userlocation['query']}", 
+            user.location = f"{userlocation['city']} {userlocation['regionName']} {userlocation['zip']}, {userlocation['country']}",
+            db.session.add(user)                
+            db.session.commit()
             return Utility.auth_response(200, "Login Scussfully!", user)
 
     def users_get_all():
@@ -355,8 +355,16 @@ class Utility:
         all_services = db.session.query(Service.id, Service.name).all()
 
         users = []
-
         for r in rows:
+            with_services = r.with_services or []
+            
+            with_ids = {s["id"] for s in with_services}
+
+            without_services = [
+                {"id": s.id, "name": s.name}
+                for s in all_services
+                if s.id not in with_ids
+            ]
 
             with_services = r.with_services or []
 
@@ -368,18 +376,18 @@ class Utility:
                 if s.id not in with_ids
             ]
 
-            users.append({
-                "user_id": r.user_id,
-                "email": r.email,
-                "is_admin": r.is_admin,
-                "is_verified": r.is_verified,
-                "ip": r.ip,
-                "location": r.location,
-                "service_count": len(with_services),
-                "with_services": with_services,
-                "without_services": without_services
-            })
-
+            user = {
+                    "user_id": r.user_id,
+                    "email": r.email,
+                    "is_admin": r.is_admin,
+                    "is_verified": r.is_verified,
+                    "ip": r.ip,
+                    "location": r.location,
+                    "service_count": len(with_services),
+                    "with_services": with_services,
+                    "without_services": without_services
+                }  
+            users.append(user)            
         return users
 
     def auth_response(status, message, data):
@@ -434,8 +442,10 @@ class Utility:
         except:
             return None
         
-    def services_register(SERVICES_PATH, base_port):
+    def services_register(SERVICES_PATH, base_port):        
         try:
+            if Utility.is_port_used(base_port):
+                Utility.kill_port(base_port)
             folder_list = os.listdir(SERVICES_PATH)        
             port = base_port            
             for folder in folder_list:
@@ -565,45 +575,6 @@ class Utility:
         except:
             return False
 
-    def service_start1(servicename, port, servicepath):
-        try:
-            service = Service.query.filter_by(name=servicename).first()
-
-            if service:
-                Utility.service_stop(servicename)
-
-            app_file = os.path.join(servicepath, "app.py")
-
-            base_db_url = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
-            app_db = f"{base_db_url}/{servicename}_{port}"
-            
-            """
-            # 🔥 构造 DB URL
-            base_db_url = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
-            db_name = f"{servicename}_{port}"
-            app_db = f"{base_db_url}/{db_name}"
-
-            base = Config.SQLALCHEMY_DATABASE_URI.rsplit("/", 1)[0]
-            db_name = f"{servicename}_{port}"
-            servicedb = f"{base}/{db_name}"            
-            """
-
-            if os.path.exists(app_file):
-                proc = subprocess.Popen(
-                    [
-                        PYTHON_PATH,
-                        app_file,
-                        str(port),
-                        app_db
-                    ],
-                    creationflags=subprocess.CREATE_NO_WINDOW
-                )
-                return proc
-
-        except Exception as e:
-            print("Service start error:", e)
-            return None
-
     def service_start(servicename, port, servicepath):
         proc = None
         try:
@@ -708,17 +679,47 @@ class Utility:
     }
     """
 
-def notify_support(service, error):
-    msg = f"""
-    Service: {service}
-    Error: {error}
-    """
+    def notify_support(service, error):
+        msg = f"""
+        Service: {service}
+        Error: {error}
+        """
 
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()
-        server.login("your_email", "password")
-        server.sendmail(
-            "your_email",
-            "support@mixwellsoftware.com",
-            msg
-        )    
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login("your_email", "password")
+            server.sendmail(
+                "your_email",
+                "support@mixwellsoftware.com",
+                msg
+            )    
+
+    import socket
+
+    def is_port_used(port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = s.connect_ex(('127.0.0.1', port))
+        s.close()
+        return result == 0
+
+    import os
+
+    def kill_port_safe(port):
+        current_pid = os.getpid()
+
+        try:
+            result = subprocess.check_output(
+                f'netstat -ano | findstr :{port}',
+                shell=True
+            ).decode()
+
+            for line in result.strip().split("\n"):
+                parts = line.split()
+                pid = parts[-1]
+
+                if pid != str(current_pid):
+                    print(f"Killing PID {pid}")
+                    subprocess.run(f"taskkill /PID {pid} /F", shell=True)
+
+        except:
+            pass
