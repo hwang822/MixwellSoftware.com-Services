@@ -657,10 +657,12 @@ class Utility:
                 return None
         except:
             return False    
-
+    
+    """    
     # -----------------------------
     # QR Generator
     # -----------------------------
+    
     def generate_qr(platform):
         if platform == "ios":
             url = BASE_URL   # iOS 用 Web/PWA
@@ -677,10 +679,11 @@ class Utility:
         print("Saved to:", os.path.abspath(path))
         #return send_file(path, mimetype="image/png")
     
+    
     #generate_qr("ios")
     #generate_qr("android")
     #generate_qr("windows")
-
+    """
     # -----------------------------
     # app_service.py Generator
     # -----------------------------
