@@ -658,32 +658,31 @@ class Utility:
         except:
             return False    
     
-    """    
     # -----------------------------
     # QR Generator
     # -----------------------------
     
-    def generate_qr(platform):
-        if platform == "ios":
-            url = BASE_URL   # iOS 用 Web/PWA
-        elif platform == "android":
-            url = BASE_URL + "/download/apk"
-        else:
-            url = BASE_URL + "/download/iea"
+    """            
+        def generate_qr(platform):
+            if platform == "ios":
+                url = BASE_URL   # iOS 用 Web/PWA
+            elif platform == "android":
+                url = BASE_URL + "/download/apk"
+            else:
+                url = BASE_URL + "/download/iea"
 
-        img = qrcode.make(url)
-        folder = os.path.join("portal", "static")
-        os.makedirs(folder, exist_ok=True)   # ⭐ 自动创建目录
-        path = os.path.join(f"{PLATFORM_DIR}\{folder}", f"qrcode_{platform}.png")        
-        img.save(path)
-        print("Saved to:", os.path.abspath(path))
-        #return send_file(path, mimetype="image/png")
-    
-    
+            img = qrcode.make(url)
+            folder = os.path.join("portal", "static")
+            os.makedirs(folder, exist_ok=True)   # ⭐ 自动创建目录
+            path = os.path.join(f"{PLATFORM_DIR}\{folder}", f"qrcode_{platform}.png")        
+            img.save(path)
+            print("Saved to:", os.path.abspath(path))
+            #return send_file(path, mimetype="image/png")
+    """            
     #generate_qr("ios")
     #generate_qr("android")
     #generate_qr("windows")
-    """
+    
     # -----------------------------
     # app_service.py Generator
     # -----------------------------
