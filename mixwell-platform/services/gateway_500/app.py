@@ -1,5 +1,6 @@
 import sys
-from flask import Flask, redirect
+from flask import Flask, Response, redirect
+import requests
 
 app = Flask(__name__)
 
@@ -10,46 +11,42 @@ from models import Utility, db
 
 serviceport = int(Config.GATEWAY_PORT)
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
-serviceurl = f"{Config.SERVICE_URL}:{serviceport}"
-portalport = int(serviceport/1000)
-portalport = portalport*1000
-authurl = f"{Config.SERVICE_URL}:{portalport}"
-auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 
+portalport = int(serviceport/1000)*1000
+auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 
 @app.route("/")
 def home():
-    return redirect(f"{authurl}/user")
+    serviceurl = f"{Config.SERVICE_URL}:{portalport}"
+    r = requests.get(f"{serviceurl}/user")  #"http://localhost:8000/user"
+    return Response(r.content, r.status_code, r.headers.items())
 
 @app.route("/service/<servicename>")  #services.mixwellsoftware.com/service/servicename
 def route_service(servicename):
+    service = Utility.service_get(servicename)
+    r = requests.get(f"{service.url}/{servicename}")  #"http://127.0.0.1:5001/ai"
+    return Response(r.content, r.status_code, r.headers.items())
+
+
     try:
         # ✅ 1. 验证用户
-        user = Utility.user_get(2)
         user = Utility.user_check(servicename)    
         if not user:
-            return redirect(f"{authurl}/login?next={serviceurl}/service/{servicename}")
+            r = requests.get(f"{serviceport}/login?next={serviceurl}/service/{servicename}")
+            return Response(r.content, r.status_code, r.headers.items())
 
         # ✅ 2. 查 service 信息（DB）
         service = Utility.service_get(servicename)
         if not service:
             return "Service not found", 404
-        return redirect(f"{service.url}")
 
-        # ✅ 3. 记录访问
-        #record_user_service(user.id, service.id)
-            #did at 1. 验证用户
-
-        # ✅ 4. 转发（proxy）
-        # url = service.url   # e.g. http://localhost:8001
-        # resp = requests.get(url, cookies=request.cookies)
-
-        #return resp.text
-
+        r = requests.get(f"{serviceurl}:{serviceport}")  #"http://localhost:8000/user"
+        return Response(r.content, r.status_code, r.headers.items())
+        
     except Exception as e:
-        Utility.notify_support(service, str(e))
+        print (f"Requests errors: {e}")
+        #Utility.notify_support(service, str(e))        
         return "Sorry, service is not available at the moment", 500
-
 
 if __name__ == "__main__":
     with app.app_context(): 

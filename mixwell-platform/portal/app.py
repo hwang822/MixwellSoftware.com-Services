@@ -53,18 +53,16 @@ def home(): #insde user visit 5000
         print (e)
         return render_template("admin_dashboard.html", services = services)    
 
-@app.route("/user")
+@app.route("/user", methods=["GET", "POST"])
 def home_user():  # Out side user visit 5500
-    services = Utility.services_get_all()
-    user = Utility.user_check("")
-    if not user:
-        return render_template(f"{serviceName}.html", services = services)    
-    try:        
-        userswithservices =  Utility.user_with_services(user.id)
-        return render_template("user.html", username = user.email, user_with_services = userswithservices)
-    except Exception as e:
-        print (e)
-        return render_template(f"{serviceName}.html", services = services)    
+    if request.method == "GET":      
+        #servicepath = f"{app.root_path}"  
+        services = Utility.services_get_all()
+        try: 
+            return render_template("portal.html", services = services)    
+        except Exception as e:
+            print(e)
+            return e
 
 # -------------------------
 # user signup, login, logout request from auth UI 

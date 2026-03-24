@@ -59,6 +59,13 @@
 </div>
 </nav>
 
+<p>👉 Tap Share → Add to Home Screen for app experience</p>
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+
+
 <div class="container mt-4">
 {% block content %}{% endblock %}   <!-- here embedded inside html -->
 </div>
