@@ -153,9 +153,14 @@ class Utility:
     def users_get_all():
         return User.query.all()
 
-    def user_get(userid):              
-        user = User.query.get_or_404(userid)
-        return user
+    def user_get(userid):
+        try:              
+            user = User.query.get_or_404(userid)
+            return user
+        except Exception as e:
+            print (e)
+            return None
+        
                 
     def user_remove(userid):
         UserService.query.filter_by(user_id=userid).delete()
@@ -454,7 +459,7 @@ class Utility:
 
                 if not os.path.isdir(service_path):
                     continue
-                result = folder.split("_")
+                result = folder.rsplit("_")
                 port = base_port + int(result[1])
                 name = result[0]                
                 path = service_path
@@ -578,11 +583,8 @@ class Utility:
     def service_start(servicename, port, servicepath):
         proc = None
         try:
-            service = Service.query.filter_by(name=servicename).first()
-            if service:
-                #port = Utility.is_port_open(service.port)
-                #if port:                
-                Utility.service_stop(servicename)            
+            if Utility.is_port_used(port): 
+                Utility.kill_port_safe(port)
             app_file = os.path.join(servicepath, f"app.py")
             app_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{port}"
             if os.path.exists(app_file):                            
@@ -591,8 +593,7 @@ class Utility:
                         app_file,
                         str(port),
                         app_db]                    
-#                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"
-                    
+#                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"                    
                     ,creationflags=subprocess.CREATE_NO_WINDOW
                 )            
         except:

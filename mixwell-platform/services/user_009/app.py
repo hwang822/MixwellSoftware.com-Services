@@ -1,26 +1,34 @@
 import sys
-from flask import Flask, render_template
-from flask_login import LoginManager
+from flask import Config, Flask, render_template
+#from flask_login import LoginManager
 
 app = Flask(__name__)
 BASE_DIR = f"{app.root_path}/../../"  
 sys.path.insert(0, BASE_DIR)
 
-from models import Utility, db, Utility, User
+from models import Utility, db, User, Config
 
 serviceport = int(sys.argv[1])
 servicedb = sys.argv[2]
-app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+serviceurl = f"{Config.SERVICE_URL}:{serviceport}"
+portalport = int(serviceport/1000)
+portalport = portalport*1000
+authurl = f"{Config.SERVICE_URL}:{portalport}"
+auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{auth_db}" 
 
 #app.config.from_object(Config)
 db.init_app(app)
 
-login_manager = LoginManager()
-login_manager.login_view = "login"
-login_manager.init_app(app)
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+#login_manager = LoginManager()
+#login_manager.login_view = "login"
+#login_manager.init_app(app)
+#@login_manager.user_loader
+#def load_user(user_id):
+#    return User.query.get(int(user_id))
 
 @app.route("/")
 def home():    

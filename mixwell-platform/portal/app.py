@@ -37,7 +37,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
     
 @app.route("/")
-def home():
+def home(): #insde user visit 5000
     services = Utility.services_get_all()
     user = Utility.user_check("")
     if not user:
@@ -52,6 +52,19 @@ def home():
     except Exception as e:
         print (e)
         return render_template("admin_dashboard.html", services = services)    
+
+@app.route("/user")
+def home_user():  # Out side user visit 5500
+    services = Utility.services_get_all()
+    user = Utility.user_check("")
+    if not user:
+        return render_template(f"{serviceName}.html", services = services)    
+    try:        
+        userswithservices =  Utility.user_with_services(user.id)
+        return render_template("user.html", username = user.email, user_with_services = userswithservices)
+    except Exception as e:
+        print (e)
+        return render_template(f"{serviceName}.html", services = services)    
 
 # -------------------------
 # user signup, login, logout request from auth UI 
@@ -211,11 +224,11 @@ def download_android(servicename):
 
 def home_insital():
     dbname = f"auth_{serviceport}"        
-    Utility.create_service_database(dbname)
+    Utility.create_service_database(dbname)   
     app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
-    db.init_app(app)    
+    db.init_app(app)            
     db.create_all()
-
+    
     """
     Migrate(app, db)
 

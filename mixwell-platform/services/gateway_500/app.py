@@ -8,22 +8,27 @@ sys.path.insert(0, BASE_DIR)
 from config.settings import Config
 from models import Utility, db
 
-serviceport = int(sys.argv[1])
-servicedb = sys.argv[2]
+serviceport = int(Config.GATEWAY_PORT)
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+serviceurl = f"{Config.SERVICE_URL}:{serviceport}"
+portalport = int(serviceport/1000)
+portalport = portalport*1000
+authurl = f"{Config.SERVICE_URL}:{portalport}"
+auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 
-gatewayport = int(serviceport/1000)*1000 + 500
 
-auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{gatewayport}"
-app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
-db.init_app(app)    
-authurl = f"http://localhost:{serviceport}"
+@app.route("/")
+def home():
+    return redirect(f"{authurl}/user")
+
 @app.route("/service/<servicename>")  #services.mixwellsoftware.com/service/servicename
 def route_service(servicename):
     try:
         # ✅ 1. 验证用户
+        user = Utility.user_get(2)
         user = Utility.user_check(servicename)    
         if not user:
-            return redirect(f"{authurl}/login?next=/service/{servicename}")    
+            return redirect(f"{authurl}/login?next={serviceurl}/service/{servicename}")
 
         # ✅ 2. 查 service 信息（DB）
         service = Utility.service_get(servicename)
@@ -47,5 +52,8 @@ def route_service(servicename):
 
 
 if __name__ == "__main__":
+    with app.app_context(): 
+        app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
+        db.init_app(app)    
     print (f"run gateway service at {serviceport}")    
-    app.run(port=gatewayport, debug=False, use_reloader=False)
+    app.run(port=serviceport, debug=False, use_reloader=False)

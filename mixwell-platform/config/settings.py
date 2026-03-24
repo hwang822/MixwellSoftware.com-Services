@@ -26,6 +26,7 @@ class Config:
     AUTH_PORT = os.getenv("AUTH_PORT")
     SERVICE_URL = os.getenv("SERVICE_URL")
     GATEWAY_URL = os.getenv("GATEWAY_URL")
+    GATEWAY_PORT = os.getenv("GATEWAY_PORT")
     ADMIN_NAME = os.getenv("ADMIN_NAME")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
     PORTAL_PORT = os.getenv("PORTAL_PORT")
