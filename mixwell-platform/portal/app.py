@@ -1,11 +1,6 @@
-import subprocess
 import sys
 from flask_login import LoginManager, logout_user
 from flask import Flask, flash, make_response, redirect, render_template, request, send_file
-import requests
-
-from flask_migrate import Migrate, upgrade, init, migrate as migrate_cmd
-import os
 
 app = Flask(__name__)
 
@@ -52,7 +47,8 @@ def home():
             users = Utility.users_list()
             return render_template("admin_dashboard.html", services = services, users = users)     
         else:
-            return redirect(f"http://localhost:5007/user/{user.id}") #, username = user.email, user_with_services = user_with_services)
+            userswithservices =  Utility.user_with_services(user.id)
+            return render_template("user.html", username = user.email, user_with_services = userswithservices)
     except Exception as e:
         print (e)
         return render_template("admin_dashboard.html", services = services)    
@@ -117,7 +113,7 @@ def serivce_access(servicename):
     if not service:
         return f"{servicename} service is not avalaible!"
     return redirect(f"{service.url}")
-"""
+
 @app.route("/service/<servicename>")
 def route_service(servicename):
     try:
@@ -148,6 +144,7 @@ def route_service(servicename):
     except Exception as e:
         Utility.notify_support(service, str(e))
         return "Sorry, service is not available at the moment", 500
+"""
 
 @app.route("/users/user_remove/<int:userid>") 
 def user_remove(userid):
@@ -161,7 +158,8 @@ def user_approve(userid):
 
 @app.route("/users/user_verify/<token>")
 def user_verify(token):
-    Utility.user_verify(token)
+    user = Utility.user_verify(token)
+    return (f"user {user.email} has been approved!")
 
 @app.route("/users/user_add_service", methods=["POST"])
 def user_add_service():
