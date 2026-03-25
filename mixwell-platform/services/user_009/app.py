@@ -1,6 +1,6 @@
 import sys
 from flask import Config, Flask, render_template
-#from flask_login import LoginManager
+from flask_login import LoginManager
 
 app = Flask(__name__)
 BASE_DIR = f"{app.root_path}/../../"  
@@ -23,16 +23,20 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"{auth_db}"
 #app.config.from_object(Config)
 db.init_app(app)
 
-#login_manager = LoginManager()
-#login_manager.login_view = "login"
-#login_manager.init_app(app)
-#@login_manager.user_loader
-#def load_user(user_id):
-#    return User.query.get(int(user_id))
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 @app.route("/")
-def home():    
-    return render_template("user.html")
+def home():
+    try:    
+        return render_template("user.html")
+    except Exception as e:
+        print (e)
+        return e
 
 @app.route("/user/<int:userid>")
 def userhome(userid):    

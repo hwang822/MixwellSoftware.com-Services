@@ -13,6 +13,7 @@ serviceport = int(Config.GATEWAY_PORT)
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 portalport = int(serviceport/1000)*1000
+portalurl = Config.SERVICE_URL
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 
 @app.route("/")
@@ -21,37 +22,31 @@ def home():
     r = requests.get(f"{serviceurl}/user")  #"http://localhost:8000/user"
     return Response(r.content, r.status_code, r.headers.items())
 
-@app.route("/service/<servicename>")  #services.mixwellsoftware.com/service/servicename
-def route_service(servicename):
+@app.route("/service/<servicename>", defaults={"path": ""})
+@app.route("/service/<servicename>/<path:path>")
+def route_service(servicename, path):
     try:
         service = Utility.service_get(servicename)
-        serviceurl = service.url   #"http://127.0.0.1:5001/ai"
-        r = requests.get(f"{serviceurl}")  
-        return Response(r.content, r.status_code, r.headers.items())
+        base_url = service.url.rstrip("/")
+
+        # build full target URL
+        target_url = f"{base_url}/{path}" if path else base_url
+
+        r = requests.get(target_url, stream=True)
+
+        def generate():
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
+
+        return Response(
+            generate(),
+            content_type=r.headers.get("Content-Type")
+        )
+
     except Exception as e:
-        print (e)
-        return e
-
-
-    try:
-        # ✅ 1. 验证用户
-        user = Utility.user_check(servicename)    
-        if not user:
-            r = requests.get(f"{serviceport}/login?next={serviceurl}/service/{servicename}")
-            return Response(r.content, r.status_code, r.headers.items())
-
-        # ✅ 2. 查 service 信息（DB）
-        service = Utility.service_get(servicename)
-        if not service:
-            return "Service not found", 404
-
-        r = requests.get(f"{serviceurl}:{serviceport}")  #"http://localhost:8000/user"
-        return Response(r.content, r.status_code, r.headers.items())
-        
-    except Exception as e:
-        print (f"Requests errors: {e}")
-        #Utility.notify_support(service, str(e))        
-        return "Sorry, service is not available at the moment", 500
+        print(e)
+        return str(e)
 
 if __name__ == "__main__":
     with app.app_context(): 
