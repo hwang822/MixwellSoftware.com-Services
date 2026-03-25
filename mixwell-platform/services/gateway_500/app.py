@@ -23,9 +23,14 @@ def home():
 
 @app.route("/service/<servicename>")  #services.mixwellsoftware.com/service/servicename
 def route_service(servicename):
-    service = Utility.service_get(servicename)
-    r = requests.get(f"{service.url}/{servicename}")  #"http://127.0.0.1:5001/ai"
-    return Response(r.content, r.status_code, r.headers.items())
+    try:
+        service = Utility.service_get(servicename)
+        serviceurl = service.url   #"http://127.0.0.1:5001/ai"
+        r = requests.get(f"{serviceurl}")  
+        return Response(r.content, r.status_code, r.headers.items())
+    except Exception as e:
+        print (e)
+        return e
 
 
     try:
