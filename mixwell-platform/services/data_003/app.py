@@ -1,15 +1,37 @@
 import sys
-from flask import Flask, render_template
+from flask import Blueprint, Flask, render_template
 
 app = Flask(__name__)
 
 serviceport = int(sys.argv[1])
 servicedb = sys.argv[2]
 app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+count = 0
 
-@app.route("/")
+dataService = Blueprint("dataService", __name__)
+@dataService.route("/")
 def home():    
     return render_template("data.html")        
+
+@dataService.route("/count_plus_one")
+def count_plus_one():       
+    global count
+    count += 1
+    print(count)
+    return render_template("data.html")        
+
+
+@dataService.route("/service/data/count_plus_one")
+def service_data_count_plus_one():       
+    count_plus_one()
+    return render_template("data.html")        
+
+
+def create_app():
+    app.register_blueprint(dataService)
+    return app
+
 if __name__ == "__main__":
     print (f"start running {app.root_path} at {serviceport}")    
-    app.run(port=serviceport)
+    create_app().run(host="127.0.0.1", port=serviceport)    
+

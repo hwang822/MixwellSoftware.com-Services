@@ -18,8 +18,9 @@ auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 
 @app.route("/")
 def home():
-    serviceurl = f"{Config.SERVICE_URL}:{portalport}"
-    r = requests.get(f"{serviceurl}/user")  #"http://localhost:8000/user"
+    serviceurl = f"{Config.GATEWAY_URL}:{portalport}"
+    #r = requests.get(f"{serviceurl}/user")  #"http://localhost:8000/user"
+    r = requests.get(f"{serviceurl}/user")  # "http://localhost:8000/user"
     return Response(r.content, r.status_code, r.headers.items())
 
 @app.route("/service/<servicename>", defaults={"path": ""})
