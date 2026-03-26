@@ -7,7 +7,7 @@ import sys
 from flask import render_template, request, send_file
 import psutil
 import psycopg2
-from sqlalchemy import func
+from sqlalchemy import Label, func
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, login_user
 from flask_sqlalchemy import SQLAlchemy
@@ -21,7 +21,7 @@ import requests
 
 db = SQLAlchemy()
 
-BASE_URL = "http://mixwellsoftware:8500"
+BASE_URL = "http://mixwellsoftware.com"
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.insert(0, BASE_DIR)
@@ -605,31 +605,43 @@ class Utility:
             return False    
     
     # -----------------------------
-    # QR Generator
+    # QR Generator for IOS PWA
     # -----------------------------    
-    
-    def generate_qr(platform):
-        if platform == "ios":
-            url = BASE_URL   # iOS 用 Web/PWA
-        elif platform == "android":
-            url = BASE_URL + "/download/apk"
-        else:
-            url = BASE_URL + "/download/iea"
+    """
+    Ipad or Iphon to start Safari browser
+    type in www.mixwellosftware.com 
+    go up-right share button => View Moer ... => add to Home Screen
+    When mixwellosftware.com icon show up at screen.
+    Click Icon to go www.mixwellosftware.com home page
+    """
 
-        img = qrcode.make(url)
-        folder = os.path.join("portal", "static")
+
+    def generate_qr(platform):
+        folder = os.path.join("portal", "static", "downloads")
         os.makedirs(folder, exist_ok=True)   # ⭐ 自动创建目录
-        path = os.path.join(f"{PLATFORM_DIR}/{folder}", f"qrcode_{platform}.png")        
-        img.save(path)
-        print("Saved to:", os.path.abspath(path))
-        #return send_file(path, mimetype="image/png")
-            
+        BASE_URL = "services.mixwellsoftware.com/service"
+
+        services = ["ai", "cam", "data", "email", "portal", "rdp", "registry", "service1", "service2",  "user", "video"]
+        for service in services:            
+            if platform == "ios":
+                url = BASE_URL   # iOS 用 Web/PWA
+            elif platform == "android":
+                url = BASE_URL + "/download/apk"
+            else:
+                url = BASE_URL + "/download/exe"
+            url = f"{BASE_URL}/{service}"
+            img = qrcode.make(url)
+            path = os.path.join(f"{PLATFORM_DIR}/{folder}", f"qrcode_{platform}_{service}.png")        
+            img.save(path)
+            print("Saved to:", os.path.abspath(path))
+            #return send_file(path, mimetype="image/png")
+        return
     #generate_qr("ios")
     #generate_qr("android")
     #generate_qr("windows")
-    
+
     # -----------------------------
-    # app_service.py Generator
+    # app_service.py windows app Generator
     # -----------------------------
 
     #pip install pywebview
@@ -639,20 +651,27 @@ class Utility:
             f"https://www.mixwellsoftware.com/service/{service_name}"
         )
         webview.start() 
-
     """
-    获取大致地理位置（可以）
-
-    你可以用：
-
-    ipinfo
-    ip-api
-    {
-    "country": "United States",
-    "city": "Houston",
-    "regionName": "Texas"
-    }
+    pip install pyinstaller 
+    pyinstaller --onefile --noconsole --icon=logo.ico app_portal.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_ai.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_data.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_email.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_rdp.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_registry.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_service1.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_service2.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_user.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_video.py
+    pyinstaller --onefile --noconsole --icon=logo.ico app_cam.py
     """
+
+    # -----------------------------
+    # Generator for Android apk
+    # -----------------------------    
+
+
+#########################################
 
     def notify_support(service, error):
         msg = f"""

@@ -59,14 +59,15 @@
         <h3>{{servicename}} service app</h3>
         <h3>iOS</h3>
         <p>Scan to open</p>
-        <img src="{{ url_for('static', filename='qrcode_ios.png') }}">
+        <img src="{{ url_for('static', filename='qrcode_ios_' ~ servicename ~ '.png') }}">
     </div>
 
     <div class="card">
         <h3>{{servicename}} service app</h3>
         <h3>Android</h3>
         <p>Version 1.0.0</p>
-        <img src="{{ url_for('static', filename='qrcode_android.png') }}">        
+        <p>Scan to open</p>
+        <img src="{{ url_for('static', filename='qrcode_android_' ~ servicename ~ '.png') }}">
     </div>
 </div>
 
