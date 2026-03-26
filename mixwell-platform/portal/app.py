@@ -158,45 +158,38 @@ def route_service(servicename):
         return "Sorry, service is not available at the moment", 500
 """
 
-@portalService.route("/users/user_remove/<int:userid>") 
+@portalService.route("/admin/user_remove/<int:userid>") 
 def user_remove(userid):
     Utility.user_remove(userid)
     return redirect("/")
 
-@portalService.route("/users/user_approve/<int:userid>")
+@portalService.route("/admin/user_approve/<int:userid>")
 def user_approve(userid):
     Utility.user_approve(userid)
     return redirect("/")
 
-@portalService.route("/users/user_verify/<token>")
+@portalService.route("/admin/user_verify/<token>")
 def user_verify(token):
     user = Utility.user_verify(token)
     return (f"user {user.email} has been approved!")
 
-@portalService.route("/users/user_add_service", methods=["POST"])
+@portalService.route("/admin/user_add_service", methods=["POST"])
 def user_add_service():
     userid = request.form.get("userid")
     serviceid = request.form.get("serviceid")
     Utility.user_add_service(userid, serviceid)
     return redirect("/")    
 
-@portalService.route("/users/user_remove_service", methods=["POST"])
+@portalService.route("/admin/user_remove_service", methods=["POST"])
 def user_remove_service():
     userid = int(request.form.get("userid"))
     serviceid = int(request.form.get("serviceid"))
     Utility.user_remove_service(userid, serviceid)
     return redirect("/")    
 
-@portalService.route("/service/service_remove/<int:serviceid>")
+@portalService.route("/admin/service_remove/<int:serviceid>")
 def service_remove(serviceid):
     Utility.service_remove(serviceid)
-    return redirect("/")
-
-@portalService.route("/service/service_view/<int:serviceid>")
-def service_view(serviceid): 
-    service = Utility.service_view(serviceid)
-    if service: 
-        return redirect(service.url)
     return redirect("/")
 
 @portalService.route("/user/service_download")

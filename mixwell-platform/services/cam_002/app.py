@@ -39,6 +39,12 @@ def cam_home():
 def video_feed():
     return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@camService.route('/service/cam/video_feed')
+def service_video_feed():
+    return video_feed()
+    #return Response(generate_frames(),mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
 def create_app():
     app.register_blueprint(camService)
     return app

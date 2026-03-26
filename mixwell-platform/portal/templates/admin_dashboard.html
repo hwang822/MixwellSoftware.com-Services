@@ -25,7 +25,7 @@
         <td>{{ user.service_count }}</td>
 
             <td>
-                <form method="post" action="/users/user_add_service">
+                <form method="post" action="/admin/user_add_service">
                     <table class="addtable">
                         <tr>
                             <td>
@@ -45,7 +45,7 @@
                 </form>
             </td>
             <td>
-                <form method="post" action="/users/user_remove_service">
+                <form method="post" action="/admin/user_remove_service">
                     <table class="removetable">
                         <tr>
                             <td>
@@ -67,13 +67,13 @@
             <td>
                 {% if user.is_verified %}
                 {% else %}
-                    <a href="/users/user_approve/{{ user.id }}" class="btn btn-success btn-sm">
+                    <a href="/admin/user_approve/{{ user.user_id }}" class="btn btn-success btn-sm">
                         Approve
                     </a>
                 {% endif %}                
                 {% if user.is_admin %}
                 {% else %}
-                    <a href="/users/user_remove/{{ user.id }}" class="btn btn-danger btn-sm">
+                    <a href="/admin/user_remove/{{ user.user_id }}" class="btn btn-danger btn-sm">
                         Remove
                     </a>
                 {% endif %}                
@@ -106,7 +106,7 @@
                     View
                 </a>                
 
-                <a href="/service/service_remove/{{ service.id }}" 
+                <a href="/admin/service_remove/{{ service.id }}" 
                     class="btn btn-danger btn-sm">
                     Remove
                 </a>                

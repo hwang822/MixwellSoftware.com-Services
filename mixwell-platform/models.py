@@ -412,35 +412,6 @@ class Utility:
     # 工具函数
     # ----------------------------
 
-    def generate_service_scripts(service_name, port, service_path, python_path):
-        """为 service 生成 start/stop bat 文件"""
-        start_bat = os.path.join(service_path, f"{service_name}_start.bat")
-        stop_bat = os.path.join(service_path, f"{service_name}_stop.bat")
-
-        start_content = f"""@echo off
-            cd /d %~dp0
-            REM Start {service_name} on port {port}
-            FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr :{port}') DO (
-                taskkill /PID %%a /F >nul 2>&1
-            )
-            start "" cmd /c "{python_path} {os.path.join(service_path, 'app.py')} {port} >> {os.path.join(service_path, 'service.log')} 2>&1"
-            echo {service_name} started on port {port}
-            """
-
-        stop_content = f"""@echo off
-            cd /d %~dp0
-            REM Stop {service_name} on port {port}
-            FOR /F "tokens=5" %%a IN ('netstat -ano ^| findstr :{port}') DO (
-                taskkill /PID %%a /F >nul 2>&1
-            )
-            echo {service_name} stopped
-            """
-
-        with open(start_bat, "w", encoding="utf-8") as f:
-            f.write(start_content)
-        with open(stop_bat, "w", encoding="utf-8") as f:
-            f.write(stop_content)
-
     def init_service_db(service_path):
         try:
             """初始化 service 数据库 (可自定义每个 service 的 db 脚本)"""
@@ -483,11 +454,11 @@ class Utility:
                         url=url,
                         path=path,
                         status = "running"
-                    )
-                    db.session.add(service)
-                    db.session.commit()
+                    )                    
                     print(f"New service detected: {folder}")
-
+                service.status = "running"                
+                db.session.add(service)
+                db.session.commit()
                 # Start Service
                 Utility.service_start(name, port, service_path)                
                 print(f"started service {name} {port} {service_path}")
