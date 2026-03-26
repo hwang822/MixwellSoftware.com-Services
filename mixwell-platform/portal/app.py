@@ -98,13 +98,7 @@ def login():
         currentuser = response["data"]
         next_url = request.args.get("next")
         servicename = request.args.get("service")
-        token = Utility.user_token(currentuser.id, currentuser.email, servicename)                    
-        
-        try:
-            login_user(currentuser)
-        except Exception as e:
-            print(e)
-        
+        token = Utility.user_token(currentuser.id, currentuser.email, servicename)                                
         if next_url is None:  
             response = make_response(redirect("/"))  # back to portal 
         else:

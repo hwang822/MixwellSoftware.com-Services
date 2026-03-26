@@ -148,8 +148,9 @@ class Utility:
             user.location = f"{userlocation['city']} {userlocation['regionName']} {userlocation['zip']}, {userlocation['country']}",
             db.session.add(user)                
             db.session.commit()
+            login_user(user)
             return Utility.auth_response(200, "Login Scussfully!", user)
-
+        
     def users_get_all():
         return User.query.all()
 
@@ -258,6 +259,8 @@ class Utility:
                 userservice.access = userservice.access + 1
                 db.session.add(userservice)
                 db.session.commit()
+
+            login_user(user)
             return user                    
         except:
             return None
