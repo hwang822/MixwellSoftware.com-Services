@@ -1,14 +1,11 @@
 import sys
 from flask_login import LoginManager, login_user, logout_user
-from flask import Blueprint, Flask, flash, make_response, redirect, render_template, request, send_file
+from flask import Blueprint, Flask, flash, make_response, redirect, render_template, request, send_file, session
 
 app = Flask(__name__)
 
 BASE_DIR = f"{app.root_path}/../"  
 sys.path.insert(0, BASE_DIR)
-
-
-
 
 from config.settings import Config
 from models import Utility, db, Utility, User
@@ -40,7 +37,7 @@ def home(): #insde user visit 5000
     services = Utility.services_get_all()
     user = Utility.user_check("")
     if not user:
-        return render_template("portal.html", services = services,  service_url = "localhost:5000")    
+        return render_template("portal.html", services = services)    
     try:
         if user.is_admin:
             users = Utility.users_list()
@@ -50,51 +47,38 @@ def home(): #insde user visit 5000
             return render_template("user.html", username = user.email, user_with_services = userswithservices)
     except Exception as e:
         print (e)
-        return render_template("portal.html", services = services,  service_url = "localhost:5000")     
-
-
-@portalService.route("/user", methods=["GET", "POST"])
-def home_user():  # Out side user visit 5500
-    if request.method == "GET":      
-        #servicepath = f"{app.root_path}"  
-        services = Utility.services_get_all()
-        try: 
-            return render_template("portal.html", services = services, service_url = "localhost:5000")    
-        except Exception as e:
-            print(e)
-            return render_template("portal.html", services = services, service_url = "localhost:5000")
-
+        return render_template("portal.html", services = services)     
 
 # -------------------------
 # user signup, login, logout request from auth UI 
 # -------------------------
 @portalService.route("/signup", methods=["GET", "POST"])  
 def signup():    
-    if request.method == "GET":      
-        #session.pop('_flashes', None)  
+    if request.method == "GET":                
         return render_template("signup.html")
+    session.pop('_flashes', None)    
     email = request.form["username"]
     password = request.form["password"]        
     response = Utility.user_signup(email, password, False, False)
-    #flash(response["message"])
+    flash(response["message"])
     if response["status"] == 400:  
         return redirect("/signup")
     return redirect("/login")
 
 @portalService.route("/login", methods=["GET", "POST"])
 def login():          
-    if request.method == "GET":
-        #session.pop('_flashes', None)        
-        return render_template("login.html")                
+    if request.method == "GET":                
+        return render_template("login.html")
+    session.pop('_flashes', None)                
     email = request.form["username"]
     password = request.form["password"]    
     #ip = request.headers.get('X-Forwarded-For', request.remote_addr),        
     response = Utility.user_login(email, password)    
-    #flash(response["message"])
+    flash(response["message"])
     if response["status"] == 400:
         return redirect("/login")
     else :  
-        #flash(response["message"])
+        flash(response["message"])
         currentuser = response["data"]
         next_url = request.args.get("next")
         servicename = request.args.get("service")
@@ -114,49 +98,13 @@ def login():
 @portalService.route("/logout", methods=["GET", "POST"])
 def logout():    
     logout_user()
-    return render_template(f"{serviceName}.html")
-"""
-@app.route("/service/<servicename>")
-def serivce_access(servicename):
-    user = Utility.user_check(servicename)    
-    if not user:
-        return redirect(f"/login?next=/service/{servicename}")    
-    service = Utility.service_get(servicename)
-    if not service:
-        return f"{servicename} service is not avalaible!"
-    return redirect(f"{service.url}")
+    session.pop('_flashes', None)                
+    services = Utility.services_get_all()
+    return render_template("portal.html", services = services)     
 
-@app.route("/service/<servicename>")
-def route_service(servicename):
-    try:
-        # ✅ 1. 验证用户
-        user = Utility.user_check(servicename)    
-        if not user:
-            return redirect(f"/login?next=/service/{servicename}")    
-
-        if not user:
-            return redirect("/login")
-
-        # ✅ 2. 查 service 信息（DB）
-        service = Utility.service_get(servicename)
-        if not service:
-            return "Service not found", 404
-        return redirect(f"{service.url}")
-
-        # ✅ 3. 记录访问
-        #record_user_service(user.id, service.id)
-            #did at 1. 验证用户
-
-        # ✅ 4. 转发（proxy）
-        # url = service.url   # e.g. http://localhost:8001
-        # resp = requests.get(url, cookies=request.cookies)
-
-        #return resp.text
-
-    except Exception as e:
-        Utility.notify_support(service, str(e))
-        return "Sorry, service is not available at the moment", 500
-"""
+# -------------------------
+# admin request from  admin_dashboard UI
+# -------------------------
 
 @portalService.route("/admin/user_remove/<int:userid>") 
 def user_remove(userid):
@@ -192,36 +140,26 @@ def service_remove(serviceid):
     Utility.service_remove(serviceid)
     return redirect("/")
 
-@portalService.route("/user/service_download")
-def user_service_download():     
-    return render_template("servicedownload.html", servicename = "")
+# -------------------------
+# service app download request from home and servicedownload UI 
+# -------------------------
 
-@portalService.route("/service_download/")
-def service_download():     
-    return render_template("servicedownload.html", servicename = "")
-
-"""
-@portalService.route("/service/portal/service_download/<servicename>")
-def service_portal_download(servicename):     
-    return render_template("servicedownload.html", servicename = servicename)
-
-@portalService.route("/service/service_download/<servicename>")
+@portalService.route("/servicedownload/<servicename>")
 def service_download(servicename):     
     return render_template("servicedownload.html", servicename = servicename)
-"""
 
-@portalService.route("/service/download/win/<servicename>")
+@portalService.route("/servicedownload/win/<servicename>")
 def download_win(servicename):
     return send_file(
         f"static/downloads/app_{servicename}.exe",
         as_attachment=True
     )
 
-@portalService.route("/service/download/ios")
+@portalService.route("/servicedownload/ios")
 def download_ios():
     return "Redirect to PWA or App Store"
 
-@portalService.route("/service/download/android/<servicename>")
+@portalService.route("/servicedownload/android/<servicename>")
 def download_android(servicename):
     return send_file(
         f"static/downloads/app_{servicename}.apk",
@@ -235,22 +173,8 @@ def home_insital():
     db.init_app(app)            
     db.create_all()
     
-    """
-    Migrate(app, db)
-
-    # ⭐ 自动处理 migrations
-    migrations_dir = os.path.join(os.getcwd(), "migrations")
-
-    with app.app_context():
-        if not os.path.exists(migrations_dir):
-            print("Initializing migrations...")
-            init()
-            migrate_cmd(message="init")
-        upgrade()
-    """
-
     Utility.services_register(SERVICES_PATH, serviceport)    
-    user = Utility.user_signup(
+    Utility.user_signup(
         Config.ADMIN_NAME,
         Config.ADMIN_PASSWORD,
         True,
@@ -265,5 +189,4 @@ if __name__ == "__main__":
     with app.app_context():        
         home_insital()    
     print (f"run portal poat at {serviceport}")    
-    #app.run(port=serviceport, debug=False, use_reloader=False)
     create_app().run(host="127.0.0.1", port=serviceport)
