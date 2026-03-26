@@ -2,6 +2,6 @@ import webview
 #pip install pywebview
 webview.create_window(
     "Mixwell Data Service",
-    "https://www.mixwellsoftware.com/service/data"
+    "https://services.mixwellsoftware.com/service/data"
 )
 webview.start()

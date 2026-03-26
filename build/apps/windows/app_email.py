@@ -2,6 +2,6 @@ import webview
 #pip install pywebview
 webview.create_window(
     "Mixwell Email Service",
-    "https://www.mixwellsoftware.com/service/email"
+    "https://services.mixwellsoftware.com/service/email"
 )
 webview.start()
