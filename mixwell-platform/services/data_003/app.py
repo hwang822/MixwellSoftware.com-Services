@@ -3,9 +3,14 @@ from flask import Blueprint, Flask, render_template
 
 app = Flask(__name__)
 
-serviceport = int(sys.argv[1])
-servicedb = sys.argv[2]
-app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+sys.path.insert(0, f"{app.root_path}/../../")
+from models import Utility
+
+serviceport = int(app.root_path.rsplit("_")[1]) + 5000
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+
+#servicedb = sys.argv[2]
+#app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
 count = 0
 
 dataService = Blueprint("dataService", __name__)
@@ -18,7 +23,7 @@ def count_plus_one():
     global count
     count += 1
     print(count)
-    return render_template("data.html")        
+    return render_template("data.html", count)        
 
 
 @dataService.route("/service/data/count_plus_one")

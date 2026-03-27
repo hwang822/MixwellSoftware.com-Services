@@ -2,30 +2,13 @@ from flask import Flask, Blueprint, jsonify, render_template, request
 import sys
 
 app = Flask(__name__)
-apppath = app.root_path
-projectpath = f"{apppath}/../../"  
-sys.path.insert(0, projectpath)
-
-from config.settings import Config
+sys.path.insert(0, f"{app.root_path}/../../")
 from models import Utility
 
-result = apppath.rsplit("_")
-serviceport = int(result[1]) + 5000
+serviceport = int(app.root_path.rsplit("_")[1]) + 5000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
-#serviceport = int(sys.argv[1])
-#servicedb = sys.argv[2]
-#app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
-
 emailService = Blueprint("emailService", __name__)
-
-def send_email():
-    return "Email Sent!"
-
-#from flask import Flask, request, jsonify
-
-#app = Flask(__name__)
-
 @emailService.route("/")
 def Email_home():
     return render_template("email.html")
@@ -46,7 +29,6 @@ def sendEmail():
         Utility.send_email(emailto, emailfrom, subject, msg)
 
 def create_app():
-    #app = Flask(__name__)
     app.register_blueprint(emailService)
     receive_email_api()
     return app

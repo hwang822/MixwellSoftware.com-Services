@@ -214,7 +214,7 @@ class Utility:
         mail = imaplib.IMAP4_SSL(imap_server)
 
         # Login with credentials
-        mail.login("henrywang@mixwellsoftware.com", "Delanyin@00")
+        mail.login("email", "password")
         #mail.login("username", "password")
 
         # Select mailbox (INBOX by default)
