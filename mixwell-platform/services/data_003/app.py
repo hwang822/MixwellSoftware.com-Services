@@ -16,21 +16,18 @@ count = 0
 dataService = Blueprint("dataService", __name__)
 @dataService.route("/")
 def home():    
-    return render_template("data.html")        
+    return render_template("data.html", count = count)        
 
 @dataService.route("/count_plus_one")
 def count_plus_one():       
     global count
     count += 1
     print(count)
-    return render_template("data.html", count)        
-
+    return render_template("data.html", count = count)        
 
 @dataService.route("/service/data/count_plus_one")
 def service_data_count_plus_one():       
-    count_plus_one()
-    return render_template("data.html")        
-
+    return count_plus_one()
 
 def create_app():
     app.register_blueprint(dataService)

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
-import imaplib
 import os
 import smtplib
 import socket
@@ -205,7 +204,7 @@ class Utility:
             print (e)
             return {"status" : 401,"message" : "Invalid email address"}         
         
-    def check_inbox():
+    def check_email(count):
         import imaplib
         import email
 
@@ -214,7 +213,7 @@ class Utility:
         mail = imaplib.IMAP4_SSL(imap_server)
 
         # Login with credentials
-        mail.login("email", "password")
+        mail.login(Config.SMTP_EMAIL, Config.SMTP_PASSWORD)
         #mail.login("username", "password")
 
         # Select mailbox (INBOX by default)
@@ -229,6 +228,7 @@ class Utility:
 
         # Logout
         mail.logout()
+        return data
 
     
     def user_verify_email(user_id, user_email):    

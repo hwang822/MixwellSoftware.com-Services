@@ -1,5 +1,7 @@
-from flask import Flask, Blueprint, jsonify, render_template, request
+from flask import Flask, Blueprint, render_template, request
+import os
 import sys
+
 
 app = Flask(__name__)
 sys.path.insert(0, f"{app.root_path}/../../")
@@ -13,24 +15,23 @@ emailService = Blueprint("emailService", __name__)
 def Email_home():
     return render_template("email.html")
 
-@emailService.route("/check_email", methods=["GET"])
-def receive_email_api():
-    request = Utility.check_inbox()
-    data = request.json    
-    return jsonify({"status": "sent"})
-
-@emailService.route("/email/", methods=["GET", "POST"])
+@emailService.route("/send_email/", methods=["GET", "POST"])
 def sendEmail():
     if request.method == "POST":
-        emailfrom = request.form.get("emailto") #"support@mixwellsoftware.com"
         emailto = request.form.get("emailto")
-        msg = request.form.get("message")
-        subject = request.form.get("subject")       
-        Utility.send_email(emailto, emailfrom, subject, msg)
+        emailfrom = request.form.get("emailfrom")
+        subject = request.form.get("subject")
+        message = request.form.get("message")        
+        return Utility.send_email(emailto, emailfrom, subject, message)
+    return render_template("EmailService.html")
+
+@emailService.route("/checkemail/", methods=["GET", "POST"])
+def checkemail():
+    emails = Utility.check_emails(10)
+    return render_template("EmailService.html", emails)
 
 def create_app():
     app.register_blueprint(emailService)
-    receive_email_api()
     return app
 
 if __name__ == "__main__":

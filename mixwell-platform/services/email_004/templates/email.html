@@ -1,16 +1,20 @@
-<form method="POST" action="/email/">
-
+<form method="POST" action="/send_email/">
     Email To:<br>
     <input name="emailto"><br><br>
-
     Email From:<br>
     <input name="emailfrom"><br><br>
-
     Subject:<br>
     <input name="subject"><br><br>
-
     Message:<br>
     <textarea name="message"></textarea><br><br>
+    <button type="submit">Send Email</button>
+</form>
 
-    <button type="submit">Send</button>
+<form method="POST" action="/check_email/">
+    {{emails}}
+
+    Emails:<br>
+    <textarea name="message"></textarea><br><br>
+
+    <button type="submit">Check Email</button>
 </form>
