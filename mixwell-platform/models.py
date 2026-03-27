@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
+import imaplib
 import os
 import smtplib
 import socket
@@ -181,6 +182,54 @@ class Utility:
             user.is_verified = True
             db.session.commit()
         return user            
+
+    from email.mime.text import MIMEText
+
+    def send_email(emailto, emailfrom, subject, mesg):
+        message = MIMEText(mesg, "html")
+        message["Subject"] = subject
+        message["From"] = emailfrom
+        message["To"] = emailto
+        # Zoho mail service using SMTP_SSL
+        smtp = smtplib.SMTP_SSL(Config.SMTP_SERVER, Config.SMTP_PORT)
+        smtp.login(Config.SMTP_EMAIL, Config.SMTP_PASSWORD)
+        try:
+            smtp.sendmail(
+                    Config.SMTP_EMAIL,
+                    emailto,
+                    message.as_string()
+                )
+            smtp.quit()
+            return {"status": 200, "message": f"Verify Email has been sent to {emailto}"}            
+        except Exception as e:
+            print (e)
+            return {"status" : 401,"message" : "Invalid email address"}         
+        
+    def check_inbox():
+        import imaplib
+        import email
+
+        # Connect to IMAP server over SSL
+        imap_server = "imap.zoho.com" # "imap.example.com"
+        mail = imaplib.IMAP4_SSL(imap_server)
+
+        # Login with credentials
+        mail.login("henrywang@mixwellsoftware.com", "Delanyin@00")
+        #mail.login("username", "password")
+
+        # Select mailbox (INBOX by default)
+        mail.select("INBOX")
+
+        # Search for all emails
+        status, data = mail.search(None, "ALL")
+        for num in data[0].split():
+            msg_data = mail.fetch(num, "(RFC822)")
+        msg = email.message_from_bytes(msg_data[0][1])
+        print("Subject:", msg["subject"])
+
+        # Logout
+        mail.logout()
+
     
     def user_verify_email(user_id, user_email):    
         token = Utility.user_token(user_id,  user_email, "")
