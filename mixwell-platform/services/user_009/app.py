@@ -1,5 +1,5 @@
 import sys
-from flask import Config, Flask, render_template
+from flask import Blueprint, Config, Flask, render_template
 from flask_login import LoginManager
 
 app = Flask(__name__)
@@ -30,7 +30,8 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-@app.route("/")
+userService = Blueprint("userService", __name__)
+@userService.route("/")
 def home():
     try:    
         return render_template("user.html")
@@ -38,12 +39,16 @@ def home():
         print (e)
         return e
 
-@app.route("/user/<int:userid>")
+@userService.route("/user/<int:userid>")
 def userhome(userid):    
     user = Utility.user_get(userid)
     userswithservices =  Utility.user_with_services(userid)
     return render_template("user.html", username = user.email, user_with_services = userswithservices)
     
+def create_app():
+    app.register_blueprint(userService)
+    return app
+
 if __name__ == "__main__":
     print (f"start running {app.root_path} at {serviceport}")    
-    app.run(port=serviceport, debug=False, use_reloader=False)
+    create_app().run(host="127.0.0.1", port=serviceport, debug=False, use_reloader=False)

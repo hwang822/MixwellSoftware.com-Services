@@ -125,7 +125,7 @@ class Utility:
             db.session.commit()
             try:
                 if is_verified == False:
-                    Utility.user_verify_email(user.id, email)
+                    Utility.user_verify_email(user)
                 return Utility.auth_response(200, "New User signup scussfully!", user)
             except:                                            
                 return Utility.auth_response(400, "Invalid Eamil.", user)
@@ -148,7 +148,7 @@ class Utility:
             user.location = f"{userlocation['city']} {userlocation['regionName']} {userlocation['zip']}, {userlocation['country']}",
             db.session.add(user)                
             db.session.commit()
-            login_user(user)
+            #login_user(user)
             return Utility.auth_response(200, "Login Scussfully!", user)
         
     def users_get_all():
@@ -204,7 +204,7 @@ class Utility:
             print (e)
             return {"status" : 401,"message" : "Invalid email address"}         
         
-    def check_email(count):
+    def check_emails(count):
         import imaplib
         import email
 
@@ -231,19 +231,19 @@ class Utility:
         return data
 
     
-    def user_verify_email(user_id, user_email):    
-        token = Utility.user_token(user_id,  user_email, "")
+    def user_verify_email(user):    
+        token = Utility.user_token(user)
         verify_url = Config.VERIFY_URL + f"/{token}"
         html_content = render_template(
             "verify_email.html",
-            user_email=user_email,
+            user_email=user.email,
             verify_url=verify_url
         )
         # ✅ Create proper MIME message   
         message = MIMEText(html_content, "html")
         message["Subject"] = "Verify Your Email"
         message["From"] = Config.SMTP_EMAIL
-        message["To"] = user_email
+        message["To"] = user.email
 
         # Zoho mail service using SMTP_SSL
         smtp = smtplib.SMTP_SSL(Config.SMTP_SERVER, Config.SMTP_PORT)
@@ -251,7 +251,7 @@ class Utility:
         try:
             smtp.sendmail(
                     Config.SMTP_EMAIL,
-                    user_email,
+                    user.email,
                     message.as_string()
                 )
             smtp.quit()
@@ -274,18 +274,16 @@ class Utility:
             return {"status" : 401,"message" : "Invalid email address"}         
         """
 
-    def user_token(userid, email, servicename):
+    def user_token(user):
         # Generate JWT token
         payload = {
-            "userid": userid,
-            "email": email,
-            "servicename": servicename,
+            "userid": user.id,
             "exp": datetime.now(timezone.utc) + timedelta(hours=12)
         }
         token = jwt.encode(payload, Config.JWT_SECRET, algorithm="HS256")
         return token
 
-    def user_check(servicename):
+    def user_check_only():
         token = request.cookies.get("access_token")
         if not token:
             return None
@@ -297,19 +295,28 @@ class Utility:
             )
             userid = decoded["userid"]
             user =  Utility.user_get(userid)            
-            if servicename != "":
-                service = Service.query.filter_by(name=servicename).first()
-                userservice = UserService.query.filter_by(   
-                    user_id=userid,
-                    service_id=service.id
-                ).first()
-                if not userservice:                                
-                    return None
-                userservice.access = userservice.access + 1
-                db.session.add(userservice)
-                db.session.commit()
+            #login_user(user)
+            return user                    
+        except:
+            return None
 
-            login_user(user)
+
+    def user_check(servicename):
+        user = Utility.user_check_only()        
+        if not user:
+            return None
+        try:
+            service = Service.query.filter_by(name=servicename).first()
+            userservice = UserService.query.filter_by(   
+                user_id=user.id,
+                service_id=service.id
+            ).first()
+            if not userservice:                                
+                return None
+            userservice.access = userservice.access + 1
+            db.session.add(userservice)
+            db.session.commit()
+            #login_user(user)
             return user                    
         except:
             return None

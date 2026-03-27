@@ -25,7 +25,7 @@ def sendEmail():
         return Utility.send_email(emailto, emailfrom, subject, message)
     return render_template("EmailService.html")
 
-@emailService.route("/checkemail/", methods=["GET", "POST"])
+@emailService.route("/check_email/", methods=["GET", "POST"])
 def checkemail():
     emails = Utility.check_emails(10)
     return render_template("EmailService.html", emails)

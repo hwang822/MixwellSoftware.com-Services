@@ -1,5 +1,6 @@
 import sys
 from flask import Blueprint, Flask, render_template
+import requests
 
 app = Flask(__name__)
 
@@ -29,8 +30,16 @@ def count_plus_one():
 def service_data_count_plus_one():       
     return count_plus_one()
 
+def smartmeetAPI():    
+    http = "https://services.smartmetertexas.net/v2/token/" 
+    try:
+        response = requests.get(http).json()
+    except Exception as e:
+        print (e)
+    print (response)
+
 def create_app():
-    app.register_blueprint(dataService)
+    app.register_blueprint(dataService)    
     return app
 
 if __name__ == "__main__":

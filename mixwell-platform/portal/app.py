@@ -35,7 +35,7 @@ portalService = Blueprint("portalService", __name__)
 @portalService.route("/")
 def home(): #insde user visit 5000
     services = Utility.services_get_all()
-    user = Utility.user_check("")
+    user = Utility.user_check_only()
     if not user:
         return render_template("portal.html", services = services)    
     try:
@@ -80,9 +80,10 @@ def login():
     else :  
         flash(response["message"])
         currentuser = response["data"]
+        login_user(currentuser)        
         next_url = request.args.get("next")
-        servicename = request.args.get("service")
-        token = Utility.user_token(currentuser.id, currentuser.email, servicename)                                
+#        servicename = request.args.get("service")
+        token = Utility.user_token(currentuser)                                
         if next_url is None:  
             response = make_response(redirect("/"))  # back to portal 
         else:
@@ -92,7 +93,7 @@ def login():
             token,
             httponly=True,
             samesite="Lax"
-        ) 
+        )         
         return response       
 
 @portalService.route("/logout", methods=["GET", "POST"])
@@ -189,4 +190,4 @@ if __name__ == "__main__":
     with app.app_context():        
         home_insital()    
     print (f"run portal poat at {serviceport}")    
-    create_app().run(host="127.0.0.1", port=serviceport)
+    create_app().run(host="0.0.0.0", port=serviceport)
