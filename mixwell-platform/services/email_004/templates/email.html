@@ -1,20 +1,49 @@
-<form method="POST" action="/send_email/">
-    Email To:<br>
-    <input name="emailto"><br><br>
-    Email From:<br>
-    <input name="emailfrom"><br><br>
-    Subject:<br>
-    <input name="subject"><br><br>
-    Message:<br>
-    <textarea name="message"></textarea><br><br>
-    <button type="submit">Send Email</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Email Inbox</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
 
-<form method="POST" action="/check_email/">
-    {{emails}}
+<div class="topbar">
+    <div class="topbar-left">
+        <img src="/static/logo.ico" class="logo">
+        <span class="title">Email Inbox @MixwellSoftware.com</span>
+    </div>
 
-    Emails:<br>
-    <textarea name="message"></textarea><br><br>
+    <button onclick="openCompose()" class="compose-btn">✉️ Compose</button>
+</div>    
 
-    <button type="submit">Check Email</button>
-</form>
+<div class="container">
+    <div class="list" id="emailList"></div>
+
+    <div class="content">
+        <h3 id="subject"></h3>
+        <p id="from"></p>
+        <div id="body"></div>
+
+        <div class="actions">
+            <button onclick="reply()">Reply</button>
+            <button onclick="forward()">Forward</button>
+            <button onclick="deleteEmail()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Compose Modal -->
+<div id="composeModal" class="modal">
+    <div class="modal-content">
+        <input id="to" placeholder="To">
+        <input id="subjectInput" placeholder="Subject">
+        <textarea id="bodyInput" placeholder="Write email..."></textarea>
+
+        <button onclick="sendEmail()">Send</button>
+        <button onclick="closeCompose()">Cancel</button>
+    </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

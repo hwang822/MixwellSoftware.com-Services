@@ -204,7 +204,7 @@ class Utility:
             print (e)
             return {"status" : 401,"message" : "Invalid email address"}         
         
-    def check_emails(count):
+    def check_emails():
         import imaplib
         import email
 
@@ -219,16 +219,35 @@ class Utility:
         # Select mailbox (INBOX by default)
         mail.select("INBOX")
 
+        status, messages = mail.search(None, "ALL")
+        mail_ids = messages[0].split()
+
+        emails = []
+        #for mail_id in mail_ids[-5:]:  # last 5 emails
+        for mail_id in mail_ids:        
+            status, msg_data = mail.fetch(mail_id, "(RFC822)")
+            
+            for response_part in msg_data:
+                if isinstance(response_part, tuple):
+                    msg = email.message_from_bytes(response_part[1])
+                    print("From:", msg["from"])
+                    print("Subject:", msg["subject"])
+                    emails.append(msg)
+
+        # Logout
+        mail.logout()
+        return emails
+
+
+    """
         # Search for all emails
         status, data = mail.search(None, "ALL")
         for num in data[0].split():
             msg_data = mail.fetch(num, "(RFC822)")
-        msg = email.message_from_bytes(msg_data[0][1])
-        print("Subject:", msg["subject"])
+            msg = email.message_from_bytes(msg_data[0][1])
+            print("Subject:", msg["subject"])
 
-        # Logout
-        mail.logout()
-        return data
+    """
 
     
     def user_verify_email(user):    

@@ -1,0 +1,88 @@
+body {
+    margin: 0;
+    font-family: Arial;
+}
+
+.topbar {
+    padding: 10px;
+    background: #333;
+    color: white;
+}
+
+.container {
+    display: flex;
+    height: 90vh;
+}
+
+.list {
+    width: 35%;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+}
+
+.list div {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.content {
+    width: 65%;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 10%;
+    left: 5%;
+    width: 90%;
+    background: white;
+    border: 1px solid #ccc;
+}
+
+.modal-content {
+    padding: 10px;
+}
+
+input, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background: #333;
+    color: white;
+}
+
+/* Left side (logo + text) */
+.topbar-left {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Compose button */
+.compose-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+}
