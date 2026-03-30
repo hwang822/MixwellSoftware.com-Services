@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tesla Dashboard</title>
+    <link rel="stylesheet" href="/static/tesla.css">
+</head>
+<body>
+
+<div class="topbar">
+    🚗 Tesla Dashboard
+</div>
+
+<div class="container">
+    <h2 id="name"></h2>
+
+    <div class="card">
+        🔋 Battery: <span id="battery"></span>%
+    </div>
+
+    <div class="card">
+        📍 Range: <span id="range"></span> miles
+    </div>
+
+    <div class="card">
+        ⚡ Charging: <span id="charging"></span>
+    </div>
+
+    <div class="card">
+        🔒 Locked: <span id="locked"></span>
+    </div>
+
+    <div class="card">
+        🌡 Inside: <span id="inside_temp"></span>°C
+    </div>
+
+    <div class="card">
+        🌤 Outside: <span id="outside_temp"></span>°C
+    </div>
+
+    <button onclick="loadStatus()">Refresh</button>
+</div>
+
+<script src="/static/tesla.js"></script>
+</body>
+</html>
