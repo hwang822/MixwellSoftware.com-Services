@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>{{ servicename }} Dashboard</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: #f4f6f8;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* ===== Topbar ===== */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 12px;   /* ⬅️ 减小高度 */
+            background: #1f1f1f;
+            color: white;
+            height: 36px;        /* ⬅️ 固定高度 */
+        }
+
+        .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .left img {
+            height: 24px;   /* ⬅️ 更小logo */
+        }
+
+        .center {
+            font-size: 14px;   /* ⬅️ 更紧凑 */
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: limegreen;
+        }
+
+        .right {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            background: #333;
+            border: none;
+            color: white;
+            padding: 3px 8px;   /* ⬅️ 更小按钮 */
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .btn:hover {
+            background: #555;
+        }
+
+        /* ===== Content ===== */
+        .content {
+            flex: 1;
+            overflow: auto;
+            padding: 15px;
+        }
+
+        /* ===== Footbar ===== */
+        .footbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 12px;   /* ⬅️ 紧凑 */
+            background: #1f1f1f;
+            color: #ccc;
+            height: 32px;
+            font-size: 12px;
+        }
+
+        .foot-left {
+            opacity: 0.8;
+        }
+
+        .foot-right {
+            opacity: 0.8;
+        }
+    </style>
+
+    <script>
+        let autoRefresh = false;
+        let timer = null;
+
+        function refreshPage() {
+            location.reload();
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+
+            if (autoRefresh) {
+                timer = setInterval(refreshPage, 60000);
+                document.getElementById("autoBtn").innerText = "⏸";
+            } else {
+                clearInterval(timer);
+                document.getElementById("autoBtn").innerText = "▶";
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+<!-- ===== Topbar ===== -->
+<div class="topbar">
+
+    <div class="left">
+        <img src="/static/logo.ico">
+    </div>
+
+    <div class="center">
+        <span class="status-dot"></span>
+        {{ servicename }} Dashboard  🚗
+    </div>
+
+    <div class="right">
+        <button class="btn" onclick="refreshPage()">🔄</button>
+        <button class="btn" id="autoBtn" onclick="toggleAutoRefresh()">▶</button> 
+    </div>
+
+</div>
+
+<!-- ===== Content ===== -->
+<div class="content">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- ===== Footbar ===== -->
+<div class="footbar">
+
+    <div class="foot-left">
+        © 2026 MixwellSoftware
+    </div>
+
+    <div class="foot-right">
+        {{ servicename }} | v1.0
+    </div>
+
+</div>
+
+</body>
+</html>

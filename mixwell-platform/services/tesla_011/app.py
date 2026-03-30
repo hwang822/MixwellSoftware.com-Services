@@ -1,19 +1,29 @@
+import os
+
 from flask import Flask, Blueprint, render_template, jsonify
 import sys
 import teslapy
 
-app = Flask(__name__)
-sys.path.insert(0, f"{app.root_path}/../../")
+base_dir = os.path.dirname(os.path.abspath(__file__))
+shared_templates = os.path.abspath(os.path.join(base_dir, "../../templates"))
+
+app = Flask(__name__,template_folder=os.path.join(base_dir, "templates"))
+app.jinja_loader.searchpath.append(shared_templates)
+
+sys.path.insert(0, f"{base_dir}/../../")
 from config.settings import Config
-
-serviceport = int(app.root_path.rsplit("_")[1]) + 5000
-serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
-
-teslaService = Blueprint("teslaService", __name__)
 
 EMAIL = Config.SMTP_EMAIL_G
 
-#tesla = teslapy.Tesla(EMAIL, cache_file='token.json')
+serviceport = int(base_dir.rsplit("_")[1]) + 5000
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+
+# =========================
+# Service code start here
+# =========================
+
+teslaService = Blueprint("teslaService", __name__)
+
 
 # =========================
 # GET VEHICLE DATA
@@ -37,6 +47,7 @@ def get_vehicle_data():
         data = vehicle.get_vehicle_data()
 
         return {
+            "name": vehicle["display_name"],
             "battery": data["charge_state"]["battery_level"],
             "range": data["charge_state"]["battery_range"],            
             "charging": data["charge_state"]["charging_state"],
@@ -59,7 +70,7 @@ def get_vehicle_data():
 # =========================
 @teslaService.route("/")
 def home():
-    return render_template("tesla.html")
+    return render_template("tesla.html", servicename = "Tesla Service")
 
 @teslaService.route("/api/status")
 def status():    
