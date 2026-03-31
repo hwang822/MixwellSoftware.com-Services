@@ -1,6 +1,22 @@
+import os
 import sys
 from flask import Blueprint, Config, Flask, render_template
 from flask_login import LoginManager
+
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
+
+shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
+app.jinja_loader.searchpath.append(shared_templates)
+print("Shared templates:", shared_templates)  
+sys.path.insert(0, f"{base_dir}")
+from config.settings import Config
+
+serviceport = int(app.root_path.rsplit("_")[1]) + 5000
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+servicename = "Service2"  
+servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
+
 
 app = Flask(__name__)
 BASE_DIR = f"{app.root_path}/../../"  
@@ -34,7 +50,7 @@ userService = Blueprint("userService", __name__)
 @userService.route("/")
 def home():
     try:    
-        return render_template("user.html")
+        return render_template("user.html", servicename = "User Service")
     except Exception as e:
         print (e)
         return e

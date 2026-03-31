@@ -1,3 +1,5 @@
+{% extends "servicebase.html" %}
+{% block content %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,10 +10,10 @@
 <body>
 
 <div class="topbar">
-    <div class="topbar-left">
+    <!--div class="topbar-left">
         <img src="/static/logo.ico" class="logo">
         <span class="title">Email Inbox @MixwellSoftware.com</span>
-    </div>
+    </div-->
 
     <button onclick="openCompose()" class="compose-btn">✉️ Compose</button>
 </div>    
@@ -47,3 +49,4 @@
 <script src="/static/app.js"></script>
 </body>
 </html>
+{% endblock %}

@@ -1,4 +1,7 @@
 
+{% extends "servicebase.html" %}
+{% block content %}
+
 <div class="row">
 
 <div class="col-md-8">
@@ -73,3 +76,4 @@ function sendMsg(){
     socket.emit("send_message",{user:"{{current_user.username}}", msg:msg});
 }
 </script>
+{% endblock %}

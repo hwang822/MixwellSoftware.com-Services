@@ -1,18 +1,41 @@
+import os
 import sys
 from flask import Blueprint, Flask, render_template
 
 from models import db
-app = Flask(__name__)
 
-serviceport = int(sys.argv[1])
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
+
+shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
+app.jinja_loader.searchpath.append(shared_templates)
+print("Shared templates:", shared_templates)  
+sys.path.insert(0, f"{base_dir}")
+from config.settings import Config
+
+serviceport = int(app.root_path.rsplit("_")[1]) + 5000
+serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+servicename = "Service1"  
+servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
+
+#serviceport = int(sys.argv[1])
 servicedb = sys.argv[2]
 app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
 db.init_app(app)
 
+"""
+app = Flask(__name__)
+
+serviceport = int(sys.argv[1])
+servicedb = sys.argv[2]
+"""
+#app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+#db.init_app(app)
+
 service1Service = Blueprint("service1Service", __name__)
 @service1Service.route("/")
 def home():    
-    return render_template("service1.html")        
+    return render_template("service1.html", servicename = "Service1 Service")        
 
 def create_app():
     app.register_blueprint(service1Service)

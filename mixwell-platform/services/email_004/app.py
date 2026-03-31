@@ -1,11 +1,17 @@
+import os
+
 from flask import Flask, Blueprint, render_template, request, jsonify
 import sys, imaplib, email, smtplib
 from email.mime.text import MIMEText
 
-app = Flask(__name__)
-sys.path.insert(0, f"{app.root_path}/../../")
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
+
+shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
+app.jinja_loader.searchpath.append(shared_templates)
+print("Shared templates:", shared_templates)  
+sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
-from models import Utility
 
 serviceport = int(app.root_path.rsplit("_")[1]) + 5000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
@@ -86,7 +92,7 @@ def delete_email(mail_id):
 emailService = Blueprint("emailService", __name__)
 @emailService.route("/")
 def inbox():
-    return render_template("email.html")
+    return render_template("email.html", servicename = "Email Service")
 
 
 @emailService.route("/api/emails")

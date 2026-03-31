@@ -1,0 +1,14 @@
+
+{% extends "servicebase.html" %}
+{% block content %}
+<!doctype html>
+<title>旅游视频列表</title>
+<h1>旅游视频</h1>
+<ul>
+{% for video in videos %}
+<li>
+  <a href="/video/{{video}}" target="_blank">{{video}}</a>
+</li>
+{% endfor %}
+</ul>
+{% endblock %}

@@ -11,3 +11,4 @@ pyinstaller --onefile --noconsole --icon=logo.ico app_service2.py
 pyinstaller --onefile --noconsole --icon=logo.ico app_user.py
 pyinstaller --onefile --noconsole --icon=logo.ico app_video.py
 pyinstaller --onefile --noconsole --icon=logo.ico app_cam.py
+pyinstaller --onefile --noconsole --icon=logo.ico app_tesla.py

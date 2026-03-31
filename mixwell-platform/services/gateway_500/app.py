@@ -3,8 +3,6 @@ import sys
 from flask import Blueprint, Flask, Response, redirect
 import requests
 
-#app = Flask(__name__)
-#base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../'))
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
 app = Flask(
@@ -24,7 +22,6 @@ portalport = int(serviceport/1000)*1000
 portalurl = Config.GATEWAY_URL
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 serviceurl = f"{Config.GATEWAY_URL}:{serviceport}"
-
 
 gatewayService = Blueprint("gatewayService", __name__)
 @app.route("/service/<servicename>", defaults={"path": ""})
