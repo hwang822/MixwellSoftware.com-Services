@@ -1,3 +1,4 @@
+
 {% extends "servicebase.html" %}
 {% block content %}
 
@@ -32,10 +33,33 @@
         🌤 Outside: <span id="outside_temp"></span>°C
     </div>
 
-    <!--button onclick="loadStatus()">Refresh</button-->
+    <button onclick="loadStatus()">Refresh</button>
 </div>
 
-<script src="/static/tesla.js"></script>
+<script>
+    function loadStatus(){
+
+    // Fetch JSON from Flask API and update HTML
+    fetch("/service/tesla/get-data")
+        .then(response => {
+            if (!response.ok) throw new Error("Network error");
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById("name").textContent = data.name;
+            document.getElementById("battery").textContent = data.battery;
+            document.getElementById("range").textContent = data.range;
+            document.getElementById("charging").textContent = data.charging;
+            document.getElementById("locked").textContent = data.locked;
+            document.getElementById("inside_temp").textContent = data.inside_temp;
+            document.getElementById("outside_temp").textContent = data.outside_temp;
+        })
+        .catch(error => {
+            console.error("Error fetching data:", error);
+        });
+    }
+    loadStatus()
+</script>
 </body>
 </html>
 {% endblock %}

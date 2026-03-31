@@ -1,5 +1,5 @@
 async function loadStatus() {
-    const res = await fetch("/service/tesla/api/status");
+    const res = await fetch("/get_data");
     const data = await res.json();
 
     document.getElementById("name").innerText = data.name;

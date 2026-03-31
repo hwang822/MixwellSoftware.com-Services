@@ -4,18 +4,25 @@ from flask import Flask, Blueprint, render_template, jsonify
 import sys
 import teslapy
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-shared_templates = os.path.abspath(os.path.join(base_dir, "../../templates"))
+#base_dir = os.path.dirname(os.path.abspath(__file__))
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
 
-app = Flask(__name__,template_folder=os.path.join(base_dir, "templates"))
+#app = Flask(__name__, template_folder=os.path.join(base_dir, "templates"), static_folder='../../static', static_url_path='/static')
+#    template_folder=os.path.join(base_dir, "templates"),     
+#    static_folder='../../static',   # 👈 point to root static
+#    static_url_path='/static')
+#shared_templates = os.path.abspath(os.path.join(base_dir, "../../templates"))
+shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
 app.jinja_loader.searchpath.append(shared_templates)
-
-sys.path.insert(0, f"{base_dir}/../../")
+print("Shared templates:", shared_templates)  
+#sys.path.insert(0, f"{base_dir}/../../")
+sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
 EMAIL = Config.SMTP_EMAIL_G
 
-serviceport = int(base_dir.rsplit("_")[1]) + 5000
+serviceport = int(app.root_path.rsplit("_")[1]) + 5000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 # =========================
@@ -47,7 +54,7 @@ def get_vehicle_data():
         data = vehicle.get_vehicle_data()
 
         return {
-            "name": vehicle["display_name"],
+            #"name": data["display_name"],
             "battery": data["charge_state"]["battery_level"],
             "range": data["charge_state"]["battery_range"],            
             "charging": data["charge_state"]["charging_state"],
@@ -63,22 +70,24 @@ def get_vehicle_data():
             #"Vehicle Odometer": data["vehicle_state"]["odometer"],
             "status": data["state"]
         }
-    
 
 # =========================
 # ROUTES
 # =========================
+
 @teslaService.route("/")
 def home():
+    
     return render_template("tesla.html", servicename = "Tesla Service")
 
-@teslaService.route("/api/status")
-def status():    
+# API endpoint to return JSON
+@teslaService.route("/get-data")
+def get_data():    
     return jsonify(get_vehicle_data())
 
-@teslaService.route("/service/tesla/api/status")
-def tesla_status():
-    return status()
+@teslaService.route("/service/tesla/get-data")
+def get_data_api():    
+    return jsonify(get_vehicle_data())
 
 def create_app():
     app.register_blueprint(teslaService)

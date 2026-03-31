@@ -4,6 +4,7 @@
 *.log
 *.db
 *.csv
+token.json
 __pycache__/
 .env
 **/MixwellSoftware.com-Services/
