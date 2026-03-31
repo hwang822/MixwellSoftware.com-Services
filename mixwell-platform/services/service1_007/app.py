@@ -19,8 +19,8 @@ servicename = "Service1"
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
 
 #serviceport = int(sys.argv[1])
-servicedb = sys.argv[2]
-app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb}" 
+#servicedb = sys.argv[2]
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb.lower()}" 
 db.init_app(app)
 
 """
@@ -35,7 +35,7 @@ servicedb = sys.argv[2]
 service1Service = Blueprint("service1Service", __name__)
 @service1Service.route("/")
 def home():    
-    return render_template("service1.html", servicename = "Service1 Service")        
+    return render_template(f"{servicename.lower()}.html", servicename = f"{servicename} Service")        
 
 def create_app():
     app.register_blueprint(service1Service)

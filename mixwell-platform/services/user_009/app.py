@@ -11,23 +11,23 @@ app.jinja_loader.searchpath.append(shared_templates)
 print("Shared templates:", shared_templates)  
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
+from models import Utility, db, User
 
 serviceport = int(app.root_path.rsplit("_")[1]) + 5000
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
-servicename = "Service2"  
-servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
+servicename = "User Service"  
+#servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
 
 
-app = Flask(__name__)
-BASE_DIR = f"{app.root_path}/../../"  
-sys.path.insert(0, BASE_DIR)
+#app = Flask(__name__)
+#BASE_DIR = f"{app.root_path}/../../"  
+#sys.path.insert(0, BASE_DIR)
+#from models import Utility, db, User, Config
 
-from models import Utility, db, User, Config
+#serviceport = int(sys.argv[1])
+#servicedb = sys.argv[2]
 
-serviceport = int(sys.argv[1])
-servicedb = sys.argv[2]
-
-serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+#serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 serviceurl = f"{Config.SERVICE_URL}:{serviceport}"
 portalport = int(serviceport/1000)
 portalport = portalport*1000
@@ -50,7 +50,7 @@ userService = Blueprint("userService", __name__)
 @userService.route("/")
 def home():
     try:    
-        return render_template("user.html", servicename = "User Service")
+        return render_template("user.html", servicename = servicename)
     except Exception as e:
         print (e)
         return e
@@ -59,7 +59,7 @@ def home():
 def userhome(userid):    
     user = Utility.user_get(userid)
     userswithservices =  Utility.user_with_services(userid)
-    return render_template("user.html", username = user.email, user_with_services = userswithservices)
+    return render_template("user.html", username = user.email, user_with_services = userswithservices, servicename = servicename)
     
 def create_app():
     app.register_blueprint(userService)
