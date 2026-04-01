@@ -498,8 +498,6 @@ class Utility:
         
     def services_register(SERVICES_PATH, base_port):        
         try:
-            if Utility.is_port_used(base_port):
-                Utility.kill_port(base_port)
             folder_list = os.listdir(SERVICES_PATH)        
             port = base_port            
             for folder in folder_list:
@@ -635,15 +633,10 @@ class Utility:
             if Utility.is_port_used(port): 
                 Utility.kill_port_safe(port)
             app_file = os.path.join(servicepath, f"app.py")
-            #app_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{port}"
             if os.path.exists(app_file):                            
                 proc = subprocess.Popen([
                         PYTHON_PATH,
-                        app_file
-                        #str(port),
-                        #app_db
-                        ]                    
-#                    [PYTHON_PATH, f"{app_file} {service.port} {app_db}"                    
+                        app_file]                    
                     ,creationflags=subprocess.CREATE_NO_WINDOW
                 )            
         except:

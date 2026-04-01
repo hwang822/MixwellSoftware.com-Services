@@ -15,8 +15,12 @@ sys.path.insert(0, f"{app.root_path}/../../")
 from config.settings import Config
 from models import Utility, db
 
-serviceport = int(app.root_path.rsplit("_")[1]) + 5000
-serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
+baseport = int(Config.PORTAL_PORT)
+baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
+serviceport = int(app.root_path.rsplit("_")[1]) + baseport
+
+#serviceport = int(app.root_path.rsplit("_")[1]) + 5000
+#serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 portalport = int(serviceport/1000)*1000
 portalurl = Config.GATEWAY_URL
