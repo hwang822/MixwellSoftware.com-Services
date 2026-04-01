@@ -17,7 +17,7 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-serviceport = int(Config.PORTAL_PORT)
+serviceport = 8000 # int(Config.PORTAL_PORT)
 serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 print (f"Portal Service port# {serviceport}")
 

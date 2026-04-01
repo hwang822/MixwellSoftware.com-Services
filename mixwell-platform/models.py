@@ -498,8 +498,8 @@ class Utility:
         
     def services_register(SERVICES_PATH, base_port):        
         try:
-            if Utility.is_port_used(base_port):
-                Utility.kill_port(base_port)
+#            if Utility.is_port_used(base_port):
+#                Utility.kill_port(base_port)
             folder_list = os.listdir(SERVICES_PATH)        
             port = base_port            
             for folder in folder_list:
