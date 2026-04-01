@@ -32,3 +32,7 @@ class Config:
     PORTAL_PORT = os.getenv("PORTAL_PORT")
     PORTAL_PORT_PORD = os.getenv("PORTAL_PORT_PORD")    
     VERIFY_URL = os.getenv("VERIFY_URL")
+
+    ALPACA_API_KEY = os.getenv("ALPACA_API_KEY")
+    ALPACA_SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
+    ALPACA_BASE_URL = os.getenv("ALPACA_BASE_URL")

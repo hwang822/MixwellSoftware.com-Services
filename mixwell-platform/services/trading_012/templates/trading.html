@@ -1,0 +1,55 @@
+{% extends "servicebase.html" %}
+{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading System</title>
+</head>
+<body>
+
+<h1>🚀 Auto Trading Dashboard</h1>
+
+<h2>💰 PnL: ${{ pnl }}</h2>
+
+<h3>🔥 Top Picks</h3>
+<table border="1">
+<tr><th>Symbol</th><th>Score</th><th>Price</th></tr>
+{% for s in scans %}
+<tr>
+<td>{{ s.symbol }}</td>
+<td>{{ s.score }}</td>
+<td>{{ s.price }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h3>📊 Trades</h3>
+<table border="1">
+<tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th></tr>
+{% for t in trades %}
+<tr>
+<td>{{ t.timestamp }}</td>
+<td>{{ t.symbol }}</td>
+<td>{{ t.side }}</td>
+<td>{{ t.price }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<button onclick="runScan()">Run Scan</button>
+
+<script>
+function runScan() {
+    fetch("/scan", {method: "POST"})
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            alert("Scan Done");
+        });
+}
+</script>
+
+</body>
+</html>
+
+{% endblock %}
