@@ -43,6 +43,46 @@
 </table>
 
 <button onclick="runScan()">Run Scan</button>
+</b>
+<h3>🚀 Start/Stop Trading </h3>
+<button onclick="startAuto()">▶ Start (3 days)</button>
+<button onclick="stopAuto()">⏹ Stop</button>
+
+<p id="status"></p>
+
+<script>
+function startAuto() {
+    fetch("/start_auto", {method: "POST"})
+        .then(res => res.json())
+        .then(data => {
+            alert(data.status);
+            updateStatus();
+        });
+}
+
+function stopAuto() {
+    fetch("/stop_auto", {method: "POST"})
+        .then(res => res.json())
+        .then(data => {
+            alert(data.status);
+            updateStatus();
+        });
+}
+
+function updateStatus() {
+    fetch("/status")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("status").innerText =
+                "Running: " + data.running +
+                " | End: " + data.end_time;
+        });
+}
+
+// 每5秒刷新状态
+setInterval(updateStatus, 5000);
+</script>
+
 
 <script>
 function runScan() {

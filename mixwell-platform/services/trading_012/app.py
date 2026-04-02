@@ -1,11 +1,13 @@
 import os, sys
 from flask import Blueprint, Flask, render_template
+#import auto_trader
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
-#from models import db
+from models import Utility
 from flask import Flask, render_template
 from servicemodels import Trade, ScanResult, db
+from auto_trader import auto_trader
 
 app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
 shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
@@ -16,7 +18,7 @@ sys.path.insert(0, f"{base_dir}")
 baseport = int(Config.PORTAL_PORT)
 baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
 serviceport = int(app.root_path.rsplit("_")[1]) + baseport
-
+#Utility.kill_port_safe(serviceport)
 servicename = "Trading"  
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb.lower()}" 
@@ -26,7 +28,6 @@ db.init_app(app)
 tradingService = Blueprint("tradingService", __name__)
 @tradingService.route("/")
 def home():    
-
     try:        
         trades = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
         scans = ScanResult.query.order_by(ScanResult.score.desc()).limit(10).all()
@@ -57,16 +58,28 @@ def scan():
 
     return df.to_json(orient="records")
 
+@tradingService.route("/start_auto", methods=["POST"])
+def start_auto():
+    return {"status": auto_trader.start()}
+
+@tradingService.route("/stop_auto", methods=["POST"])
+def stop_auto():
+    return {"status": auto_trader.stop()}
+
+@tradingService.route("/status")
+def status():
+    return {
+        "running": auto_trader.running,
+        "end_time": str(auto_trader.end_time)
+    }
+
 def create_app():
     app.register_blueprint(tradingService)
     return app
 
 if __name__ == "__main__":
-    try:
-        with app.app_context():        
-            db.create_all()
-    except Exception as e:
-        print (e)
+    with app.app_context():        
+        db.create_all()
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 
