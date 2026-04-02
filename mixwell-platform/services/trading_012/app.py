@@ -26,6 +26,7 @@ db.init_app(app)
 tradingService = Blueprint("tradingService", __name__)
 @tradingService.route("/")
 def home():    
+
     try:        
         trades = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
         scans = ScanResult.query.order_by(ScanResult.score.desc()).limit(10).all()
@@ -43,7 +44,7 @@ def home():
             trades=trades,
             scans=scans,
             pnl=round(pnl, 2),
-            serviceport = f"{servicename} Service"
+            servicename = f"{servicename} Service"
         )
     except Exception as e:
         print(e)
@@ -69,29 +70,3 @@ if __name__ == "__main__":
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 
-"""
-@app.route("/")
-def dashboard():
-    trades = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
-    scans = ScanResult.query.order_by(ScanResult.score.desc()).limit(10).all()
-
-    pnl = 0
-    buy_price = {}
-
-    for t in reversed(trades):
-        if t.side == "buy":
-            buy_price[t.symbol] = t.price
-        elif t.side == "sell" and t.symbol in buy_price:
-            pnl += (t.price - buy_price[t.symbol])
-
-    return render_template(
-        "trading.html",
-        trades=trades,
-        scans=scans,
-        pnl=round(pnl, 2),
-        serviceport = serviceport
-    )
-
-if __name__ == "__main__":
-    app.run(port=5012, debug=True)
-"""    

@@ -36,6 +36,12 @@
 {% endfor %}
 </table>
 
+<h3>🔍 Scan Symbols </h3>
+
+<table border="1" id="scanTable">
+<tr><th>Symbol</th><th>Score</th><th>Price</th></tr>
+</table>
+
 <button onclick="runScan()">Run Scan</button>
 
 <script>
@@ -44,7 +50,34 @@ function runScan() {
         .then(res => res.json())
         .then(data => {
             console.log(data);
-            alert("Scan Done");
+
+            const table = document.getElementById("scanTable");
+
+            // 清空旧数据（保留表头）
+            table.innerHTML = `
+                <tr>
+                    <th>Symbol</th>
+                    <th>Score</th>
+                    <th>Price</th>
+                </tr>
+            `;
+
+            // 插入新数据
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+
+                tr.innerHTML = `
+                    <td>${row.symbol}</td>
+                    <td>${row.score.toFixed(2)}</td>
+                    <td>${row.price.toFixed(2)}</td>
+                `;
+
+                table.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Scan failed");
         });
 }
 </script>
