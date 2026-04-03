@@ -4,12 +4,27 @@
 <html>
 <head>
     <title>Trading System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>    
 </head>
 <body>
 
 <h1>🚀 Auto Trading Dashboard</h1>
 
-<h2>💰 PnL: ${{ pnl }}</h2>
+<h2>总交易次数: {{ total_trades }}</h2>
+<h2>💰 总盈亏: ${{ pnl }}</h2>
+
+<canvas id="pnlChart"></canvas>
+
+
+<h3>🤖 Manual Trade</h3>
+
+<button onclick="runTrade()">🚀 Run Trade</button>
+
+<p id="tradeStatus"></p>
+
+<h3>🤖 Manual Trade</h3>
+<button onclick="rebuild()">Rebuild Positions</button>
+
 
 <h3>🔥 Top Picks</h3>
 <table border="1">
@@ -23,15 +38,13 @@
 {% endfor %}
 </table>
 
-<h3>📊 Trades</h3>
+<h3>📊 交易记录</h3>
 <table border="1">
-<tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th></tr>
+<th></th><th>时间</th><th>股票</th><th>方向</th><th>价格</th>
+<!--tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th></tr-->
 {% for t in trades %}
 <tr>
-<td>{{ t.timestamp }}</td>
-<td>{{ t.symbol }}</td>
-<td>{{ t.side }}</td>
-<td>{{ t.price }}</td>
+<td>{{ t.id }}</td><td>{{ t.timestamp }}</td><td>{{ t.symbol }}</td><td>{{ t.side }}</td><td>{{ t.price }}</td>
 </tr>
 {% endfor %}
 </table>
@@ -80,7 +93,7 @@ function updateStatus() {
 }
 
 // 每5秒刷新状态
-setInterval(updateStatus, 5000);
+//setInterval(updateStatus, 5000);
 </script>
 
 
@@ -120,6 +133,25 @@ function runScan() {
             alert("Scan failed");
         });
 }
+
+function runTrade() {
+    fetch("/manual_trade", {method: "POST"})
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("tradeStatus").innerText =
+                "Status: " + data.status;
+
+            // ✅ 自动刷新UI（PnL / 图表）
+            setTimeout(() => location.reload(), 1000);
+        });
+}
+
+async function rebuild() {
+    const res = await fetch("/admin/rebuild_positions");
+    const data = await res.json();
+    alert(data.message);
+}
+
 </script>
 
 </body>

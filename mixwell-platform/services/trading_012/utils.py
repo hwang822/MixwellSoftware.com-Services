@@ -1,8 +1,8 @@
 from servicemodels import ScanResult, Trade
-from app import app
+#from app import app
 
 def calculate_total_pnl():
-    with app.app_context():
+    #with app.app_context():
         trades = Trade.query.order_by(Trade.timestamp.asc()).all()
 
         pnl = 0
@@ -18,6 +18,6 @@ def calculate_total_pnl():
         return pnl
     
 def get_top_symbols_from_db():
-    with app.app_context():
+    #with app.app_context():
         scans = ScanResult.query.order_by(ScanResult.score.desc()).limit(3).all()
         return [s.symbol for s in scans]

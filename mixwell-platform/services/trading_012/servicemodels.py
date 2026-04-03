@@ -17,3 +17,11 @@ class ScanResult(db.Model):
     price = db.Column(db.Float)
     volume = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Position(db.Model):
+    __tablename__ = "position"
+
+    symbol = db.Column(db.String(20), primary_key=True)
+    quantity = db.Column(db.Float, nullable=False)
+    avg_price = db.Column(db.Float, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)    

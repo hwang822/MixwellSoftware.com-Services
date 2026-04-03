@@ -459,6 +459,65 @@ def api():
 
 
 ####################################
+👉 这个不是“图片”，也不是我去下载的 icon
+👉 它是一个 emoji（表情符号）
 
+📊 📈 🔥 🚀 💰 🤖
 
+<h3>📊 Trades</h3>
+<h3>🔥 Top Picks</h3>
+<h3>💰 PnL</h3>
+<h3>🤖 Auto Trading</h3>
+<h3>🚀 Scanner</h3>
+🟢 Running
+🔴 Stopped
+📊 实时PnL曲线
+🔥 Top Movers
+🤖 Auto ON/OFF
 
+你可以直接用下面这些专业、免费、可复制 emoji 网站👇
+
+🌐 最推荐（直接复制用）
+👉 UseEmoji（4500+ emoji 一键复制）
+
+👉 特点：
+
+一键点击复制
+支持搜索（比如：trade / chart / money）
+分类清晰
+非常适合你做 UI
+👉 UEmoji（支持 PNG / SVG 下载）
+
+👉 特点：
+
+可以下载图片（如果你要图标）
+多平台风格（Apple / Google）
+适合做网页 UI
+👉 EmojiDash（分类浏览 + 搜索）
+
+👉 分类很好：
+
+😀 表情
+📊 图表
+💰 金钱
+🚀 动作
+⚙️ 工具
+
+👉 很适合你找 trading UI icon
+
+👉 Emojihub（全量emoji库）
+
+👉 特点：
+
+全分类浏览
+很多冷门 emoji
+快速复制
+👉 Emojipedia（最权威）
+
+👉 用途：
+
+查 emoji 含义
+看不同平台样式
+查看新 emoji
+
+👉 它是 emoji 标准解释站点

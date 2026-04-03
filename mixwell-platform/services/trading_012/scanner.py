@@ -13,10 +13,11 @@ api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPA
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
 
 def scan_market():
+
     results = []
 
     for symbol in SYMBOLS:
-        bars = api.get_bars(symbol, "1Min", limit=30).df
+        bars = api.get_bars(symbol, "1Min", limit=30, adjustment='raw').df
 
         if len(bars) < 2:
             continue
@@ -32,7 +33,7 @@ def scan_market():
             "price": bars["close"].iloc[-1],
             "volume": volume
         })
-
+        
     df = pd.DataFrame(results)
     df = df.sort_values("score", ascending=False)
 

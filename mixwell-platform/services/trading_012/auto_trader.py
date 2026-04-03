@@ -50,4 +50,4 @@ def run_loop(self):
 
         time.sleep(300)
 
-auto_trader = AutoTrader()
+#auto_trader = AutoTrader()
