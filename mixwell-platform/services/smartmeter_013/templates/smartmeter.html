@@ -1,0 +1,120 @@
+{% extends "servicebase.html" %}
+{% block content %}
+<!doctype html>
+<title>Smart Meter Texas</title>
+
+<h1> Smart Meter Texas </h1>
+
+    <h3> REST Functions </h3>
+    <ul>
+        <li>
+        <a href="https://services.smartmetertexas.net/v2/token/"> Token Generation </a>  
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/15minintervalreads/"> 15-Minute Interval Data  </a>
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/dailyreads/">  Daily Register Reads  </a>
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/monthlybillingInformation//">   Monthly Billing Reads   </a>
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/greenbutton/"> Green Button </a>                    
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/meterInfo/"> Meter Attributes </a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/premiseInfo/"> Premise Attributes </a>     
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/odr/"> On-DDemand Read </a>        
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/odrstatus/"> On-Demand Read Status </a>  
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/reportrequeststatus/"> Report Status </a>                      
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/reportrequeststatus/"> New Subscription </a>           
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/UnSubscription"> Unsubscribe / Cancel Subscription </a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/Mysubscriptions/"> List Subscriptions </a>              
+        </li>
+
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/NewAgreement/"> New Energy Data Sharing Agreement </a>              
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/AgreementESIIDs/"> List ESIIDs per Energy Data Sharing Agreement </a>         
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/Terminateagreement/"> Terminate Energy Data Sharing Agreement </a>              
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/myagreements/"> Status of Energy Data Sharing Agreement </a>         
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/myagreements/">List of Energy Data Sharing Agreement</a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/access/token/">Token Generation</a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/energydata/">Energy Data (15-Minute Interval Data, or Daily Register Reads, or 
+    Monthly Billing Reads)</a>         
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/MeterInformation/"> Meter Attributes </a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/PremiseInformation/">Premise Attributes</a>         
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/Subscription/">Subscription – Scheduled Reports (New Subscription, or Unsubscribe / 
+    Cancel Subscription, or List of Existing Subscriptions)</a>              
+        </li>
+        <li>        
+        <a href="https://services.smartmetertexas.net/v2/CSPAuthorization/">CSP Agreement (New Energy Data Sharing Agreement, or List ESIIDs 
+    per Energy Data Sharing Agreement, or Terminate Energy Data Sharing 
+    Agreement, or List of Energy Data Sharing Agreements) </a> 
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/dailyreads/"> Daily Register Reads </a>                      
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/monthlybillingInformation/"> Monthly Billing Reads </a>         
+        </li>
+    </ul>             
+    <h3> SOAP Functions  </h3>
+    <ul>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/access/token/"> Token Generation </a>         
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/energydata/"> Energy Data (15-Minute Interval Data, or Daily Register Reads, or 
+Monthly Billing Reads) </a>         
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/MeterInformation/"> Meter Attributes </a>         
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/PremiseInformation/"> Premise Attributes </a>         
+        </li>
+
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/Subscription/"> Subscription – Scheduled Reports (New Subscription, or Unsubscribe / 
+Cancel Subscription, or List of Existing Subscriptions) </a>         
+        </li>
+        <li>                
+        <a href="https://services.smartmetertexas.net/v2/CSPAuthorization/"> CSP Agreement (New Energy Data Sharing Agreement, or List ESIIDs 
+per Energy Data Sharing Agreement, or Terminate Energy Data Sharing 
+Agreement, or List of Energy Data Sharing Agreements) </a>         
+        </li>         
+    </ul>     
+{% endblock %}
