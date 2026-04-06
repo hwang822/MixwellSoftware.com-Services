@@ -22,9 +22,6 @@
 
 <p id="tradeStatus"></p>
 
-<h3>🤖 Manual Trade</h3>
-<button onclick="rebuild()">Rebuild Positions</button>
-
 
 <h3>🔥 Top Picks</h3>
 <table border="1">
@@ -38,25 +35,55 @@
 {% endfor %}
 </table>
 
-<h3>📊 交易记录</h3>
+<h3>Positions</h3>
 <table border="1">
-<th></th><th>时间</th><th>股票</th><th>方向</th><th>价格</th>
-<!--tr><th>Time</th><th>Symbol</th><th>Side</th><th>Price</th></tr-->
-{% for t in trades %}
-<tr>
-<td>{{ t.id }}</td><td>{{ t.timestamp }}</td><td>{{ t.symbol }}</td><td>{{ t.side }}</td><td>{{ t.price }}</td>
-</tr>
+    <tr>
+        <th>股票</th>
+        <th>股数</th>
+        <th>均价</th>
+        <th>时间</th>
+    </tr>
+
+{% for pos in positions %}
+    <tr>
+        <td>{{ pos.symbol }}</td>
+        <td>{{ "%.2f"|format(pos.quantity) }}</td>
+        <td>{{ "%.2f"|format(pos.avg_price) }}</td>
+        <td>
+            {{ pos.updated_at.strftime("%m/%d %H:%M") if pos.updated_at else "" }}
+        </td>
+    </tr>
 {% endfor %}
 </table>
+
+<h3>📊 交易记录</h3>
+<table border="1">
+    <th>时间</th>
+    <th>股票</th>
+    <th>方向</th>
+    <th>价格</th>
+{% for t in trades %}
+    <tr>
+        <td>
+            {{ t.timestamp }}
+            {{ t.timestamp.strftime("%m/%d %H:%M") if t.timestamp else "" }}
+        </td>
+        <td>{{ t.symbol }}</td>
+        <td>{{ t.side }}</td>
+        <td>{{ t.price }}</td>
+    </tr>
+{% endfor %}
+</table>
+
 
 <h3>🔍 Scan Symbols </h3>
 
 <table border="1" id="scanTable">
 <tr><th>Symbol</th><th>Score</th><th>Price</th></tr>
 </table>
-
 <button onclick="runScan()">Run Scan</button>
 </b>
+
 <h3>🚀 Start/Stop Trading </h3>
 <button onclick="startAuto()">▶ Start (3 days)</button>
 <button onclick="stopAuto()">⏹ Stop</button>
@@ -65,7 +92,7 @@
 
 <script>
 function startAuto() {
-    fetch("/start_auto", {method: "POST"})
+    fetch("/start_auto_trader", {method: "POST"})
         .then(res => res.json())
         .then(data => {
             alert(data.status);
@@ -74,7 +101,7 @@ function startAuto() {
 }
 
 function stopAuto() {
-    fetch("/stop_auto", {method: "POST"})
+    fetch("/stop_auto_trader", {method: "POST"})
         .then(res => res.json())
         .then(data => {
             alert(data.status);
@@ -83,7 +110,7 @@ function stopAuto() {
 }
 
 function updateStatus() {
-    fetch("/status")
+    fetch("/trader_status")
         .then(res => res.json())
         .then(data => {
             document.getElementById("status").innerText =
@@ -99,7 +126,7 @@ function updateStatus() {
 
 <script>
 function runScan() {
-    fetch("/scan", {method: "POST"})
+    fetch("/scan_symbols", {method: "POST"})
         .then(res => res.json())
         .then(data => {
             console.log(data);
@@ -135,7 +162,7 @@ function runScan() {
 }
 
 function runTrade() {
-    fetch("/manual_trade", {method: "POST"})
+    fetch("/start_manual_trader", {method: "POST"})
         .then(res => res.json())
         .then(data => {
             document.getElementById("tradeStatus").innerText =
@@ -144,12 +171,6 @@ function runTrade() {
             // ✅ 自动刷新UI（PnL / 图表）
             setTimeout(() => location.reload(), 1000);
         });
-}
-
-async function rebuild() {
-    const res = await fetch("/admin/rebuild_positions");
-    const data = await res.json();
-    alert(data.message);
 }
 
 </script>
