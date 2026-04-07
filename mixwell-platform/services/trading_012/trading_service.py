@@ -10,23 +10,26 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
-from servicemodels import Trade, Activities, ScanResult, Position, scan_market, DailyPrice, OneDayPrice, db
+from servicemodels import Activities, ScanResult, Position, scan_market, DailyPrice, OneDayPrice, db
 
 import alpaca_trade_api as tradeapi
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
 
 from alpaca_trade_api.rest import REST
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 #get_daytrading("AAPL","2026-04-02",5)        #计算 “$/5分钟变化”
 def get_daytrading(symbol, date, min):
+    end = datetime.utcnow()
+    start = end - timedelta(days=30)        
     bars = api.get_bars(
         symbol,
         min, 
-        start= date,
-        end=date,
-        adjustment='raw'
+        start = start.isoformat() + "Z",
+        end = end.isoformat() + "Z",
+        adjustment = 'raw',
+        feed='iex'
     ).df
     print(bars.head())
     return bars    
@@ -66,48 +69,61 @@ def clean_old_prices():
     ).delete()
     db.session.commit()
 
-def scan_market_store():
+def update_symbols_day_prices():  # core function
     clock = api.get_clock()
 
-    if not clock.is_open:
-        print("Market closed, still record last data")
+    if clock.is_open:
+        new_rows = []
+        clean_old_prices()   # ✅ 关键
+        for symbol in SYMBOLS:
+            last = OneDayPrice.query\
+                .filter_by(symbol=symbol)\
+                .order_by(OneDayPrice.timestamp.desc())\
+                .first()
 
-    new_rows = []
-    clean_old_prices()   # ✅ 关键
-    for symbol in SYMBOLS:
-        last = OneDayPrice.query\
-            .filter_by(symbol=symbol)\
+            last_ts = last.timestamp if last else None
+
+            bars = api.get_bars(symbol, "5Min", limit=30)
+
+            for bar in bars:
+                # 假设 bar.t 是 offset-aware
+                ts = bar.t  # 已经是 UTC aware
+
+                # last_ts 从 DB 取出，需要加 tzinfo
+                if last_ts:
+                    last_ts = last_ts.replace(tzinfo=timezone.utc)
+                # ✅ 跳过旧数据
+                if last_ts and ts <= last_ts:
+                    continue
+
+                new_rows.append(OneDayPrice(
+                    symbol=symbol,
+                    price_open=round(float(bar.o), 2),
+                    price_close=round(float(bar.c), 2),
+                    volume=round(float(bar.v), 2),
+                    high=round(float(bar.h), 2),
+                    low=round(float(bar.l), 2),
+                    vw=round(float(bar.vw), 2),
+                    timestamp=ts
+                    ))
+
+        db.session.bulk_save_objects(new_rows)
+        db.session.commit()
+
+    result = {}
+
+    for s in SYMBOLS:
+        rows = OneDayPrice.query.filter_by(symbol=s)\
             .order_by(OneDayPrice.timestamp.desc())\
-            .first()
+            .limit(50).all()[::-1]
 
-        last_ts = last.timestamp if last else None
+        result[s] = {
+            "labels": [r.timestamp.strftime("%H:%M") for r in rows],
+            "prices": [r.price_close for r in rows]
+        }
+    return result
 
-        bars = api.get_bars(symbol, "5Min", limit=30)
 
-        for bar in bars:
-            # 假设 bar.t 是 offset-aware
-            ts = bar.t  # 已经是 UTC aware
-
-            # last_ts 从 DB 取出，需要加 tzinfo
-            if last_ts:
-                last_ts = last_ts.replace(tzinfo=timezone.utc)
-            # ✅ 跳过旧数据
-            if last_ts and ts <= last_ts:
-                continue
-
-            new_rows.append(OneDayPrice(
-                symbol=symbol,
-                price_open=round(float(bar.o), 2),
-                price_close=round(float(bar.c), 2),
-                volume=round(float(bar.v), 2),
-                high=round(float(bar.h), 2),
-                low=round(float(bar.l), 2),
-                vw=round(float(bar.vw), 2),
-                timestamp=ts
-                ))
-
-    db.session.bulk_save_objects(new_rows)
-    db.session.commit()
 
 def sync_trades_from_alpaca():
     activities = api.get_activities(activity_types="FILL")
@@ -355,111 +371,142 @@ def run_bot():
 
     check_sell_signals()
 
+def build_daily_price(symbol, days): # core functions
+    #bars = get_daytrading(symbol, date_str, "5min")
+    
+    end = datetime.utcnow().replace(microsecond=0)
+    start = end - timedelta(days=days)
 
+    bars = api.get_bars(
+        symbol,
+        "1Day",   # 🔥 关键：每天一条
+        start=start.isoformat() + "Z",
+        end=end.isoformat() + "Z",
+        adjustment='raw',
+        feed='iex'
+    ).df    
 
-
-def build_daily_price(symbol, date_str):
-    bars = get_daytrading(symbol, date_str, "5min")
-
+    resurt = []
+    for index, row in bars.iterrows():
+        print(index.date(), row["close"])
+        #data = {index.date(), row["close"]}    
+        resurt.append
+        {
+            "symbol": symbol.symbol,
+            "date": index.date(),
+            "avg_price": float(row["close"]),
+            "high": float(row["high"]),
+            "low": float(row["low"]),
+            "volume": float(row["volume"]),
+        }
+    return resurt    
+    """
     if len(bars) == 0:
         return None
+    resurt = []
+    for bar in bars:
+        resurt.append
+        {
+            "symbol": bar.symbol,
+            "date": bar.date(),
+            "avg_price": float(bar.avg_price),
+            "high": float(bar.high),
+            "low": float(bar.low),
+            "volume": float(bar.volume),
 
-    avg_price = bars["close"].mean()
-    high = bars["high"].max()
-    low = bars["low"].min()
-    volume = bars["volume"].sum()
+            #"symbol": symbol,
+            #"date": bars.index[-1].date(),
+            #"avg_price": float(avg_price),
+            #"high": float(high),
+            #"low": float(low),
+            #"volume": float(volume),
+        }
+    return resurt
+    """
+def update_symbols_positions():  # core functions
+    clock = api.get_clock()
 
-    return {
-        "symbol": symbol,
-        "date": bars.index[-1].date(),
-        "avg_price": float(avg_price),
-        "high": float(high),
-        "low": float(low),
-        "volume": float(volume),
-    }
+    if clock.is_open:
+        positions = api.list_positions()
+        if positions:
+            # 🧹 清空旧表
+            Position.query.delete()
+            # 📝 写入新数据
+            for p in positions:
+                if int(p.qty) <= 0:
+                    continue
+                pos = Position(
+                    symbol=p.symbol,
+                    quantity=int(p.qty),
+                    avg_price=round(float(p.avg_entry_price), 2)
+                )
+                db.session.add(pos)
+                print(p.symbol, p.qty, p.avg_entry_price, p.unrealized_pl)        
+            db.session.commit()
 
-def update_daily_prices():
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    rows = Position.query.all()
+    return [
+        {
+            "symbol": r.symbol,
+            "qty": r.quantity,
+            "price": round(r.avg_price, 2),
+            "time": r.updated_at.strftime("%m/%d %H:%M") if r.updated_at else ""
+        }
+        for r in rows
+    ]
+
+def update_symbols_daily_prices():
+
+    clock = api.get_clock()
+    if not clock.is_open:
+        return
+
+    # ❗不要在循环里 delete
+    DailyPrice.query.delete()
 
     for symbol in SYMBOLS:
-        data = build_daily_price(symbol, today_str)
 
-        if not data:
+        end = datetime.utcnow().replace(microsecond=0)
+        start = end - timedelta(days=30)
+
+        bars = api.get_bars(
+            symbol,
+            "1Day",
+            start=start.isoformat() + "Z",
+            end=end.isoformat() + "Z",
+            adjustment='raw',
+            feed='iex'
+        ).df    
+
+        if bars.empty:
             continue
 
-        existing = DailyPrice.query.filter_by(
-            symbol=data["symbol"],
-            date=data["date"]
-        ).first()
+        for index, row in bars.iterrows():
 
-        if existing:
-            existing.avg_price = round(data["avg_price"], 2)
-            existing.high = round(data["high"], 2)
-            existing.low = round(data["low"], 2)
-            existing.volume = round(data["volume"], 2)
-        else:
             db.session.add(DailyPrice(
-                symbol=data["symbol"],
-                date=data["date"],
-                avg_price=round(data["avg_price"], 2),
-                high=round(data["high"], 2),
-                low=round(data["low"], 2),
-                volume=round(data["volume"], 2),
+                symbol=symbol,
+                date=index.date(),
+                avg_price=round(float(row["close"]), 2)   # ✅ 修复
             ))
 
-    db.session.commit()
+    db.session.commit()   # 🔥 一次提交（性能更好）
 
-from datetime import date
-from sqlalchemy import func
-
-def update_daily_prices():
-    for symobl in SYMBOLS:
-        try:
-            bars = api.get_bars(symobl, "1Day", limit=30).df
-            for bar in bars:
-                avg_price = 0 # bar.vw
-                day = "" # bar.timesample
-        except Exception as e:
-            print(e)
-        return bars
-        
-        """
-        daily = DailyPrice.query.filter_by(
-            symbol=symobl,
-            date=day
-        ).first()
-
-        if not daily:
-            db.session.add(DailyPrice(
-                symbol=symobl,
-                avg_price=round(avg_price, 2),
-                date=date
-            ))
-
-    db.session.commit()
-    """
-
-    bars = api.get_bars("AAPL", "1Day", limit=30).df
-
-    for idx, row in bars.iterrows():
-        avg_price = row["vw"]  # ✅ BEST
-
-        daily = DailyPrice.query.filter_by(
-            symbol="AAPL",
-            date=idx.date()
-        ).first()
-
-        if not daily:
-            db.session.add(DailyPrice(
-                symbol="AAPL",
-                avg_price=round(avg_price, 2),
-                date=idx.date()
-            ))
-
-    db.session.commit()
-
-#可以落地、能接你现有系统的 Top 50 自动选股方案（生产可用版）
-
+    result = {}
+    for s in SYMBOLS:
+        rows = DailyPrice.query.filter_by(symbol=s)\
+            .order_by(DailyPrice.date.desc())\
+            .limit(50).all()[::-1]
+        result[s] = {
+            "labels": [r.date.strftime("%Y-%m-%d") for r in rows],
+            "prices": [r.avg_price for r in rows],
+            "pcts": []
+        }        
+        base = rows[0].avg_price
+        result[s]["pcts"] = [            
+            (r.avg_price - base) / base * 100
+            for r in rows
+        ]        
+    return result
 
 def get_top_symbols():
     assets = api.list_assets(status='active')

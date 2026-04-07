@@ -4,14 +4,6 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 from datetime import datetime
 
-class Trade(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    symbol = db.Column(db.String(10))
-    side = db.Column(db.String(10))
-    qty = db.Column(db.Integer)
-    price = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
 class Activities(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     symbol = db.Column(db.String(10))
@@ -61,7 +53,7 @@ class OneDayPrice(db.Model):
 
 
 def get_trades():
-    trades = Trade.query.order_by(Trade.timestamp.desc()).all()
+    trades = Activities.query.order_by(Activities.timestamp.desc()).all()
     return trades 
 
 def get_scan_symbols():    
@@ -102,7 +94,7 @@ def get_top_symbols_from_db():
     return [s.symbol for s in scans]
 
 def calculate_total_pnl():
-    trades = Trade.query.order_by(Trade.timestamp.asc()).all()
+    trades = Activities.query.order_by(Activities.timestamp.asc()).all()
     pnl = 0
     buy_price = {}
     for t in trades:
@@ -338,7 +330,7 @@ def rebuild_positions(conn):
 
 
 def rebuild_positions():
-    trades = Trade.query.order_by(Trade.symbol, Trade.timestamp).all()
+    trades = Activities.query.order_by(Activities.symbol, Activities.timestamp).all()
 
     positions = defaultdict(lambda: {"qty": 0.0, "cost": 0.0})
 
