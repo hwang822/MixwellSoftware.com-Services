@@ -37,6 +37,29 @@ class Position(db.Model):
     avg_price = db.Column(db.Float, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)    
 
+class DailyPrice(db.Model):
+    __tablename__ = "daily_prices"
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(10), index=True)
+    avg_price = db.Column(db.Float)
+    date = db.Column(db.Date, index=True)
+    
+class OneDayPrice(db.Model):
+    __tablename__ = "day_prices"
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(10), index=True)
+    price_open = db.Column(db.Float)
+    price_close = db.Column(db.Float)
+    volume = db.Column(db.Float)
+    high = db.Column(db.Float)
+    low = db.Column(db.Float)
+    vw = db.Column(db.Float)
+    timestamp = db.Column(db.DateTime, index=True)
+    #__table_args__ = (
+    #    db.UniqueConstraint("symbol", "timestamp", name="uix_symbol_date"),
+    
+
+
 def get_trades():
     trades = Trade.query.order_by(Trade.timestamp.desc()).all()
     return trades 

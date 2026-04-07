@@ -1,181 +1,316 @@
 {% extends "servicebase.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Trading System</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>    
-</head>
-<body>
 
-<h1>🚀 Auto Trading Dashboard</h1>
+<style>
+button {
+    margin: 5px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
 
-<h2>总交易次数: {{ total_trades }}</h2>
-<h2>💰 总盈亏: ${{ pnl }}</h2>
+button:hover {
+    background-color: #eee;
+}
+</style>
 
+<h2>📊 Trading Dashboard</h2>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!--================= Day Prices ================= -->
+<h3>📈 Day Prices</h3>
+<canvas id="dayChart"></canvas>
+<table border="1" id="dayTable"></table>
+<button onclick="loadDayPrices()">Symbols Day Prices</button>
+<hr>
+
+<!-- ================= Daily Prices ================= -->
+<h3>📉 Daily Prices</h3>
+<canvas id="dailyChart"></canvas>
+<table border="1" id="dailyTable"></table>
+<button onclick="loadAllDailyPrices()">Symbols Daily Prices</button>
+<hr>
+
+<!-- ================= Positions ================= -->
+<h3>💼 Positions</h3>
+<canvas id="positionsChart" width="400" height="200"></canvas>
+<table border="1" id="positionsTable"></table>
+<button onclick="loadPositions()">Symbols Position</button>
+<hr>
+
+<!-- ================= Trades ================= -->
+<h3>📊 Trades</h3>
 <canvas id="pnlChart"></canvas>
+<table border="1" id="tradeTable"></table>
+<button onclick="loadTrades()">Symbols Activities</button>
+<hr>
 
-
-<h3>🤖 Manual Trade</h3>
-
-<button onclick="runTrade()">🚀 Run Trade</button>
-
-<p id="tradeStatus"></p>
-
-
-<h3>🔥 Top Picks</h3>
-<table border="1">
-<tr><th>Symbol</th><th>Score</th><th>Price</th></tr>
-{% for s in scans %}
-<tr>
-<td>{{ s.symbol }}</td>
-<td>{{ s.score }}</td>
-<td>{{ s.price }}</td>
-</tr>
-{% endfor %}
-</table>
-
-<h3>Positions</h3>
-<table border="1">
-    <tr>
-        <th>股票</th>
-        <th>股数</th>
-        <th>均价</th>
-        <th>时间</th>
-    </tr>
-
-{% for pos in positions %}
-    <tr>
-        <td>{{ pos.symbol }}</td>
-        <td>{{ "%.2f"|format(pos.quantity) }}</td>
-        <td>{{ "%.2f"|format(pos.avg_price) }}</td>
-        <td>
-            {{ pos.updated_at.strftime("%m/%d %H:%M") if pos.updated_at else "" }}
-        </td>
-    </tr>
-{% endfor %}
-</table>
-
-<h3>📊 交易记录</h3>
-<table border="1">
-    <th>时间</th>
-    <th>股票</th>
-    <th>方向</th>
-    <th>价格</th>
-{% for t in trades %}
-    <tr>
-        <td>
-            {{ t.timestamp }}
-            {{ t.timestamp.strftime("%m/%d %H:%M") if t.timestamp else "" }}
-        </td>
-        <td>{{ t.symbol }}</td>
-        <td>{{ t.side }}</td>
-        <td>{{ t.price }}</td>
-    </tr>
-{% endfor %}
-</table>
-
-
-<h3>🔍 Scan Symbols </h3>
-
-<table border="1" id="scanTable">
-<tr><th>Symbol</th><th>Score</th><th>Price</th></tr>
-</table>
-<button onclick="runScan()">Run Scan</button>
+<!-- ================= Scan ================= -->
+<h3>🔥Scan Symbols</h3>
+<table border="1" id="scanTable"></table>
+<button onclick="scan_symbols()">Scan Symbols</button>
 </b>
 
-<h3>🚀 Start/Stop Trading </h3>
-<button onclick="startAuto()">▶ Start (3 days)</button>
-<button onclick="stopAuto()">⏹ Stop</button>
-
-<p id="status"></p>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-function startAuto() {
-    fetch("/start_auto_trader", {method: "POST"})
-        .then(res => res.json())
-        .then(data => {
-            alert(data.status);
-            updateStatus();
-        });
-}
 
-function stopAuto() {
-    fetch("/stop_auto_trader", {method: "POST"})
-        .then(res => res.json())
-        .then(data => {
-            alert(data.status);
-            updateStatus();
-        });
-}
+let dayChart;
+async function loadDayPrices() {
+    const res = await fetch("/api/day_prices");
+    const data = await res.json();
 
-function updateStatus() {
-    fetch("/trader_status")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("status").innerText =
-                "Running: " + data.running +
-                " | End: " + data.end_time;
-        });
-}
+    if (dayChart) dayChart.destroy();
 
-// 每5秒刷新状态
-//setInterval(updateStatus, 5000);
+    const datasets = Object.keys(data).map(symbol => ({
+        label: symbol,
+        data: data[symbol].prices
+    }));
+
+    const labels = data[Object.keys(data)[0]].labels;
+
+    dayChart = new Chart(document.getElementById("dayChart"), {
+        type: "line",
+        data: { labels, datasets }
+    });
+    // ---- Table ----
+    let html = "<tr><th>Symbol</th><th>Price</th><th>Vw</th><th>Time</th></tr>";
+    
+    Object.keys(data).forEach(symbol => {
+        const labels = data[symbol].labels;
+        const prices = data[symbol].prices;
+
+        for (let i = 0; i < labels.length; i++) {
+            html += `<tr>
+                <td>${symbol}</td>
+                <td>${labels[i]}</td>
+                <td>${prices[i].toFixed(2)}</td>
+            </tr>`;
+        }
+    });
+
+    document.getElementById("dayTable").innerHTML = html;
+
+
+}
+</script>
+
+<script>
+let dailyChart = null;
+
+async function loadAllDailyPrices() {
+    const res = await fetch("/api/daily_prices");
+    const data = await res.json();
+
+    if (dailyChart) dailyChart.destroy();
+
+    const datasets = Object.keys(data).map(symbol => ({
+        label: symbol,
+        data: data[symbol].prices
+    }));
+
+    const labels = data[Object.keys(data)[0]].labels;
+
+    dailyChart = new Chart(document.getElementById("dailyChart"), {
+        type: "line",
+        data: { labels, datasets }
+    });
+
+
+    // ---- Table ----
+    let html = "<tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Time</th></tr>";
+    Object.keys(data).forEach(symbol => {
+        const labels = data[symbol].labels;
+        const prices = data[symbol].prices;
+
+        for (let i = 0; i < labels.length; i++) {
+            html += `<tr>
+                <td>${symbol}</td>
+                <td>${labels[i]}</td>
+                <td>${prices[i].toFixed(2)}</td>
+            </tr>`;
+        }
+    });
+
+    document.getElementById("dailyTable").innerHTML = html;
+
+}
 </script>
 
 
 <script>
-function runScan() {
-    fetch("/scan_symbols", {method: "POST"})
-        .then(res => res.json())
-        .then(data => {
-            console.log(data);
+let positionsChart = null;
 
-            const table = document.getElementById("scanTable");
+async function loadPositions() {
+    const res = await fetch("/api/positions");
+    const data = await res.json();
 
-            // 清空旧数据（保留表头）
-            table.innerHTML = `
-                <tr>
-                    <th>Symbol</th>
-                    <th>Score</th>
-                    <th>Price</th>
-                </tr>
-            `;
+    // ---- Table ----
+    let html = "<tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Time</th></tr>";
+    data.forEach(p => {
+        html += `<tr>
+            <td>${p.symbol}</td>
+            <td>${p.qty}</td>
+            <td>${p.price.toFixed(2)}</td>
+            <td>${p.time}</td>
+        </tr>`;
+    });
+    document.getElementById("positionsTable").innerHTML = html;
 
-            // 插入新数据
-            data.forEach(row => {
-                const tr = document.createElement("tr");
+    // ---- Chart ----
+    const labels = data.map(p => p.symbol);
+    const qtys = data.map(p => p.qty);
 
-                tr.innerHTML = `
-                    <td>${row.symbol}</td>
-                    <td>${row.score.toFixed(2)}</td>
-                    <td>${row.price.toFixed(2)}</td>
-                `;
+    // 如果 chart 已存在，先 destroy 再重建
+    if (positionsChart) positionsChart.destroy();
 
-                table.appendChild(tr);
-            });
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Scan failed");
-        });
-}
-
-function runTrade() {
-    fetch("/start_manual_trader", {method: "POST"})
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("tradeStatus").innerText =
-                "Status: " + data.status;
-
-            // ✅ 自动刷新UI（PnL / 图表）
-            setTimeout(() => location.reload(), 1000);
-        });
+    const ctx = document.getElementById('positionsChart').getContext('2d');
+    positionsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Quantity',
+                data: qtys,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
 }
 
 </script>
 
-</body>
-</html>
+
+<script>
+
+let pnlChart = null;
+async function loadTrades() {
+    const res = await fetch("/api/trades");
+    const data = await res.json();
+
+    if (pnlChart) pnlChart.destroy();
+
+
+// ===== PnL Chart =====
+    if (pnlChart) pnlChart.destroy();
+
+    let pnl = 0;
+    const pnlData = [];
+    const labels = [];
+
+    // 👉 按时间顺序（从旧到新）
+    const sorted = data.slice().reverse();
+
+    sorted.forEach(t => {
+        let value = t.price * t.qty;
+
+        if (t.side === "BUY") pnl -= value;
+        if (t.side === "SELL") pnl += value;
+
+        pnlData.push(pnl);
+        labels.push(t.time);
+    });
+
+    const ctx = document.getElementById("pnlChart").getContext("2d");
+
+    pnlChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "PnL",
+                data: pnlData,
+                borderColor: pnl >= 0 ? "green" : "red",
+                fill: false
+            }]
+        }
+    });
+
+    // ---- Table ----
+    let html = "<tr><th>Symbol</th><th>Side</th><th>Price</th><th>Qty</th><th>Time</th></tr>";
+    data.forEach(p => {
+        html += `<tr>
+            <td>${p.symbol}</td>
+            <td>${p.side}</td>
+            <td>${p.price.toFixed(2)}</td>
+            <td>${p.qty}</td>
+            <td>${p.time}</td>
+        </tr>`;
+    });
+    document.getElementById("tradeTable").innerHTML = html;
+}
+</script>
+
+<script>
+let currentSection = "day";
+
+function showSection(type) {
+    currentSection = type;
+
+    document.getElementById("section-day").style.display = "none";
+    document.getElementById("section-daily").style.display = "none";
+    document.getElementById("section-positions").style.display = "none";
+
+    document.getElementById("section-" + type).style.display = "block";
+
+    refreshCurrent();
+}
+
+function refreshCurrent() {
+    if (currentSection === "day") loadAllDayPrices();
+    //if (currentSection === "daily") loadAllDailyPrices();
+    if (currentSection === "positions") loadPositions();
+}
+
+'setInterval(refreshCurrent, 30000);'
+</script>
+
+<script>
+function showSection(type) {
+    document.getElementById("section-day").style.display = "none";
+    document.getElementById("section-daily").style.display = "none";
+    document.getElementById("section-positions").style.display = "none";
+
+    document.getElementById("section-" + type).style.display = "block";
+
+    // 切换时加载数据
+    if (type === "day") loadAllDayPrices();
+    //if (type === "daily") loadAllDailyPrices();
+    if (type === "positions") loadPositions();
+}
+</script>
+
+<script>
+
+async function scan_symbols() {
+    const res = await fetch("/api/scansymbols");
+    const data = await res.json();
+
+    let html = "<tr><th>Symbol</th><th>Score</th><th>Price</th><th>Volume</th><th>Time</th></tr>";
+
+    data.forEach(p => {
+        html += `<tr>
+            <td>${p.symbol}</td>
+            <td>${p.score}</td>
+            <td>${p.price}</td>
+            <td>${p.volume}</td>
+            <td>${p.timestamp}</td>
+        </tr>`;
+    });
+    document.getElementById("scanTable").innerHTML = html;
+
+
+}
+</script>
 
 {% endblock %}
