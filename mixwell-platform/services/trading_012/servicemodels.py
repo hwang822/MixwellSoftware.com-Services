@@ -4,14 +4,28 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 from datetime import datetime
 
+class Trade(db.Model):
+    id = db.Column(db.String(100), primary_key=True)#An ID for the activity. Always in :: format. Can be sent as page_token in requests to facilitate the paging of results.
+    activity_type = db.Column(db.String(10))     #For trade activities, this will always be FILL
+    cum_qty = db.Column(db.Integer)         	#The cumulative quantity of shares involved in the execution.
+    leaves_qty = db.Column(db.Integer)          #For partially_filled orders, the quantity of shares that are left to be filled.
+    price = db.Column(db.Float)                 #The per-share price that the trade was executed at.
+    qty = db.Column(db.Integer)                 #The number of shares involved in the trade execution.
+    side = db.Column(db.String(10))              #buy or sell
+    symbol = db.Column(db.String(20))           #The symbol of the security being traded.
+    transaction_time = db.Column(db.DateTime)   #The time at which the execution occurred.
+    order_id = db.Column(db.String(100))             #The id for the order that filled
+    type = db.Column(db.String(20))             #fill or partial_fill
+    reason = db.Column(db.String(255))          #reason for sell/buy
+    pnl = db.Column(db.Float)                   #gain/loss
+
 class Activities(db.Model):
     id = db.Column(db.String(100), primary_key=True)
     symbol = db.Column(db.String(10))
     side = db.Column(db.String(10))
     qty = db.Column(db.Integer)
     price = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime)
-
+    timestamp = db.Column(db.DateTime)    
 
 class ScanResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,7 +37,6 @@ class ScanResult(db.Model):
 
 class Position(db.Model):
     __tablename__ = "position"
-
     symbol = db.Column(db.String(20), primary_key=True)
     quantity = db.Column(db.Float, nullable=False)
     avg_price = db.Column(db.Float, nullable=False)
@@ -150,8 +163,7 @@ def scan_market():
 ##################################
 # Update Scan Symbols
 ##################################
-#def update_scan_results(symbol_scores: dict):
-def update_scan_results():    
+def update_symbols_scan():    
     #from scanner import scan_market
     df = scan_market()
 
@@ -270,7 +282,7 @@ def refresh_positions():
         current = float(api.get_latest_trade(pos.symbol).price)
 
         pos.current_price = current
-        pos.pnl = (current - pos.avg_price) * pos.qty
+        pos.pnl = (current - pos.avg_price) * pos.quantity
         pos.updated_at = datetime.utcnow()
 
     db.session.commit()    
@@ -376,9 +388,9 @@ def update_position(symbol, qty, price, side):
 
     if side == "buy":
         if pos:
-            total_qty = pos.qty + qty
-            pos.avg_price = (pos.avg_price * pos.qty + price * qty) / total_qty
-            pos.qty = total_qty
+            total_qty = pos.quantity + qty
+            pos.avg_price = (pos.avg_price * pos.quantity + price * qty) / total_qty
+            pos.quantity = total_qty
         else:
             pos = Position(
                 symbol=symbol,
@@ -389,8 +401,8 @@ def update_position(symbol, qty, price, side):
 
     elif side == "sell":
         if pos:
-            pos.qty -= qty
-            if pos.qty <= 0:
+            pos.quantity -= qty
+            if pos.quantity <= 0:
                 db.session.delete(pos)
 
     db.session.commit()

@@ -2,7 +2,7 @@
 import os
 import sys
 
-from flask import app
+from flask import app, jsonify
 import numpy as np
 
 
@@ -10,11 +10,13 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
-from servicemodels import Activities, ScanResult, Position, scan_market, DailyPrice, OneDayPrice, db
+from servicemodels import Activities, ScanResult, Position, Trade, scan_market, DailyPrice, OneDayPrice, db
 
 import alpaca_trade_api as tradeapi
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
+COLORS = ["blue","orange","green","yellow","red","brown"]
+
 
 from alpaca_trade_api.rest import REST
 from datetime import datetime, timedelta, timezone
@@ -63,66 +65,81 @@ def scan_market():
     return results
 
 def clean_old_prices():
-    today = datetime.utcnow().date()   
+    now = datetime.utcnow()
+    # 今天 00:00 UTC
+    today_start = datetime(now.year, now.month, now.day)
+    # 删除昨天及之前的数据
     OneDayPrice.query.filter(
-        db.func.date(OneDayPrice.timestamp) < today
+        OneDayPrice.timestamp < today_start
     ).delete()
-    db.session.commit()
+    db.session.commit()    
+
+
+from datetime import datetime, timedelta
+import pytz
+
+def get_today_5min(symbol):
+    # 美东时间
+    est = pytz.timezone("US/Eastern")
+
+    now = datetime.now(est)
+
+    # 今日开盘时间
+    market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
+
+    # 👉 转 UTC（Alpaca 必须）
+    start = market_open.astimezone(pytz.utc)
+    end = now.astimezone(pytz.utc)
+
+    bars = api.get_bars(
+        symbol,
+        "5Min",
+        start=start.isoformat(),
+        end=end.isoformat(),
+        feed="iex"   # 🔥 免费账户必须加
+    ).df
+
+    return bars
 
 def update_symbols_day_prices():  # core function
-    clock = api.get_clock()
-
-    if clock.is_open:
-        new_rows = []
-        clean_old_prices()   # ✅ 关键
+    try:
+        #clock = api.get_clock()
+        #if clock.is_open:
+        OneDayPrice.query.delete()
         for symbol in SYMBOLS:
-            last = OneDayPrice.query\
-                .filter_by(symbol=symbol)\
-                .order_by(OneDayPrice.timestamp.desc())\
-                .first()
-
-            last_ts = last.timestamp if last else None
-
-            bars = api.get_bars(symbol, "5Min", limit=30)
-
-            for bar in bars:
-                # 假设 bar.t 是 offset-aware
-                ts = bar.t  # 已经是 UTC aware
-
-                # last_ts 从 DB 取出，需要加 tzinfo
-                if last_ts:
-                    last_ts = last_ts.replace(tzinfo=timezone.utc)
-                # ✅ 跳过旧数据
-                if last_ts and ts <= last_ts:
-                    continue
-
-                new_rows.append(OneDayPrice(
+            bars = get_today_5min(symbol) #api.get_bars(symbol, "5Min", limit=30)
+            if bars.empty:
+                continue
+            for index, row in bars.iterrows():
+                db.session.add(OneDayPrice(
                     symbol=symbol,
-                    price_open=round(float(bar.o), 2),
-                    price_close=round(float(bar.c), 2),
-                    volume=round(float(bar.v), 2),
-                    high=round(float(bar.h), 2),
-                    low=round(float(bar.l), 2),
-                    vw=round(float(bar.vw), 2),
-                    timestamp=ts
-                    ))
+                    price_open=round(float(row['open']), 2),
+                    price_close=round(float(row['close']), 2),
+                    volume=round(float(row['volume']), 2),
+                    high=round(float(row['high']), 2),
+                    low=round(float(row['low']), 2),
+                    vw=round(float(row['vwap']), 2),
+                    timestamp=index
+                ))
+        db.session.commit()   # 🔥 一次提交（性能更好）
+    except Exception as e:
+        print(e)
+    result = []
 
-        db.session.bulk_save_objects(new_rows)
-        db.session.commit()
+    for i, s in enumerate(SYMBOLS):
+        #rows = DailyPrice.query.filter_by(symbol=s).order_by(DailyPrice.date).all()
+        rows = OneDayPrice.query.filter_by(symbol=s).order_by(OneDayPrice.timestamp).all()
+        dates = [r.timestamp.strftime("%H:%M") for r in rows]
+        prices = [r.price_close for r in rows]
 
-    result = {}
+        result.append({
+            "symbol": s,
+            "dates": dates,
+            "prices": prices,
+            "color": COLORS[i]
+        })
 
-    for s in SYMBOLS:
-        rows = OneDayPrice.query.filter_by(symbol=s)\
-            .order_by(OneDayPrice.timestamp.desc())\
-            .limit(50).all()[::-1]
-
-        result[s] = {
-            "labels": [r.timestamp.strftime("%H:%M") for r in rows],
-            "prices": [r.price_close for r in rows]
-        }
-    return result
-
+    return jsonify(result)
 
 
 def sync_trades_from_alpaca():
@@ -138,7 +155,7 @@ def sync_trades_from_alpaca():
             dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         else:
             dt = ts
-        activities = Activities(
+        activitie = Activities(
             id=tradid, # a.id.split("::")[0],   # 用 Alpaca ID 防重复
             symbol=a.symbol,
             side=a.side.upper(),
@@ -146,10 +163,54 @@ def sync_trades_from_alpaca():
             price=float(a.price),
             timestamp = dt
         )
-        db.session.add(activities)
+        db.session.add(activitie)
 
-    db.session.commit()
+def update_symbols_trades():
+    
+    activities = []
+    page_token = None
 
+    while True:
+        res = api.get_activities(
+            activity_types="FILL",
+            page_token=page_token,
+            direction="desc"  # newest first
+        )
+
+        if not res:
+            break
+
+        activities.extend(res)
+
+        # get next page token
+        page_token = res[-1].id
+
+        # stop if less than 100 (last page)
+        if len(res) < 100:
+            break    
+    try:        
+        #activities = api.get_activities(activity_types="FILL")
+        if activities:            
+            Trade.query.delete()
+            for a in activities:
+                tradid=a.id.split("::")[0]
+                trade = Trade(
+                    id=tradid,
+                    activity_type=a.activity_type,
+                    cum_qty=int(a.cum_qty),                
+                    leaves_qty=int(a.leaves_qty),
+                    price=round(float(a.price), 2),
+                    qty=int(a.qty),
+                    side=a.side,
+                    symbol=a.symbol,       
+                    order_id = a.order_id,
+                    type = a.type,          
+                    transaction_time = a.transaction_time
+                )
+                db.session.add(trade)    
+            db.session.commit()
+    except Exception as e:
+        print(e)
 def get_recommended_symbols():
     # 临时：用 movers 代替
     movers = []
@@ -202,7 +263,7 @@ def build_scan_results():
 
     return final
 
-def update_scan_results():
+def update_symbols_scan():
     results = build_scan_results()
     ScanResult.query.delete()
     for r in results:
@@ -347,86 +408,8 @@ def check_sell_signals():
         elif change <= -0.02:
             execute_sell(pos, current_price, "stop_loss")
 
-def get_activities():
-    trades = Activities.query.order_by(Activities.timestamp.desc()).all()
-    return trades 
-
-def get_final_symbols():    
-    symbos = ScanResult.query.order_by(ScanResult.score.desc()).limit(3).all()
-    return symbos
-
-def get_positions():    
-    positions = Position.query.all()
-    return positions
-
-
-def run_bot():
-    sync_trades_from_alpaca()
-
-    update_scan_results()
-
-    symbols = get_final_symbols()
-
-    trade_executor(symbols)
-
-    check_sell_signals()
-
-def build_daily_price(symbol, days): # core functions
-    #bars = get_daytrading(symbol, date_str, "5min")
-    
-    end = datetime.utcnow().replace(microsecond=0)
-    start = end - timedelta(days=days)
-
-    bars = api.get_bars(
-        symbol,
-        "1Day",   # 🔥 关键：每天一条
-        start=start.isoformat() + "Z",
-        end=end.isoformat() + "Z",
-        adjustment='raw',
-        feed='iex'
-    ).df    
-
-    resurt = []
-    for index, row in bars.iterrows():
-        print(index.date(), row["close"])
-        #data = {index.date(), row["close"]}    
-        resurt.append
-        {
-            "symbol": symbol.symbol,
-            "date": index.date(),
-            "avg_price": float(row["close"]),
-            "high": float(row["high"]),
-            "low": float(row["low"]),
-            "volume": float(row["volume"]),
-        }
-    return resurt    
-    """
-    if len(bars) == 0:
-        return None
-    resurt = []
-    for bar in bars:
-        resurt.append
-        {
-            "symbol": bar.symbol,
-            "date": bar.date(),
-            "avg_price": float(bar.avg_price),
-            "high": float(bar.high),
-            "low": float(bar.low),
-            "volume": float(bar.volume),
-
-            #"symbol": symbol,
-            #"date": bars.index[-1].date(),
-            #"avg_price": float(avg_price),
-            #"high": float(high),
-            #"low": float(low),
-            #"volume": float(volume),
-        }
-    return resurt
-    """
 def update_symbols_positions():  # core functions
-    clock = api.get_clock()
-
-    if clock.is_open:
+    try:
         positions = api.list_positions()
         if positions:
             # 🧹 清空旧表
@@ -443,7 +426,8 @@ def update_symbols_positions():  # core functions
                 db.session.add(pos)
                 print(p.symbol, p.qty, p.avg_entry_price, p.unrealized_pl)        
             db.session.commit()
-
+    except Exception as e:
+        print(e)
     rows = Position.query.all()
     return [
         {
@@ -456,57 +440,82 @@ def update_symbols_positions():  # core functions
     ]
 
 def update_symbols_daily_prices():
+    #clock = api.get_clock()
+    #if clock.is_open:
+    try:
+        result = []    
+        # ❗不要在循环里 delete
+        DailyPrice.query.delete()
+        for symbol in SYMBOLS:
 
-    clock = api.get_clock()
-    if not clock.is_open:
-        return
+            end = datetime.utcnow().replace(microsecond=0)
+            start = end - timedelta(days=30)
 
-    # ❗不要在循环里 delete
-    DailyPrice.query.delete()
+            bars = api.get_bars(
+                symbol,
+                "1Day",
+                start=start.isoformat() + "Z",
+                end=end.isoformat() + "Z",
+                adjustment='raw',
+                feed='iex'
+            ).df    
 
-    for symbol in SYMBOLS:
+            if bars.empty:
+                continue
 
-        end = datetime.utcnow().replace(microsecond=0)
-        start = end - timedelta(days=30)
+            for index, row in bars.iterrows():
 
-        bars = api.get_bars(
-            symbol,
-            "1Day",
-            start=start.isoformat() + "Z",
-            end=end.isoformat() + "Z",
-            adjustment='raw',
-            feed='iex'
-        ).df    
+                db.session.add(DailyPrice(
+                    symbol=symbol,
+                    date=index.date(),
+                    avg_price=round(float(row["close"]), 2)   # ✅ 修复
+                ))
 
-        if bars.empty:
-            continue
+        db.session.commit()   # 🔥 一次提交（性能更好）
+    #result = []
+    except Exception as e:
+        print (e)
 
-        for index, row in bars.iterrows():
+    for i, s in enumerate(SYMBOLS):
+        rows = DailyPrice.query.filter_by(symbol=s).order_by(DailyPrice.date).all()
 
-            db.session.add(DailyPrice(
-                symbol=symbol,
-                date=index.date(),
-                avg_price=round(float(row["close"]), 2)   # ✅ 修复
-            ))
+        dates = [r.date.strftime("%Y-%m-%d") for r in rows]
+        prices = [r.avg_price for r in rows]
+        """
+        # 🔥 获取交易记录
+        trades = Activities.query.filter_by(symbol=s).all()
 
-    db.session.commit()   # 🔥 一次提交（性能更好）
+        trade_points = []
+        for t in trades:
+            t_date = t.timestamp.strftime("%Y-%m-%d")
 
-    result = {}
-    for s in SYMBOLS:
-        rows = DailyPrice.query.filter_by(symbol=s)\
-            .order_by(DailyPrice.date.desc())\
-            .limit(50).all()[::-1]
-        result[s] = {
-            "labels": [r.date.strftime("%Y-%m-%d") for r in rows],
-            "prices": [r.avg_price for r in rows],
-            "pcts": []
-        }        
-        base = rows[0].avg_price
-        result[s]["pcts"] = [            
-            (r.avg_price - base) / base * 100
-            for r in rows
-        ]        
-    return result
+            # 👉 找对应 index
+            if t_date in dates:
+                idx = dates.index(t_date)
+            else:
+                # 👉 fallback：找最近日期
+                idx = min(range(len(dates)), key=lambda i: abs(
+                    (rows[i].date - t.timestamp).total_seconds()
+                ))
+
+            trade_points.append({
+                "index": idx,      # 🔥 关键：直接传 index
+                "side": t.side,
+                "reason": "resone", # t.reason,
+                "pnl": 0 # #t.pnl
+            })
+        """
+        result.append({
+            "symbol": s,
+            "dates": dates,
+            "prices": prices,
+            #"trades": trade_points,   # 🔥 已经对齐
+            "color": COLORS[i]
+        })
+
+    return jsonify(result)
+
+
 
 def get_top_symbols():
     assets = api.list_assets(status='active')
@@ -590,6 +599,155 @@ def normalize(value, min_v, max_v):
     return max(0, min(1, (value - min_v) / (max_v - min_v)))
 
 def run_trading_cycle():
-    update_scan_results()     # 先选股
+    update_symbols_scan()     # 先选股
     sync_trades_from_alpaca()
     trade_executor()   
+
+
+##################
+# new models
+##################
+def get_current_price(symbol):
+    trade = api.get_latest_trade(symbol)
+    return float(trade.price)
+
+def get_last_n_high(symbol, n=5):
+    """
+    Get the highest close price for the last n days.
+    """
+    rows = DailyPrice.query.filter_by(symbol=symbol) \
+                            .order_by(DailyPrice.date.desc()) \
+                            .limit(n).all()
+    if not rows:
+        return None
+    return max([r.avg_price for r in rows])
+
+def get_moving_averages(symbol, periods=[5, 20, 50]):
+    """
+    Calculate simple moving averages for given periods.
+    Returns a dict { period: avg_price }
+    """
+    ma = {}
+    for period in periods:
+        rows = DailyPrice.query.filter_by(symbol=symbol) \
+                                .order_by(DailyPrice.date.desc()) \
+                                .limit(period).all()
+        if not rows:
+            ma[period] = None
+        else:
+            ma[period] = sum([r.avg_price for r in rows]) / len(rows)
+    return ma
+
+def should_buy(symbol, price, last_high, ma_short, ma_long):
+    # 突破策略 + 均线策略
+    if price > last_high:
+        return True, "Breakout above high"
+    if ma_short > ma_long and price > ma_short:
+        return True, "Bullish crossover"
+    return False, ""
+
+def should_sell(symbol, price, cost_price, pnl, stop_loss=-0.01, take_profit=0.02):
+    # 止盈止损
+    if pnl / (cost_price * Position.query.filter_by(symbol=symbol).first().quantity) <= stop_loss:
+        return True, "Stop loss"
+    if pnl / (cost_price * Position.query.filter_by(symbol=symbol).first().quantity) >= take_profit:
+        return True, "Take profit"
+    return False, ""
+
+def buy(symbol, qty, price, reason):
+    try:
+        api.submit_order(
+            symbol=symbol,
+            qty=qty,
+            side="buy",
+            type="market",
+            time_in_force="day"
+        )
+
+
+        pos = Position.query.filter_by(symbol=symbol).first()
+        if pos:
+            # 加仓：更新均价和数量
+            total_cost = pos.avg_price * pos.quantity + price * qty
+            pos.quantity += qty
+            pos.avg_price = total_cost / pos.quantity
+            pos.last_update = datetime.utcnow()
+        else:
+            pos = Position(symbol=symbol, quantity=qty, avg_price=price)
+            db.session.add(pos)
+        
+        # 记录交易
+        trade = Trade(symbol=symbol, side="BUY", qty=qty, price=price, reason=reason)
+        db.session.add(trade)
+        db.session.commit()
+    except Exception as e:
+        print(e)
+def sell(symbol, reason):
+    try:
+
+        pos = Position.query.filter_by(symbol=symbol).first()
+        if not pos or pos.quantity <= 0:
+            return 0  # 无持仓
+        qty = pos.quantity
+        price = get_current_price(symbol)  # 通过 API 获取当前价格
+        pnl = round((price - pos.avg_price) * qty, 2)
+        
+        api.submit_order(
+            symbol=pos.symbol,
+            qty=pos.quantity,
+            side="sell",
+            type="market",
+            time_in_force="day"
+        )
+
+
+        # 更新持仓
+        pos.quantity = 0
+        pos.avg_price = 0
+        pos.last_update = datetime.utcnow()
+        
+        # 记录交易
+        trade = Trade(symbol=symbol, side="SELL", qty=qty, price=price, reason=reason, pnl=pnl)
+        db.session.add(trade)
+        db.session.commit()
+    except Exception as e:
+        return    
+    return pnl
+
+def auto_trade_1():
+    for symbol in SYMBOLS:
+        price = get_current_price(symbol)
+        pos = Position.query.filter_by(symbol=symbol).first()
+        # 买入策略：价格上涨突破或加仓
+        if not pos or pos.quantity == 0:
+            buy(symbol, 10, price, "Breakout")
+        # 卖出策略：简单止盈止损
+        elif pos and pos.quantity > 0:
+            pnl = (price - pos.avg_price) * pos.quantity
+            if pnl >= 5:
+                sell(symbol, "Take Profit")
+            elif pnl <= -3:
+                sell(symbol, "Stop Loss")
+
+def auto_trade():
+    for symbol in SYMBOLS:
+        price = get_current_price(symbol)
+        pos = Position.query.filter_by(symbol=symbol).first()
+        qty = 10  # 固定买入数量，可改成策略
+
+        # 买入策略
+        last_high = get_last_n_high(symbol, 20)
+        ma = get_moving_averages(symbol, [5, 20])
+        ma_short = ma[5]
+        ma_long = ma[20]
+        buy_flag, reason = should_buy(symbol, price, last_high, ma_short, ma_long)
+        #if buy_flag:
+        #    buy(symbol, qty, price, reason)
+
+        # 卖出策略
+        if pos and pos.quantity > 0:
+            pnl = (price - pos.avg_price) * pos.quantity
+            sell_flag, reason = should_sell(symbol, price, pos.avg_price, pnl)
+            if sell_flag:
+                sell(symbol, reason)
+

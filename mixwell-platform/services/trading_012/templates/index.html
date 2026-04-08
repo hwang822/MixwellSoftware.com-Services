@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>Trading Dashboard</h1>
+
+<h1>Day Prices 图示例数据</h1>
+<canvas id="priceChart2"></canvas>
+
+<h1>Daily Prices 图示例数据</h1>
+<canvas id="priceChart"></canvas>
+<button onclick="runTrade()">Run Auto Trade</button>
+
+<h1>绘图示例数据</h1>
+<canvas id="priceChart1"></canvas>
+
+<script>
+async function runTrade() {
+    await fetch("/run_trade");
+    location.reload();
+}
+
+// 绘图示例数据
+const data = {
+    labels: ["2026-04-01","2026-04-02","2026-04-03"],
+    prices: [80, -70, 60],
+    tradePoints: [
+        {index:0, side:"BUY", reason:"Breakout", pnl:null},
+        {index:2, side:"SELL", reason:"Take Profit", pnl:5}
+    ]
+};
+
+function drawChart(data) {
+    const ctx = document.getElementById('priceChart1').getContext('2d');
+    const chart = new Chart(ctx, {
+        type:'line',
+        data:{
+            labels: data.labels,
+            datasets:[{
+                label:'Price % Change',
+                data: data.prices,
+                borderColor:'blue',
+                fill:false
+            }]
+        },
+        options:{
+            scales:{y:{min:-100,max:100,ticks:{callback:v=>v+"%"}}},
+            plugins:{
+                tooltip:{
+                    callbacks:{
+                        label: function(ctx){
+                            const idx = ctx.dataIndex;
+                            const tp = data.tradePoints.find(p=>p.index===idx);
+                            if(tp) return `${ctx.dataset.label}: ${ctx.raw}% | ${tp.side} | ${tp.reason} | PnL: ${tp.pnl??''}`;
+                            return `${ctx.dataset.label}: ${ctx.raw}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    data.tradePoints.forEach(tp=>{
+        chart.data.datasets[0].pointBackgroundColor = chart.data.datasets[0].pointBackgroundColor||[];
+        chart.data.datasets[0].pointBackgroundColor[tp.index]=tp.side==="BUY"?"green":"red";
+        chart.data.datasets[0].pointRadius = chart.data.datasets[0].pointRadius||[];
+        chart.data.datasets[0].pointRadius[tp.index]=6;
+    });
+    chart.update();
+}
+
+drawChart(data);
+</script>
+</body>
+</html>
+
+
+
+2️⃣ 前端图表自动刷新
+<script>
+
+function getTradeMap(trades) {
+    const map = {};
+    trades.forEach(t => {
+        map[t.index] = t;
+    });
+    return map;
+}
+
+
+async function fetchDayPrices() {
+    const res = await fetch("/api/day_prices");
+    return await res.json();
+}
+
+async function fetchDailyPrices() {
+    const res = await fetch("/api/daily_prices");
+    return await res.json();
+}
+
+async function updateDayPrices() {
+    daily = false
+    return await drawRealtimeChart(daily);
+}
+
+async function updateDailyPrices() {
+    daily = true
+    return await drawRealtimeChart(daily);
+}
+
+async function drawRealtimeChart(daily) {
+    const data = daily? await fetchDailyPrices() : await fetchDayPrices();
+    const ctx = daily?  document.getElementById('priceChart').getContext('2d'): document.getElementById('priceChart2').getContext('2d');
+        
+    let globalMax = 0;
+
+    // ✅ 先计算所有 symbol 的最大波动
+    const datasetsTemp = data.map(d => {
+        const base = d.prices[0];
+        const pctData = d.prices.map(p => (p - base) / base * 100);
+        const localMax = Math.max(...pctData.map(v => Math.abs(v)));
+
+        if (localMax > globalMax) {
+            globalMax = localMax;
+        }
+    });
+
+// 🔥 给点 margin（更好看）
+    globalMax = Math.ceil(globalMax * 1.2);
+
+    const datasets = data.map(d=>{
+        return {
+            label: d.symbol,
+            data: d.prices
+                .map(p => (p - d.prices[0]) / d.prices[0] * 100),
+            borderColor: d.color,
+            fill:false
+        }
+    });
+    
+    const labels = data[0]?.dates || [];
+    window.priceChart = new Chart(ctx, {
+        type:'line',
+        data:{labels, datasets},
+        options:{
+            scales:{
+            y:{
+                min: -globalMax, // -100,
+                max: globalMax,  //100,
+                ticks:{
+                    callback:v=>v+"%"
+                }
+            }},
+            plugins:{
+                tooltip:{
+                    callbacks:{
+                        label: function(ctx){
+                            const idx = ctx.dataIndex;
+                            const tp = data.tradePoints.find(p=>p.index===idx);
+                            if(tp) return `${ctx.dataset.label}: ${ctx.raw}% | ${tp.side} | ${tp.reason} | PnL: ${tp.pnl??''}`;
+                            return `${ctx.dataset.label}: ${ctx.raw}%`;
+                        }
+                    }
+                }
+            }
+
+        }        
+    });
+    data.tradePoints.forEach(tp=>{
+        window.priceChart.data.datasets[0].pointBackgroundColor = window.priceChart.data.datasets[0].pointBackgroundColor||[];
+        window.priceChart.data.datasets[0].pointBackgroundColor[tp.index]=tp.side==="BUY"?"green":"red";
+        window.priceChart.data.datasets[0].pointRadius = chart.data.datasets[0].pointRadius||[];
+        window.priceChart.data.datasets[0].pointRadius[tp.index]=6;
+    });
+    window.priceChart.update();
+
+}
+
+
+// 定时刷新
+setInterval(async ()=>{
+    await updateDayPrices()
+    await updateDailyPrices() // drawRealtimeChart();
+}, 60000*5);  // 每2分钟刷新一次
+updateDayPrices()
+updateDailyPrices()
+//drawRealtimeChart();
+</script>

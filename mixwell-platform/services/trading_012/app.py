@@ -1,6 +1,6 @@
 import os, sys
-from flask import Blueprint, Flask, render_template
-from trading_service import get_top_symbols, scan_top_50_symbols, update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, get_daytrading, get_positions, get_activities, get_final_symbols, sync_trades_from_alpaca, update_scan_results, get_final_symbols, trade_executor, check_sell_signals, scan_market, get_top_movers
+from flask import Blueprint, Flask, jsonify, render_template
+from trading_service import update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan, auto_trade
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -20,15 +20,26 @@ servicename = "Trading"
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb.lower()}" 
 
-from servicemodels import db, scan_market, get_trades, get_scan_symbols, get_pnls, OneDayPrice, DailyPrice, Position, Activities, ScanResult
-#from trading import run_manual_trader, run_auto_trader
+from servicemodels import db, ScanResult, Trade
 db.init_app(app)
 
 tradingService = Blueprint("tradingService", __name__)
 # ===== Dashboard Page =====
 @tradingService.route("/")
+@app.route("/")
 def home():
-    return render_template("trading.html")
+    #trades = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
+    return render_template("index.html")
+
+@app.route("/run_trade")
+def run_trade():
+    update_symbols_day_prices()
+    update_symbols_daily_prices()
+    update_symbols_trades()    
+    update_symbols_positions()
+    update_symbols_scan()    
+    #auto_trade()
+    return jsonify({"status":"done"})
 
 # ===== Day Prices =====
 @tradingService.route("/api/day_prices")
@@ -51,7 +62,9 @@ def api_positions():
 # ===== Trades =====
 @tradingService.route("/api/trades")
 def api_trades():
-    rows = Activities.query.order_by(Activities.timestamp.desc()).limit(50).all()
+    
+
+    rows = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
 
     return [
         {
@@ -87,16 +100,6 @@ def create_app():
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()
-        #sync_trades_from_alpaca()
-        #update_scan_results()
-        #symbols = get_final_symbols()
-        #trade_executor(symbols)
-        #check_sell_signals()
-        #update_symbols_day_prices()
-        #update_symbols_daily_prices()
-        #get_top_symbols()
-        #scan_top_50_symbols()
-        #update_symbols_positions()
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 
