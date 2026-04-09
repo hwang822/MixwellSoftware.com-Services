@@ -39,7 +39,7 @@ def run_trade():
     #update_symbols_trades()    
     #update_symbols_positions()
     #update_symbols_scan()    
-    auto_trade()
+    #auto_trade()
     return jsonify({"status":"done"})
 
 # ===== Day Prices =====
@@ -94,13 +94,6 @@ def api_scan():
         for r in rows
     ]
 
-@tradingService.route("/api/data")
-def get_data():
-    # Example: return current server time
-    return jsonify({
-        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
-
 def create_app():
     app.register_blueprint(tradingService)
     return app
@@ -108,6 +101,7 @@ def create_app():
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()
+        auto_trade()
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 

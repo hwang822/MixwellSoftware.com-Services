@@ -749,40 +749,69 @@ def sell(symbol, reason):
         return    
     return pnl
 
-def auto_trade_1():
-    for symbol in SYMBOLS:
-        price = get_current_price(symbol)
-        pos = Position.query.filter_by(symbol=symbol).first()
-        # 买入策略：价格上涨突破或加仓
-        if not pos or pos.quantity == 0:
-            buy(symbol, 10, price, "Breakout")
-        # 卖出策略：简单止盈止损
-        elif pos and pos.quantity > 0:
-            pnl = (price - pos.avg_price) * pos.quantity
-            if pnl >= 5:
-                sell(symbol, "Take Profit")
-            elif pnl <= -3:
-                sell(symbol, "Stop Loss")
+from datetime import datetime, timedelta
+last_trade_time = {}  # 存DB更好
+COOLDOWN_MINUTES = 15
+def in_cooldown(symbol):
+    if symbol not in last_trade_time:
+        return False
 
+    return datetime.now() - last_trade_time[symbol] < timedelta(minutes=COOLDOWN_MINUTES)
+
+MAX_ADD = 2
+
+def get_buy_count(symbol):
+    return Trade.query.filter_by(symbol=symbol, side="BUY").count()
+
+MAX_TOTAL_EXPOSURE = 10000*0.8
 def auto_trade():
     for symbol in SYMBOLS:
+
+        if in_cooldown(symbol):  #冷却时间（防止连续买）
+            print(f"⏳ cooldown {symbol}")
+            continue
+
+        if get_buy_count(symbol) >= MAX_ADD: #加仓控制（允许但有限制, 最多加仓2次）
+            print("⛔ max add reached")
+            continue
+
+        account = api.get_account()
+        cash = float(account.cash)
+        equity = float(account.equity)
+        if (equity - cash) / equity > MAX_TOTAL_EXPOSURE:
+            print("⛔ too much exposure")
+            return
+
         price = get_current_price(symbol)
         pos = Position.query.filter_by(symbol=symbol).first()
         qty = 10  # 固定买入数量，可改成策略
-
+        buy_flag = False
+        sell_flag = False
         # 买入策略
-        last_high = get_last_n_high(symbol, 20)
-        ma = get_moving_averages(symbol, [5, 20])
-        ma_short = ma[5]
-        ma_long = ma[20]
-        buy_flag, reason = should_buy(symbol, price, last_high, ma_short, ma_long)
-        #if buy_flag:
-        #    buy(symbol, qty, price, reason)
+        if pos and pos.quantity and get_buy_count(symbol) >= 2: #防重复买入（最重要）       
+            last_high = get_last_n_high(symbol, 20)
+            ma = get_moving_averages(symbol, [5, 20])
+            ma_short = ma[5]
+            ma_long = ma[20]
+            buy_flag, reason = should_buy(symbol, price, last_high, ma_short, ma_long)
+        #    if buy_flag:
+        #        print (f"Buy {symbol} at {price}, {reason}")
+            #    buy(symbol, qty, price, reason)
 
         # 卖出策略
         if pos and pos.quantity > 0:
             pnl = (price - pos.avg_price) * pos.quantity
             sell_flag, reason = should_sell(symbol, price, pos.avg_price, pnl)
-            if sell_flag:
-                sell(symbol, reason)
+    #        if sell_flag:
+    #            print (f"Sell {symbol} at {price}, {reason}")
+                #sell(symbol, reason)
 
+
+        # ❌ 冲突处理
+        if buy_flag and sell_flag:
+            print (f"Hold {symbol} at {price}, 同一根K线内冲突!")
+        if buy_flag:
+            print (f"Buy {symbol} at {price}, {reason}")
+
+        if sell_flag:
+            print (f"Sell {symbol} at {price}, {reason}")
