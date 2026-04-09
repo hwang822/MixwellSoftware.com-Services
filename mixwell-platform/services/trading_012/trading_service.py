@@ -86,10 +86,10 @@ def get_today_5min(symbol):
 
     # 今日开盘时间
     market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
-
+    market_end = now.replace(hour=15, minute=0, second=0, microsecond=0)
     # 👉 转 UTC（Alpaca 必须）
     start = market_open.astimezone(pytz.utc)
-    end = now.astimezone(pytz.utc)
+    end = market_end.astimezone(pytz.utc)
 
     bars = api.get_bars(
         symbol,
@@ -103,25 +103,25 @@ def get_today_5min(symbol):
 
 def update_symbols_day_prices():  # core function
     try:
-        #clock = api.get_clock()
-        #if clock.is_open:
-        OneDayPrice.query.delete()
-        for symbol in SYMBOLS:
-            bars = get_today_5min(symbol) #api.get_bars(symbol, "5Min", limit=30)
-            if bars.empty:
-                continue
-            for index, row in bars.iterrows():
-                db.session.add(OneDayPrice(
-                    symbol=symbol,
-                    price_open=round(float(row['open']), 2),
-                    price_close=round(float(row['close']), 2),
-                    volume=round(float(row['volume']), 2),
-                    high=round(float(row['high']), 2),
-                    low=round(float(row['low']), 2),
-                    vw=round(float(row['vwap']), 2),
-                    timestamp=index
-                ))
-        db.session.commit()   # 🔥 一次提交（性能更好）
+        clock = api.get_clock()
+        if clock.is_open:
+            OneDayPrice.query.delete()
+            for symbol in SYMBOLS:
+                bars = get_today_5min(symbol) #api.get_bars(symbol, "5Min", limit=30)
+                if bars.empty:
+                    continue
+                for index, row in bars.iterrows():
+                    db.session.add(OneDayPrice(
+                        symbol=symbol,
+                        price_open=round(float(row['open']), 2),
+                        price_close=round(float(row['close']), 2),
+                        volume=round(float(row['volume']), 2),
+                        high=round(float(row['high']), 2),
+                        low=round(float(row['low']), 2),
+                        vw=round(float(row['vwap']), 2),
+                        timestamp=index
+                    ))
+            db.session.commit()   # 🔥 一次提交（性能更好）
     except Exception as e:
         print(e)
     result = []
@@ -190,10 +190,23 @@ def update_symbols_trades():
             break    
     try:        
         #activities = api.get_activities(activity_types="FILL")
-        if activities:            
+        if activities:
+            activities = sorted(activities, key=lambda x: x.id, reverse=False)     
+
             Trade.query.delete()
             for a in activities:
-                tradid=a.id.split("::")[0]
+                """                
+                pnl = None                                
+                if a.side == 'buy':
+                    total_buy_qty = total_buy_qty + int(a.qty)
+                    total_buy = total_buy + float(a.price)*int(a.qty)  
+                else:
+                    total_sell_qty = total_sell_qty + int(a.qty)
+                    total_sell = total_sell + float(a.price)*int(a.qty)  
+                if total_buy_qty == total_sell:
+                    pnl = total_sell - total_buy   
+                """
+                tradid=a.id.split("::")[0]                
                 trade = Trade(
                     id=tradid,
                     activity_type=a.activity_type,
@@ -204,11 +217,33 @@ def update_symbols_trades():
                     side=a.side,
                     symbol=a.symbol,       
                     order_id = a.order_id,
-                    type = a.type,          
+                    type = a.type,
+                    #pnl = pnl,          
                     transaction_time = a.transaction_time
                 )
                 db.session.add(trade)    
             db.session.commit()
+
+
+            for symbol in SYMBOLS:
+                total_buy_qty = 0
+                total_sell_qty = 0
+                total_buy = 0
+                total_sell = 0                            
+                rows = Trade.query.filter_by(symbol=symbol).order_by(Trade.id.asc()).all()
+                
+                for a in rows:
+                    if a.side == 'buy':
+                        total_buy_qty = total_buy_qty + int(a.qty)
+                        total_buy = total_buy + float(a.price)*int(a.qty)  
+                    else:
+                        total_sell_qty = total_sell_qty + int(a.qty)
+                        total_sell = total_sell + float(a.price)*int(a.qty)  
+                    if total_buy_qty == total_sell_qty:
+                        a.pnl = round((total_sell - total_buy),2)   
+                        db.session.add(a)
+            db.session.commit()
+
     except Exception as e:
         print(e)
 def get_recommended_symbols():

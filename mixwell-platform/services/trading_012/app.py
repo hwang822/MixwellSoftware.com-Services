@@ -1,3 +1,4 @@
+from datetime import datetime
 import os, sys
 from flask import Blueprint, Flask, jsonify, render_template
 from trading_service import update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan, auto_trade
@@ -33,12 +34,12 @@ def home():
 
 @app.route("/run_trade")
 def run_trade():
-    update_symbols_day_prices()
-    update_symbols_daily_prices()
-    update_symbols_trades()    
-    update_symbols_positions()
-    update_symbols_scan()    
-    #auto_trade()
+    #update_symbols_day_prices()
+    #update_symbols_daily_prices()
+    #update_symbols_trades()    
+    #update_symbols_positions()
+    #update_symbols_scan()    
+    auto_trade()
     return jsonify({"status":"done"})
 
 # ===== Day Prices =====
@@ -92,6 +93,13 @@ def api_scan():
         }
         for r in rows
     ]
+
+@tradingService.route("/api/data")
+def get_data():
+    # Example: return current server time
+    return jsonify({
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
 
 def create_app():
     app.register_blueprint(tradingService)
