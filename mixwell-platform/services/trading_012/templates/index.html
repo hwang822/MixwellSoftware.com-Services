@@ -9,46 +9,378 @@
         #time { font-size: 1.5em; color: darkblue; }
     </style>
 </head>
+
 <body>
     <h1>Trading Dashboard</h1>
 
-    <h1>Auto Update Every 5 Minutes</h1>
-    <p>Server Time: <span id="time">Loading...</span></p>
+    <h3>Auto Update Every 5 Minutes</h3>
+    <p>New York Time: <span id="time">Loading...</span></p>
 
-    <h1>Day Prices 图示例数据</h1>
+    <!--================= Day Prices ================= -->
+    <h3>📈 Day Prices <span id="dayPricesUpdated"> </span></h3>
     <canvas id="chartDay"></canvas>
-
-    <h1>Daily Prices 图示例数据</h1>
+    <button onclick="updateDayPrices()">Symbols Day Prices</button>
+    <hr>
+    <!-- ================= Daily Prices ================= -->
+    <h3>📉 Daily Prices <span id="dailyPricesUpdated"> </h3>
     <canvas id="chartDaily"></canvas>
+    <button onclick="updateDailyPrices()">Symbols Daily Prices</button>
+    <hr>
 
-    <h1>Run Auto Trade</h1>    
-        <button onclick="runTrade()">Run Auto Trade</button>
+    <!-- ================= Trades ================= -->
+    <h3>📊 Trades <span id="tradesUpdated"></span></h3>
+    <canvas id="pnlChart"></canvas>
+    <table border="1" id="tradeTable"></table>
+    <button onclick="updateTrades()">Symbols Activities</button>
+    <hr>
 
-    <!--h1>绘图示例数据</h1>
-    <canvas id="chartSample"></canvas-->
+    <!-- ================= Positions ================= -->
+    <h3>💼 Positions <span id="positionsUpdated"> </span></h3>
+    <canvas id="positionsChart" width="400" height="200"></canvas>
+    <table border="1" id="positionsTable"></table>
+    <button onclick="updatePositions()">Symbols Position</button>
+    <hr>
 
-<script>
+    <!-- ================= Scan ================= -->
+    <h3>🔥Scan Symbols <span id="scansUpdated"> </span></h3>
+    <table border="1" id="scanTable"></table>
+    <button onclick="updateScans()">Scan Symbols</button>
+    <hr>
 
-    async function updateTradeTime()
-    {
-        document.getElementById("time").textContent = getNYTime();
+    <!-- ================= Run Auto Trade ================= -->    
+    <h3>Run Auto Trade <span id="autoRunUpdated"></span></h3>    
+    <button onclick="runTrade()">Run Auto Trade</button>
+    <hr>
+
+    <script>
+    let positionsChart = null;
+
+    async function updatePositions() {
+        const res = await fetch("/api/positions");
+        const data = await res.json();        
+        document.getElementById("positionsUpdated").textContent = "Positions updated at " + getNYTime();
+
+        // ---- Table ----
+        let html = "<tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Time</th></tr>";
+        data.forEach(p => {
+            html += `<tr>
+                <td>${p.symbol}</td>
+                <td>${p.qty}</td>
+                <td>${p.price.toFixed(2)}</td>
+                <td>${p.time}</td>
+            </tr>`;
+        });
+        document.getElementById("positionsTable").innerHTML = html;
+
+        // ---- Chart ----
+        const labels = data.map(p => p.symbol);
+        const qtys = data.map(p => p.qty);
+
+        // 如果 chart 已存在，先 destroy 再重建
+        if (positionsChart) positionsChart.destroy();
+
+        const ctx = document.getElementById('positionsChart').getContext('2d');
+        positionsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Quantity',
+                    data: qtys,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
     }
 
-    async function updateScan()
-    {
+    </script>
 
-    }
-    async function updateTrade(){
+    <script>
 
-    }
-    async function updatePositions(){
+    let pnlChart = null;
+    async function updateTrades() {
+        const res = await fetch("/api/trades");
+        const data = await res.json();
+        document.getElementById("tradesUpdated").textContent = "Trades updated at " + getNYTime();
 
-    }
+        if (pnlChart) pnlChart.destroy();
 
-    async function runTrade() {
-        await fetch("/run_trade");
-        //location.reload();
+
+    // ===== PnL Chart =====
+        if (pnlChart) pnlChart.destroy();
+
+        let pnl = 0;
+        const pnlData = [];
+        const labels = [];
+
+        // 👉 按时间顺序（从旧到新）
+        const sorted = data.slice().reverse();
+
+        sorted.forEach(t => {
+            let value = t.price * t.qty;
+
+            if (t.side === "BUY") pnl -= value;
+            if (t.side === "SELL") pnl += value;
+
+            pnlData.push(pnl);
+            labels.push(t.time);
+        });
+
+        const ctx = document.getElementById("pnlChart").getContext("2d");
+
+        pnlChart = new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "PnL",
+                    data: pnlData,
+                    borderColor: pnl >= 0 ? "green" : "red",
+                    fill: false
+                }]
+            }
+        });
+
+        // ---- Table ----
+        let html = "<tr><th>Symbol</th><th>Side</th><th>Price</th><th>Qty</th><th>Time</th></tr>";
+        data.forEach(p => {
+            html += `<tr>
+                <td>${p.symbol}</td>
+                <td>${p.side}</td>
+                <td>${p.price.toFixed(2)}</td>
+                <td>${p.qty}</td>
+                <td>${p.time}</td>
+            </tr>`;
+        });
+        document.getElementById("tradeTable").innerHTML = html;
     }
+    </script>
+    <script>
+        async function updateScans() {
+            const res = await fetch("/api/scansymbols");
+            const data = await res.json();
+            document.getElementById("scansUpdated").textContent = "Scans updated at " + getNYTime();
+
+            let html = "<tr><th>Symbol</th><th>Score</th><th>Price</th><th>Volume</th><th>Time</th></tr>";
+
+            data.forEach(p => {
+                html += `<tr>
+                    <td>${p.symbol}</td>
+                    <td>${p.score}</td>
+                    <td>${p.price}</td>
+                    <td>${p.volume}</td>
+                    <td>${p.timestamp}</td>
+                </tr>`;
+            });
+            document.getElementById("scanTable").innerHTML = html;
+    }
+    </script>
+
+
+    <script>
+        let chartDay = null;
+        let chartDaily = null;
+        function getTradeMap(trades) {
+            const tradeMap = {};
+            trades.forEach(t => {
+                tradeMap[t.index] = t;
+            });
+        }
+
+
+        async function fetchDayPrices() {
+            const res = await fetch("/api/day_prices");
+            document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
+            return await res.json();
+        }
+
+        async function fetchDailyPrices() {
+            const res = await fetch("/api/daily_prices");
+            document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();
+            //location.reload();
+            return await res.json();
+        }
+    </script>
+
+    <script>
+
+        async function updateTradeTime()
+        {
+            document.getElementById("time").textContent = getNYTime();
+        }
+                
+        async function runTrade() {
+            await fetch("/run_trade");        
+        }
+
+        async function updateDayPrices() {
+            return await drawRealtimeChart(false);
+        }
+
+        async function updateDailyPrices() {
+            return await drawRealtimeChart(true);
+        }
+        
+        async function drawRealtimeChart(daily) {
+            const data = daily ? await fetchDailyPrices() : await fetchDayPrices();
+
+            if (!data || !data.length) return;
+
+            const ctx = daily
+                ? document.getElementById('chartDaily').getContext('2d')
+                : document.getElementById('chartDay').getContext('2d');        
+
+            let globalMax = 0;
+
+            // 计算最大波动
+            data.forEach(d => {
+                const base = d.prices[0];
+                const pct = d.prices.map(p => (p - base) / base * 100);
+                const max = Math.max(...pct.map(v => Math.abs(v)));
+                if (max > globalMax) globalMax = max;
+            });
+
+            globalMax = Math.ceil(globalMax * 1.2);
+
+            const datasets = data.map(d => ({
+                label: d.symbol,
+                data: d.prices.map(p => (p - d.prices[0]) / d.prices[0] * 100),
+                borderColor: d.color || "gray",
+                fill: false,
+                tension: 0.2
+            }));
+
+            const labels = data[0]?.dates || [];
+
+            // 👉 选择对应 chart
+            let chart = daily ? chartDaily : chartDay;
+
+            // ✅ 如果不存在 → 创建
+            if (!chart) {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        animation: false,
+                        responsive: true,
+                        scales: {
+                            y: {
+                                min: -globalMax,
+                                max: globalMax,
+                                ticks: {
+                                    callback: v => v + "%"
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (daily) chartDaily = chart;
+                else chartDay = chart;
+
+            } else {
+                // ✅ 更新（关键）
+                chart.data.labels = labels;
+                chart.data.datasets = datasets;
+
+                chart.options.scales.y.min = -globalMax;
+                chart.options.scales.y.max = globalMax;
+
+                chart.update("none");
+            }
+        }
+        
+        // timer setup
+        let tradingRunning = false;
+        let updatedFlag = false;
+
+        const TRADE_WINDOWS = [
+            { start: [9, 30], end: [11, 30] },   // 9:30 AM - 11:30 AM
+            { start: [13, 0], end: [15, 0] }     // 1:00 PM - 3:00 PM
+        ];
+        
+    //    ✅ 自动交易触发
+        function getNYTime() {
+            return new Date(
+                new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
+            );
+        }
+
+        function isBestTradeTime() {
+            const now = getNYTime();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            return TRADE_WINDOWS.some(w => {
+                const start = w.start[0] * 60 + w.start[1];
+                const end   = w.end[0] * 60 + w.end[1];
+                return currentMinutes >= start && currentMinutes <= end;
+            });
+        }
+        function isDailytUpdateTime() {
+            const now = getNYTime();
+            const total = now.getHours() * 60 + now.getMinutes();
+            // 示例：9:00 - 9:07
+            return total >= (9*60+35) && total <= (10*60+30);
+        }
+
+        async function fetchData() {
+            await updateTradeTime()
+
+            // 5分钟刷新图表
+            await updateDayPrices();
+
+            // === 自动交易窗口 ===
+            if (isBestTradeTime() && !tradingRunning) {
+                tradingRunning = true;
+                try {
+                    await runTrade();
+                } finally {
+                    tradingRunning = false;
+                }
+            }
+
+            // === 每日更新窗口 ===
+            if (isDailytUpdateTime() && !updatedFlag) {
+                updatedFlag = true;
+                await updateScans();
+                await updateTrades();
+                await updatePositions();
+                await updateDailyPrices();
+            }
+
+            // 重置每日更新标志（窗口结束后）
+            if (!isDailytUpdateTime() && updatedFlag) {
+                updatedFlag = false;
+            }
+        }
+
+        // 页面加载立即刷新一次
+        //runTrade()
+        updateTradeTime()
+        updateDayPrices();
+        updateDailyPrices();
+        //updateScans();
+        //updateTrades();
+        //updatePositions();
+        
+        //fetchData();
+
+        // 5分钟循环刷新
+        setInterval(fetchData, 5 * 60 * 1000);
+
+    </script>
+
+
+    <h1>绘图示例数据</h1>
+    <canvas id="chartSample"></canvas>    
+    <script>
 
     // 绘图示例数据
     const data = {
@@ -100,180 +432,5 @@
 
     //drawChart(data);
     </script>
-    </body>
-    </html>
-
-
-
-    2️⃣ 前端图表自动刷新
-    <script>
-    let chartDay = null;
-    let chartDaily = null;
-    function getTradeMap(trades) {
-        const tradeMap = {};
-        trades.forEach(t => {
-            tradeMap[t.index] = t;
-        });
-    }
-
-
-    async function fetchDayPrices() {
-        const res = await fetch("/api/day_prices");        
-        return await res.json();
-    }
-
-    async function fetchDailyPrices() {
-        const res = await fetch("/api/daily_prices");
-        //location.reload();
-        return await res.json();
-    }
-
-    async function updateDayPrices() {
-        return await drawRealtimeChart(false);
-    }
-
-    async function updateDailyPrices() {
-        return await drawRealtimeChart(true);
-    }
-
-    async function drawRealtimeChart(daily) {
-        const data = daily ? await fetchDailyPrices() : await fetchDayPrices();
-
-        if (!data || !data.length) return;
-
-        const ctx = daily
-            ? document.getElementById('chartDaily').getContext('2d')
-            : document.getElementById('chartDay').getContext('2d');        
-
-        let globalMax = 0;
-
-        // 计算最大波动
-        data.forEach(d => {
-            const base = d.prices[0];
-            const pct = d.prices.map(p => (p - base) / base * 100);
-            const max = Math.max(...pct.map(v => Math.abs(v)));
-            if (max > globalMax) globalMax = max;
-        });
-
-        globalMax = Math.ceil(globalMax * 1.2);
-
-        const datasets = data.map(d => ({
-            label: d.symbol,
-            data: d.prices.map(p => (p - d.prices[0]) / d.prices[0] * 100),
-            borderColor: d.color || "gray",
-            fill: false,
-            tension: 0.2
-        }));
-
-        const labels = data[0]?.dates || [];
-
-        // 👉 选择对应 chart
-        let chart = daily ? chartDaily : chartDay;
-
-        // ✅ 如果不存在 → 创建
-        if (!chart) {
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets },
-                options: {
-                    animation: false,
-                    responsive: true,
-                    scales: {
-                        y: {
-                            min: -globalMax,
-                            max: globalMax,
-                            ticks: {
-                                callback: v => v + "%"
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (daily) chartDaily = chart;
-            else chartDay = chart;
-
-        } else {
-            // ✅ 更新（关键）
-            chart.data.labels = labels;
-            chart.data.datasets = datasets;
-
-            chart.options.scales.y.min = -globalMax;
-            chart.options.scales.y.max = globalMax;
-
-            chart.update("none");
-        }
-    }
-    // timer setup
-
-    const TRADE_WINDOWS = [
-        { start: [9, 30], end: [11, 30] },   // 9:30 AM - 11:30 AM
-        { start: [13, 0], end: [15, 0] }     // 1:00 PM - 3:00 PM
-    ];
-    
-//    ✅ 自动交易触发
-    function getNYTime() {
-        return new Date(
-            new Date().toLocaleString("en-US", { timeZone: "America/New_York" })
-        );
-    }
-
-    function isBestTradeTime() {
-        const now = getNYTime();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        return TRADE_WINDOWS.some(w => {
-            const start = w.start[0] * 60 + w.start[1];
-            const end   = w.end[0] * 60 + w.end[1];
-            return currentMinutes >= start && currentMinutes <= end;
-        });
-    }
-    function isDailytUpdateTime() {
-        const now = getNYTime();
-        const total = now.getHours() * 60 + now.getMinutes();
-        // 示例：9:00 - 9:07
-        return total >= (9*60+35) && total <= (10*60+30);
-    }
-
-    let tradingRunning = false;
-    let updatedFlag = false;
-
-    async function fetchData() {
-        updateTradeTime()
-
-        // 5分钟刷新图表
-        await updateDayPrices();
-
-        // === 自动交易窗口 ===
-        if (isBestTradeTime() && !tradingRunning) {
-            tradingRunning = true;
-            try {
-                await runTrade();
-            } finally {
-                tradingRunning = false;
-            }
-        }
-
-        // === 每日更新窗口 ===
-        if (isDailytUpdateTime() && !updatedFlag) {
-            updatedFlag = true;
-            await updateScan();
-            await updateTrade();
-            await updatePositions();
-            await updateDailyPrices();
-        }
-
-        // 重置每日更新标志（窗口结束后）
-        if (!isDailytUpdateTime() && updatedFlag) {
-            updatedFlag = false;
-        }
-    }
-
-    // 页面加载立即刷新一次
-    fetchData();
-    updateDayPrices();
-    updateDailyPrices();
-
-    // 5分钟循环刷新
-    setInterval(fetchData, 5 * 60 * 1000);
-
-</script>
+</body>
+</html>

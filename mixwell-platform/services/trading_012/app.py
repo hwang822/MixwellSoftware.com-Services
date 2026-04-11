@@ -1,7 +1,6 @@
-from datetime import datetime
 import os, sys
 from flask import Blueprint, Flask, jsonify, render_template
-from trading_service import update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan, auto_trade
+from trading_service import get_user_account, update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan, auto_trade
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -21,25 +20,21 @@ servicename = "Trading"
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb.lower()}" 
 
-from servicemodels import db, ScanResult, Trade
+from servicemodels import db
 db.init_app(app)
 
+# service codes
 tradingService = Blueprint("tradingService", __name__)
 # ===== Dashboard Page =====
 @tradingService.route("/")
 @app.route("/")
 def home():
-    #trades = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
     return render_template("index.html")
 
-@app.route("/run_trade")
+# ===== Run Trades =====
+@tradingService.route("/run_trade")
 def run_trade():
-    #update_symbols_day_prices()
-    #update_symbols_daily_prices()
-    #update_symbols_trades()    
-    #update_symbols_positions()
-    #update_symbols_scan()    
-    #auto_trade()
+    #auto_trade()    
     return jsonify({"status":"done"})
 
 # ===== Day Prices =====
@@ -62,37 +57,21 @@ def api_positions():
 
 # ===== Trades =====
 @tradingService.route("/api/trades")
-def api_trades():
-    
+def api_trades():    
+    result = update_symbols_trades()
+    return result
 
-    rows = Trade.query.order_by(Trade.timestamp.desc()).limit(50).all()
-
-    return [
-        {
-            "symbol": r.symbol,
-            "side": r.side,
-            "price": r.price,
-            "qty": r.qty,
-            "time": r.timestamp.strftime("%H:%M")
-        }
-        for r in rows
-    ]
+# ===== Daily Prices =====
+@tradingService.route("/api/user_account")
+def api_user_account():
+    result = get_user_account()
+    return result
 
 # ===== Scan Results =====
 @tradingService.route("/api/scansymbols")
 def api_scan():
-    rows = ScanResult.query.order_by(ScanResult.score.desc()).all()
-
-    return [
-        {
-            "symbol": r.symbol,
-            "score": round(r.score, 2),
-            "price": round(r.price, 2),
-            "volume": round(r.volume, 2),
-            "timestamp": r.timestamp
-        }
-        for r in rows
-    ]
+    result = update_symbols_scan()
+    return result
 
 def create_app():
     app.register_blueprint(tradingService)
@@ -101,7 +80,7 @@ def create_app():
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()
-        auto_trade()
+        #get_user_account()
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 

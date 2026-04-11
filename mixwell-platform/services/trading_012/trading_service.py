@@ -2,7 +2,7 @@
 import os
 import sys
 
-from flask import app, jsonify
+from flask import app, json, jsonify
 import numpy as np
 
 
@@ -10,16 +10,109 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
-from servicemodels import Activities, ScanResult, Position, Trade, scan_market, DailyPrice, OneDayPrice, db
+from servicemodels import ScanResult, Position, Trade, scan_market, DailyPrice, OneDayPrice, db
 
 import alpaca_trade_api as tradeapi
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
 COLORS = ["blue","orange","green","yellow","red","brown"]
 
+def generate_create_table_sql(json_data, table_name):
+    cols = []
+    for k, v in json_data.items():
+        if isinstance(v, int):
+            col_type = "INTEGER"
+        elif isinstance(v, float):
+            col_type = "REAL"
+        else:
+            col_type = "TEXT"
+
+        if k == "id":
+            cols.append(f"{k} {col_type} PRIMARY KEY")
+        else:
+            cols.append(f"{k} {col_type}")
+
+    cols_sql = ", ".join(cols)
+
+    return f"CREATE TABLE IF NOT EXISTS {table_name} ({cols_sql});"
+
+
+def generate_upsert_sql(json_data, table_name):
+    keys = json_data.keys()
+    cols = ", ".join(keys)
+    placeholders = ", ".join([f":{k}" for k in keys])
+
+    update_clause = ", ".join([f"{k}=excluded.{k}" for k in keys if k != "id"])
+
+    sql = f"""
+    INSERT INTO {table_name} ({cols})
+    VALUES ({placeholders})
+    ON CONFLICT(id) DO UPDATE SET {update_clause};
+    """
+    return sql
+
+
+from sqlalchemy import text
+
+
+def normalize_types(json_data):
+
+    #json_data = to_dict(json_data)
+
+    if isinstance(json_data, list):
+        return [normalize_item(x) for x in json_data]
+
+    return _normalize_dict(json_data)
+
+
+def _normalize_dict(d):
+    result = {}
+
+    for k, v in d.items():
+
+        if isinstance(v, bool):
+            result[k] = int(v)
+
+        elif isinstance(v, (dict, list)):
+            result[k] = json.dumps(v)
+
+        elif v is None:
+            result[k] = None
+
+        else:
+            result[k] = v
+
+    return result
+
+
+
+def save_json_sql(json_data, table_name):
+
+    #first = firstListItem(json_data)
+    create_sql = generate_create_table_sql(json_data, table_name)
+    db.session.execute(text(create_sql))
+    
+    insert_sql = generate_upsert_sql(json_data, table_name)
+    data = normalize_types(json_data)
+
+    # 🔥 如果是 list
+    if isinstance(data, list):
+        for item in data:
+            db.session.execute(text(insert_sql), item)
+
+    # 🔥 如果是 dict
+    else:
+        db.session.execute(text(insert_sql), data)
+
+    db.session.commit()
 
 from alpaca_trade_api.rest import REST
 from datetime import datetime, timedelta, timezone
+
+def get_user_account():
+    account = api.get_account()._raw
+    save_json_sql(account, "account")    
+
 
 #get_daytrading("AAPL","2026-04-02",5)        #计算 “$/5分钟变化”
 def get_daytrading(symbol, date, min):
@@ -129,7 +222,7 @@ def update_symbols_day_prices():  # core function
     for i, s in enumerate(SYMBOLS):
         #rows = DailyPrice.query.filter_by(symbol=s).order_by(DailyPrice.date).all()
         rows = OneDayPrice.query.filter_by(symbol=s).order_by(OneDayPrice.timestamp).all()
-        dates = [r.timestamp.strftime("%H:%M") for r in rows]
+        dates = [r.timestamp.strftime("Y-%m-%d %H:%M") for r in rows]
         prices = [r.price_close for r in rows]
 
         result.append({
@@ -189,23 +282,11 @@ def update_symbols_trades():
         if len(res) < 100:
             break    
     try:        
-        #activities = api.get_activities(activity_types="FILL")
         if activities:
             activities = sorted(activities, key=lambda x: x.id, reverse=False)     
 
             Trade.query.delete()
             for a in activities:
-                """                
-                pnl = None                                
-                if a.side == 'buy':
-                    total_buy_qty = total_buy_qty + int(a.qty)
-                    total_buy = total_buy + float(a.price)*int(a.qty)  
-                else:
-                    total_sell_qty = total_sell_qty + int(a.qty)
-                    total_sell = total_sell + float(a.price)*int(a.qty)  
-                if total_buy_qty == total_sell:
-                    pnl = total_sell - total_buy   
-                """
                 tradid=a.id.split("::")[0]                
                 trade = Trade(
                     id=tradid,
@@ -244,6 +325,19 @@ def update_symbols_trades():
                         db.session.add(a)
             db.session.commit()
 
+        rows = Trade.query.order_by(Trade.transaction_time.desc()).limit(50).all()
+        result =  [
+            {
+                "symbol": r.symbol,
+                "side": r.side,
+                "price": r.price,
+                "qty": r.qty,
+                "time": r.transaction_time.strftime("%Y-%m-%d %H:%M")
+            }
+            for r in rows
+        ]
+        return result
+
     except Exception as e:
         print(e)
 def get_recommended_symbols():
@@ -264,16 +358,16 @@ def get_recommended_symbols():
     return [m[0] for m in movers[:5]]
 
 def build_scan_results():
-    scan = scan_market()
-    scan_symbols = [x["symbol"] for x in scan[:5]]
+    #scan = scan_market()
+    #scan_symbols = [x["symbol"] for x in scan[:5]]
 
     recommended = get_recommended_symbols()
 
-    combined = list(dict.fromkeys(scan_symbols + recommended))
+    #combined = list(dict.fromkeys(scan_symbols + recommended))
 
     final = []
 
-    for symbol in combined:
+    for symbol in recommended:
         bars = api.get_bars(symbol, "5Min", limit=12).df
         #bars = bars = get_daytrading(symbol,"2026-04-02", "5min")
         if len(bars) < 2:
@@ -299,19 +393,33 @@ def build_scan_results():
     return final
 
 def update_symbols_scan():
-    results = build_scan_results()
-    ScanResult.query.delete()
-    for r in results:
-        db.session.add(ScanResult(
-            symbol=r["symbol"],
-            score=float(r["score"]),   # ✅ 修复这里
-            price=float(r["price"]) if r.get("price") else None,
-            volume=float(r["volume"]) if r.get("volume") else None,
-            timestamp=r.get("timestamp")
-        ))
+    try:
+        rows = build_scan_results()
+        ScanResult.query.delete()
+        for r in rows:
+            db.session.add(ScanResult(
+                symbol=r["symbol"],
+                score=float(r["score"]),   # ✅ 修复这里
+                price=float(r["price"]) if r.get("price") else None,
+                volume=float(r["volume"]) if r.get("volume") else None,
+                timestamp=r.get("timestamp")
+            ))
 
-    db.session.commit()
+        db.session.commit()
 
+        results = [
+            {
+                "symbol": r["symbol"],
+                "score": round(r["score"], 2),
+                "price": round(r["price"], 2),
+                "volume": round(r["volume"], 2),
+                "timestamp": r["timestamp"].strftime("%Y-%m-%d %H:%M")
+            }
+            for r in rows
+        ]
+        return results
+    except Exception as e:
+        print(e)
 def get_top_movers():
     movers = []
 
@@ -469,14 +577,12 @@ def update_symbols_positions():  # core functions
             "symbol": r.symbol,
             "qty": r.quantity,
             "price": round(r.avg_price, 2),
-            "time": r.updated_at.strftime("%m/%d %H:%M") if r.updated_at else ""
+            "time": r.updated_at.strftime("%Y-%m-%d %H:%M") if r.updated_at else ""
         }
         for r in rows
     ]
 
 def update_symbols_daily_prices():
-    #clock = api.get_clock()
-    #if clock.is_open:
     try:
         result = []    
         # ❗不要在循环里 delete
@@ -507,7 +613,6 @@ def update_symbols_daily_prices():
                 ))
 
         db.session.commit()   # 🔥 一次提交（性能更好）
-    #result = []
     except Exception as e:
         print (e)
 
@@ -516,30 +621,6 @@ def update_symbols_daily_prices():
 
         dates = [r.date.strftime("%Y-%m-%d") for r in rows]
         prices = [r.avg_price for r in rows]
-        """
-        # 🔥 获取交易记录
-        trades = Activities.query.filter_by(symbol=s).all()
-
-        trade_points = []
-        for t in trades:
-            t_date = t.timestamp.strftime("%Y-%m-%d")
-
-            # 👉 找对应 index
-            if t_date in dates:
-                idx = dates.index(t_date)
-            else:
-                # 👉 fallback：找最近日期
-                idx = min(range(len(dates)), key=lambda i: abs(
-                    (rows[i].date - t.timestamp).total_seconds()
-                ))
-
-            trade_points.append({
-                "index": idx,      # 🔥 关键：直接传 index
-                "side": t.side,
-                "reason": "resone", # t.reason,
-                "pnl": 0 # #t.pnl
-            })
-        """
         result.append({
             "symbol": s,
             "dates": dates,
@@ -761,10 +842,17 @@ def in_cooldown(symbol):
 MAX_ADD = 2
 
 def get_buy_count(symbol):
-    return Trade.query.filter_by(symbol=symbol, side="BUY").count()
+    count = Trade.query.filter_by(symbol=symbol, side="BUY").count() 
+    return count
+
+def get_alpaca_user_account():
+    data = api.get_account()._raw        
+    return data
+
 
 MAX_TOTAL_EXPOSURE = 10000*0.8
 def auto_trade():
+    get_alpaca_user_account()
     for symbol in SYMBOLS:
 
         if in_cooldown(symbol):  #冷却时间（防止连续买）
@@ -815,3 +903,4 @@ def auto_trade():
 
         if sell_flag:
             print (f"Sell {symbol} at {price}, {reason}")
+            sell(symbol, reason)

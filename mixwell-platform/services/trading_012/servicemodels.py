@@ -18,15 +18,6 @@ class Trade(db.Model):
     type = db.Column(db.String(20))             #fill or partial_fill
     reason = db.Column(db.String(255))          #reason for sell/buy
     pnl = db.Column(db.Float)                   #gain/loss
-
-class Activities(db.Model):
-    id = db.Column(db.String(100), primary_key=True)
-    symbol = db.Column(db.String(10))
-    side = db.Column(db.String(10))
-    qty = db.Column(db.Integer)
-    price = db.Column(db.Float)
-    timestamp = db.Column(db.DateTime)    
-
 class ScanResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     symbol = db.Column(db.String(10))
