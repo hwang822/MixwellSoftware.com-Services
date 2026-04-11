@@ -10,7 +10,7 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
-from servicemodels import ScanResult, Position, Trade, scan_market, DailyPrice, OneDayPrice, db
+from servicemodels import Account, ScanResult, Position, Trade, DailyPrice, OneDayPrice, db
 
 import alpaca_trade_api as tradeapi
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
@@ -111,8 +111,20 @@ from datetime import datetime, timedelta, timezone
 
 def get_user_account():
     account = api.get_account()._raw
-    save_json_sql(account, "account")    
-
+    if account:
+        Account.query.delete()
+        acct = Account(
+            account_number = account['account_number'],
+            cash = account['cash'],
+            equity = account['equity'],
+            long_market_value = account['long_market_value'],
+            short_market_value = account['short_market_value'],
+            position_market_Value = account['position_market_value'],
+            created_at = account['created_at']
+        )
+        db.session.add(acct)
+        db.session.commit()    
+        return account
 
 #get_daytrading("AAPL","2026-04-02",5)        #计算 “$/5分钟变化”
 def get_daytrading(symbol, date, min):
@@ -131,11 +143,6 @@ def get_daytrading(symbol, date, min):
 
 #计算 最近变化
 def scan_market():
-    clock = api.get_clock()
-
-    if not clock.is_open:
-        print("Market closed, skip scanning")
-#        return []
 
     results = []
 
@@ -222,7 +229,7 @@ def update_symbols_day_prices():  # core function
     for i, s in enumerate(SYMBOLS):
         #rows = DailyPrice.query.filter_by(symbol=s).order_by(DailyPrice.date).all()
         rows = OneDayPrice.query.filter_by(symbol=s).order_by(OneDayPrice.timestamp).all()
-        dates = [r.timestamp.strftime("Y-%m-%d %H:%M") for r in rows]
+        dates = [r.timestamp.strftime("%m/%d %H:%M") for r in rows]
         prices = [r.price_close for r in rows]
 
         result.append({
@@ -234,7 +241,7 @@ def update_symbols_day_prices():  # core function
 
     return jsonify(result)
 
-
+"""
 def sync_trades_from_alpaca():
     activities = api.get_activities(activity_types="FILL")
 
@@ -257,7 +264,7 @@ def sync_trades_from_alpaca():
             timestamp = dt
         )
         db.session.add(activitie)
-
+"""
 def update_symbols_trades():
     
     activities = []
@@ -269,12 +276,9 @@ def update_symbols_trades():
             page_token=page_token,
             direction="desc"  # newest first
         )
-
         if not res:
             break
-
         activities.extend(res)
-
         # get next page token
         page_token = res[-1].id
 
@@ -283,9 +287,13 @@ def update_symbols_trades():
             break    
     try:        
         if activities:
-            activities = sorted(activities, key=lambda x: x.id, reverse=False)     
-
             Trade.query.delete()
+            #activities = sorted(activities, key=lambda x: x.id, reverse=False)     
+            
+            activities = sorted(
+                activities,
+                key=lambda x: (x.symbol, x.transaction_time)
+            )
             for a in activities:
                 tradid=a.id.split("::")[0]                
                 trade = Trade(
@@ -299,32 +307,29 @@ def update_symbols_trades():
                     symbol=a.symbol,       
                     order_id = a.order_id,
                     type = a.type,
-                    #pnl = pnl,          
                     transaction_time = a.transaction_time
                 )
                 db.session.add(trade)    
             db.session.commit()
-
-
             for symbol in SYMBOLS:
                 total_buy_qty = 0
                 total_sell_qty = 0
                 total_buy = 0
                 total_sell = 0                            
-                rows = Trade.query.filter_by(symbol=symbol).order_by(Trade.id.asc()).all()
-                
-                for a in rows:
-                    if a.side == 'buy':
-                        total_buy_qty = total_buy_qty + int(a.qty)
-                        total_buy = total_buy + float(a.price)*int(a.qty)  
+                trades = Trade.query.filter_by(symbol=symbol).order_by(Trade.id.asc()).all()                
+                for trade in trades:
+                    if trade.side == 'buy':
+                        total_buy_qty = total_buy_qty + int(trade.qty)
+                        total_buy = total_buy + float(trade.price)*int(trade.qty)  
                     else:
-                        total_sell_qty = total_sell_qty + int(a.qty)
-                        total_sell = total_sell + float(a.price)*int(a.qty)  
-                    if total_buy_qty == total_sell_qty:
-                        a.pnl = round((total_sell - total_buy),2)   
-                        db.session.add(a)
+                        total_sell_qty = total_sell_qty + int(trade.qty)
+                        total_sell = total_sell + float(trade.price)*int(trade.qty)  
+                        trade.pnl = round((total_sell - total_buy),2)   
+                        trade.total_qty = total_buy_qty - total_sell_qty  
+                        trade.total_price = round((trade.price*trade.total_qty),2)
+                        db.session.add(trade)                        
             db.session.commit()
-
+        
         rows = Trade.query.order_by(Trade.transaction_time.desc()).limit(50).all()
         result =  [
             {
@@ -332,6 +337,9 @@ def update_symbols_trades():
                 "side": r.side,
                 "price": r.price,
                 "qty": r.qty,
+                "total_price": r.total_price,
+                "total_cost": r.total_cost,
+                "total_qty": r.total_qty,
                 "time": r.transaction_time.strftime("%Y-%m-%d %H:%M")
             }
             for r in rows
@@ -357,6 +365,7 @@ def get_recommended_symbols():
 
     return [m[0] for m in movers[:5]]
 
+"""
 def build_scan_results():
     #scan = scan_market()
     #scan_symbols = [x["symbol"] for x in scan[:5]]
@@ -391,8 +400,56 @@ def build_scan_results():
     final.sort(key=lambda x: x["score"], reverse=True)
 
     return final
+"""
+##################################
+# Update Scan Symbols
+##################################
+def update_symbols_scan():    
+    #from scanner import scan_market
+    try:
+        df = scan_market()
 
-def update_symbols_scan():
+        symbol_scores = df.to_json(orient="records")
+
+        # 1️⃣ 排序（高 → 低）
+        sorted_symbols = sorted(
+            symbol_scores.items(),
+            key=lambda x: x[1]["score"],
+            reverse=True
+        )
+
+        # 2️⃣ 清空旧数据（推荐方式）
+        ScanResult.query.delete()
+
+        # 3️⃣ 写入新数据
+        for rank, (symbol, data) in enumerate(sorted_symbols, start=1):
+            row = ScanResult(
+                symbol=symbol,
+                score=data["score"],
+                price=data["price"],
+                rank=rank,
+                updated_at=datetime.utcnow()
+            )
+            db.session.add(row)
+
+        db.session.commit()
+    except Exception as e:
+        print(e)
+
+    rows = ScanResult.query.all()
+    results = [
+        {
+            "symbol": r["symbol"],
+            "score": round(r["score"], 2),
+            "price": round(r["price"], 2),
+            "volume": round(r["volume"], 2),
+            "timestamp": r["timestamp"].strftime("%Y-%m-%d %H:%M")
+        }
+        for r in rows
+    ]
+    return results
+"""
+def update_symbols_scan1():
     try:
         rows = build_scan_results()
         ScanResult.query.delete()
@@ -420,6 +477,7 @@ def update_symbols_scan():
         return results
     except Exception as e:
         print(e)
+"""
 def get_top_movers():
     movers = []
 

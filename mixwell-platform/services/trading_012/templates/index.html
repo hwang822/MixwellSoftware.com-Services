@@ -52,6 +52,12 @@
     <button onclick="runTrade()">Run Auto Trade</button>
     <hr>
 
+    <!-- ================= Account ================= -->    
+    <h3>Account Info <span id="account_info"></span></h3>    
+    <button onclick="get_account()">Account Info</button>
+    <hr>
+
+
     <script>
     let positionsChart = null;
 
@@ -219,6 +225,10 @@
                 
         async function runTrade() {
             await fetch("/run_trade");        
+        }
+
+        async function get_account() {
+            await fetch("/api/user_account");        
         }
 
         async function updateDayPrices() {
