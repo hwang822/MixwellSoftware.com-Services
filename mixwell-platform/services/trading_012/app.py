@@ -1,6 +1,7 @@
+from datetime import time
 import os, sys
 from flask import Blueprint, Flask, jsonify, render_template
-from trading_service import get_user_account, update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan, auto_trade
+from trading_service import update_user_account, update_symbols_positions, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_trades, update_symbols_scan
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -40,38 +41,50 @@ def run_trade():
 # ===== Day Prices =====
 @tradingService.route("/api/day_prices")
 def api_day_prices():
-    result = update_symbols_day_prices()
-    return result
+    result = update_symbols_day_prices()    
+    return jsonify(result)
 
 # ===== Daily Prices =====
 @tradingService.route("/api/daily_prices")
 def api_daily_prices():
     result = update_symbols_daily_prices()
-    return result
+    return jsonify(result)
 
 # ===== Positions =====
 @tradingService.route("/api/positions")
 def api_positions():
     result = update_symbols_positions()
-    return result
+    return jsonify(result)
+
+# 全局内存（paper trading）
+TRADES = []
+POSITIONS = {}
+CASH = 10000
+LAST_PRICE = {}
 
 # ===== Trades =====
 @tradingService.route("/api/trades")
 def api_trades():    
+    #pos = run_cycle()
+#    return jsonify(pos)
     result = update_symbols_trades()
-    return result
+    return jsonify(result)
 
-# ===== Daily Prices =====
+# ===== User Account =====
 @tradingService.route("/api/user_account")
 def api_user_account():
-    result = get_user_account()
-    return result
+    try:
+        result = update_user_account()
+        return jsonify(result)
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": str(e)}), 500
 
 # ===== Scan Results =====
 @tradingService.route("/api/scansymbols")
 def api_scan():
     result = update_symbols_scan()
-    return result
+    return jsonify(result)
 
 def create_app():
     app.register_blueprint(tradingService)
@@ -80,7 +93,6 @@ def create_app():
 if __name__ == "__main__":
     with app.app_context():        
         db.create_all()
-        #get_user_account()
     print (f"start running {app.root_path} at {serviceport}")    
     create_app().run(host="127.0.0.1", port=serviceport)
 
