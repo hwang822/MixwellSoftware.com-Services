@@ -91,11 +91,11 @@
         let price_chart;
 
         async function loadChart() {
-            const res = await fetch("/api/daily_prices");
+            const res = await fetch("/api/day_prices");
             const data = await res.json();            
 
             const datasets = [];
-
+            
             Object.keys(data).forEach(sym => {
 
                 const s = data[sym];
@@ -108,7 +108,7 @@
                 const pct = s.prices.map(p =>
                     ((p.price - base) / base * 100)
                 );
-
+                console.log("prices line: ", s)
                 // ===== price line =====
                 datasets.push({
                     label: sym,
