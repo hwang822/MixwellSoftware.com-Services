@@ -20,40 +20,179 @@
     th {
         background-color: #ccc;      /* 灰色背景 */
         color: black;
-    }</style>
+    }
+
+    time { font-size: 1.5em; color: darkblue; }
+
+    .symbol-row {
+        background: #f5f5f5;
+        font-weight: bold;
+    }
+
+    .child-row {
+        background: #fafafa;
+        display: none;
+    }
+
+    .toggle-btn {
+        cursor: pointer;
+        font-weight: bold;
+    }
+</style>
+
 </head>
 
 <body>
 
     <h2>Trading Dashboard</h2>
-
+    <h3>Auto Update Every 5 Minutes</h3>
+    <p>🤖 New York Time: <span id="time">Loading...</span></p>
+    <hr>
     <div id="table_container"></div>    
-
-    <h3>Today Prices</h3>
+    <p id="accountUpdated"> </p>
+    
+    <h3>📈 Today Prices <span><button onclick="updateDayPriceData(true)">Update</button></span></h3>
     <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
     <table id="day_prices_table" border="1"></table>
-
-    <h3>Month Prices</h3>
+    <hr>
+    <p id="dayPricesUpdated"> </p>
+    
+    <h3>📉 Month Prices <span><button onclick="updateDailyPriceData(true)">Update</button></span></h3>
     <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
     <table id="daily_prices_table" border="1"></table>
+    <p id="dailyPricesUpdated"> </p>
+    <hr>
 
-    <h3>Positions</h3>
+    <h3>💼 Positions <span><button onclick="updatePositionsData(true)">Update</button></span></h3>
     <div id="positions_barChart" style="width:100%;height:400px;"></div>
     <table id="positions_table" border="1"></table>
+    <hr>    
+    <p id="positionsUpdated"> </p>
 
-    <h3>Trades</h3>
+    <h3>📊 Trades <span><button onclick="updateTradesData(true)">Update</button></span></h3>
     <div id="trades_barChart" style="width:100%;height:400px;"></div>    
     <table id="trades_table" border="1"></table>
+    <!--button onclick="updateTrades()">Symbols Trades</button-->
+    <hr>
+    <p id="tradesUpdated"> </p>
 
-    <h3>Top Symbols</h3>
+    <h3>🔥 Top Symbols <span><button onclick="updateTopSymbolsData(true)">Update</button></span></h3>
     <div id="top_symbols_barChart" style="width:100%;height:400px;"></div>    
     <table id="top_symbols_table" border="1"></table>
-
-    <h3>Account</h3>
-    <table id="account_table" border="1"></table>
-
+    <!--button onclick="updateScans()">Scan Symbols</button-->
+    <p id="scansUpdated"> </p>
     
+    <h3>💰 Account <span><button onclick="updateAccountData(true)">Update</button></span></h3>
+    <table id="account_table" border="1"></table>
+    <p id="accountUpdated"> </p>
+
+    <!-- ================= Run Auto Trade ================= -->    
+    <h3>🚀 Run Trades <span><button onclick="startTrade(true)">Update</button></span></h3>        
+    <p id="runTradeUpdated"> </p>
+    <hr>
+
     <script>
+
+        function getNYTime() {
+            return new Date().toLocaleString("en-US", {
+                timeZone: "America/New_York",
+                hour12: false,
+                timeZoneName: "short"
+            });
+        }
+
+        function isBestTradeTime() {
+            const now = getNYTime();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            return TRADE_WINDOWS.some(w => {
+                const start = w.start[0] * 60 + w.start[1];
+                const end   = w.end[0] * 60 + w.end[1];
+                return currentMinutes >= start && currentMinutes <= end;
+            });
+        }
+
+        async function updateTradeTime()
+        {
+            document.getElementById("time").textContent = getNYTime();
+        }
+        updateTradeTime()
+
+        async function updateAccountData()
+        {
+            const res = await fetch("/api/table/account");
+            const html = await res.text();
+            document.getElementById("account_table").innerHTML = html;       
+            document.getElementById("accountUpdated").textContent = "Account updated at " + getNYTime();             
+        }
+        updateAccountData()
+
+        async function updateDayPriceData()
+        {
+            const res = await fetch("/api/table/day_prices");
+            const html = await res.text();
+            document.getElementById("day_prices_table").innerHTML = html;
+            
+            const lineres = await fetch("/api/chart/day_prices");
+            const data = await lineres.json();
+            document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
+            renderLine(lineChart, 'day_prices_lineChart');        
+        }        
+        updateDayPriceData()        
+
+        async function updateDailyPriceData()
+        {
+
+            const res = await fetch("/api/table/daily_prices");
+            const html = await res.text();
+            document.getElementById("daily_prices_table").innerHTML = html;
+
+            const lineres = await fetch('/api/linechart');
+            const data = await lineres.json();
+            document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();
+            renderLine(data, 'daily_prices_lineChart');
+        
+        }
+        updateDailyPriceData()
+
+        async function updatePositionsData()
+        {
+            const res = await fetch("/api/table/positions");
+            const html = await res.text();
+            document.getElementById("positions_table").innerHTML = html;
+
+            const barres = await fetch('/api/barchart');
+            const data = {} // await barres.json();
+            renderLine(data, 'day_positons_barChart');       
+            document.getElementById("positionsUpdated").textContent = "Positions updated at " + getNYTime();
+
+        }        
+        updatePositionsData()
+        
+        async function updateTopSymbolsData()
+        {
+            const res = await fetch("/api/table/top_symbols");
+            const html = await res.text();
+            document.getElementById("top_symbols_table").innerHTML = html;
+
+            const resSymbol = await fetch('/api/linechart');
+            const data = {} // await resSymbol.json();
+            renderLine(data, 'top_symbols_lineChart');
+            document.getElementById("scansUpdated").textContent = "Scans updated at " + getNYTime();
+        
+        }        
+        updateTopSymbolsData()
+        async function updateTradesData()        
+        {
+            const res = await fetch("/api/table/trades");
+            const html = await res.text();
+            document.getElementById("trades_table").innerHTML = html;
+
+            const resTrades = await fetch('/api/barchart');
+            const data = {} // await resTrades.json();
+            renderLine(data, 'trades_barChart');
+            document.getElementById("tradesUpdated").textContent = "Trades updated at " + getNYTime();
+        }
+        updateTradesData()
 
         function toggleRow(i) {
 
@@ -68,76 +207,6 @@
 
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
-
-        async function load(url, id){
-            const res = await fetch(url);
-            const html = await res.text();
-            console.log(" url: ", url)
-            //console.log(" table html: ", html)
-            //console.log(" ", html)
-            document.getElementById(id).innerHTML = html;
-
-        }
-
-        function refreshAlltables(){
-            load("/api/table/day_prices","day_prices_table");
-            load("/api/table/daily_prices","daily_prices_table");
-            load("/api/table/positions","positions_table");
-            load("/api/table/trades","trades_table");
-            load("/api/table/top_symbols","top_symbols_table");
-            load("/api/table/account","account_table");
-        }        
-
-
-    //setInterval(refreshAll, 300000);
-    refreshAlltables();
-
-
-    let barChart = echarts.init(document.getElementById('positions_barChart'));
-    let daypricelineChart = echarts.init(document.getElementById('day_prices_lineChart'));
-    let dailypricelineChart = echarts.init(document.getElementById('daily_prices_lineChart'));
-
-    // ==============================
-    // 加载 Chart（交易触发）
-    // ==============================
-    async function loadChart() {
-        const res = await fetch('/api/chart');
-        const data = await res.json();        
-        renderLine(data.line)
-        renderBar(data.bar)
-    }
-
-    async function loadBarChart() {
-        const res = await fetch('/api/barchart');
-        const bar = await res.json();
-        renderBar(bar);
-    }
-
-    async function loadLineChart() {
-        const res = await fetch('/api/linechart');
-        const data = await res.json();
-        renderLine(data);
-    }
-
-
-
-    // ==============================
-    // 5分钟刷新价格
-    // ==============================
-    async function refreshDayPrices() {
-        const res = await fetch('/api/day_prices');
-        const data = await res.json();
-        renderLine(data)         
-    }
-
-    async function refreshDailyPrices() {
-        const res = await fetch('/api/daily_prices');
-        const data = await res.json(); 
-        renderLine(data);
-    }
-
-    // 👉 每5分钟
-    //setInterval(refreshPrices, 5 * 60 * 1000);
 
 
     // ==============================
@@ -223,27 +292,17 @@
     }
 
 
-    // 初始化    
-    //loadtable();
-    loadBarChart()
-    loadLineChart()    
-    //refreshDailyPrices()
-
-
-    function renderLine(data) {
-
+    function renderLine(data, chartName) {
+        lineChart = echarts.init(document.getElementById(chartName));
         let series = [];
-
         data.forEach(sym => {
-
             series.push({
                 name: sym.symbol,
                 type: 'line',
                 data: sym.series.map(p => p.y)
             });
         });
-
-        daypricelineChart.setOption({
+        lineChart.setOption({
             xAxis: {
                 data: data[0].series.map(p => p.x)
             },
@@ -252,59 +311,62 @@
         });
     }
 
-function renderBar(data) {
-    //console.log(data)
-    const symbols = data.map(d => d.x);
-    const values = data.map(d => d.y);
-    //console.log(symbols)
-    //console.log(values)
-    barChart.setOption({
+    function renderBar(data, chartName) {
+        //console.log(data)
+        barChart = echarts.init(document.getElementById(chartName));    
+        const symbols = data.map(d => d.x);
+        const values = data.map(d => d.y);
+        //console.log(symbols)
+        //console.log(values)
+        barChart.setOption({
 
-        tooltip: {
-            formatter: (p) => {
-                return `
-                    ${p.name}<br/>
-                    Change: ${(p.value * 100).toFixed(2)}%
-                `;
-            }
-        },
-
-        xAxis: {
-            type: 'category',
-            data: symbols   // ✅ symbol 做 x轴
-        },
-
-        yAxis: {
-            type: 'value',
-            axisLabel: {
-                formatter: (v) => (v * 100).toFixed(2) + "%"
-            }
-        },
-
-        series: [{
-            type: 'bar',
-            data: values,
-
-            itemStyle: {
-                color: (params) => {
-                    return params.value >= 0 ? "#00FF99" : "#FF3366";
+            tooltip: {
+                formatter: (p) => {
+                    return `
+                        ${p.name}<br/>
+                        Change: ${(p.value * 100).toFixed(2)}%
+                    `;
                 }
             },
 
-            // ✅ 参考线（成本 / 0线）
-            markLine: {
-                data: [
-                    { yAxis: 0 }
-                ],
-                lineStyle: {
-                    width: 2
+            xAxis: {
+                type: 'category',
+                data: symbols   // ✅ symbol 做 x轴
+            },
+
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: (v) => (v * 100).toFixed(2) + "%"
                 }
-            }
-        }]
-    });
-}
+            },
+
+            series: [{
+                type: 'bar',
+                data: values,
+
+                itemStyle: {
+                    color: (params) => {
+                        return params.value >= 0 ? "#00FF99" : "#FF3366";
+                    }
+                },
+
+                // ✅ 参考线（成本 / 0线）
+                markLine: {
+                    data: [
+                        { yAxis: 0 }
+                    ],
+                    lineStyle: {
+                        width: 2
+                    }
+                }
+            }]
+        });
+    }
+
+    // 5分钟循环刷新
+    setInterval(updateTradeTime, 5 * 60 * 1000);
+
 </script>
-
-
 </body>
 </html>
