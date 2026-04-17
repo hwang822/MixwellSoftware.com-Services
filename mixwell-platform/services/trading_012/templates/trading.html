@@ -1,316 +1,310 @@
-{% extends "servicebase.html" %}
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Trading Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
 <style>
-button {
-    margin: 5px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    cursor: pointer;
-}
+    body { font-family: Arial; }
+    table {
+        border-collapse: collapse;   /* 很重要，避免双线 */
+    }
 
-button:hover {
-    background-color: #eee;
-}
-</style>
+    td, th {
+        border: 1px solid black;     /* ✅ 黑色边框 */
+        padding: 5px;
+    }
 
-<h2>📊 Trading Dashboard</h2>
+    th {
+        background-color: #ccc;      /* 灰色背景 */
+        color: black;
+    }</style>
+</head>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<body>
 
-<!--================= Day Prices ================= -->
-<h3>📈 Day Prices</h3>
-<canvas id="dayChart"></canvas>
-<table border="1" id="dayTable"></table>
-<button onclick="loadDayPrices()">Symbols Day Prices</button>
-<hr>
+    <h2>Trading Dashboard</h2>
 
-<!-- ================= Daily Prices ================= -->
-<h3>📉 Daily Prices</h3>
-<canvas id="dailyChart"></canvas>
-<table border="1" id="dailyTable"></table>
-<button onclick="loadAllDailyPrices()">Symbols Daily Prices</button>
-<hr>
+    <div id="table_container"></div>    
 
-<!-- ================= Positions ================= -->
-<h3>💼 Positions</h3>
-<canvas id="positionsChart" width="400" height="200"></canvas>
-<table border="1" id="positionsTable"></table>
-<button onclick="loadPositions()">Symbols Position</button>
-<hr>
+    <h3>Today Prices</h3>
+    <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
+    <table id="day_prices_table" border="1"></table>
 
-<!-- ================= Trades ================= -->
-<h3>📊 Trades</h3>
-<canvas id="pnlChart"></canvas>
-<table border="1" id="tradeTable"></table>
-<button onclick="loadTrades()">Symbols Activities</button>
-<hr>
+    <h3>Month Prices</h3>
+    <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
+    <table id="daily_prices_table" border="1"></table>
 
-<!-- ================= Scan ================= -->
-<h3>🔥Scan Symbols</h3>
-<table border="1" id="scanTable"></table>
-<button onclick="scan_symbols()">Scan Symbols</button>
-</b>
+    <h3>Positions</h3>
+    <div id="positions_barChart" style="width:100%;height:400px;"></div>
+    <table id="positions_table" border="1"></table>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <h3>Trades</h3>
+    <div id="trades_barChart" style="width:100%;height:400px;"></div>    
+    <table id="trades_table" border="1"></table>
 
-<script>
+    <h3>Top Symbols</h3>
+    <div id="top_symbols_barChart" style="width:100%;height:400px;"></div>    
+    <table id="top_symbols_table" border="1"></table>
 
-let dayChart;
-async function loadDayPrices() {
-    const res = await fetch("/api/day_prices");
-    const data = await res.json();
+    <h3>Account</h3>
+    <table id="account_table" border="1"></table>
 
-    if (dayChart) dayChart.destroy();
-
-    const datasets = Object.keys(data).map(symbol => ({
-        label: symbol,
-        data: data[symbol].prices
-    }));
-
-    const labels = data[Object.keys(data)[0]].labels;
-
-    dayChart = new Chart(document.getElementById("dayChart"), {
-        type: "line",
-        data: { labels, datasets }
-    });
-    // ---- Table ----
-    let html = "<tr><th>Symbol</th><th>Price</th><th>Vw</th><th>Time</th></tr>";
     
-    Object.keys(data).forEach(symbol => {
-        const labels = data[symbol].labels;
-        const prices = data[symbol].prices;
+    <script>
 
-        for (let i = 0; i < labels.length; i++) {
-            html += `<tr>
-                <td>${symbol}</td>
-                <td>${labels[i]}</td>
-                <td>${prices[i].toFixed(2)}</td>
-            </tr>`;
+        function toggleRow(i) {
+
+            const rows = document.querySelectorAll(".child_" + i);
+            const btn = document.getElementById("btn_" + i);
+
+            let isHidden = rows[0].style.display === "none";
+
+            rows.forEach(r => {
+                r.style.display = isHidden ? "table-row" : "none";
+            });
+
+            btn.innerText = isHidden ? "[-]" : "[+]";
         }
-    });
 
-    document.getElementById("dayTable").innerHTML = html;
+        async function load(url, id){
+            const res = await fetch(url);
+            const html = await res.text();
+            console.log(" url: ", url)
+            //console.log(" table html: ", html)
+            //console.log(" ", html)
+            document.getElementById(id).innerHTML = html;
 
-
-}
-</script>
-
-<script>
-let dailyChart = null;
-
-async function loadAllDailyPrices() {
-    const res = await fetch("/api/daily_prices");
-    const data = await res.json();
-
-    if (dailyChart) dailyChart.destroy();
-
-    const datasets = Object.keys(data).map(symbol => ({
-        label: symbol,
-        data: data[symbol].prices
-    }));
-
-    const labels = data[Object.keys(data)[0]].labels;
-
-    dailyChart = new Chart(document.getElementById("dailyChart"), {
-        type: "line",
-        data: { labels, datasets }
-    });
-
-
-    // ---- Table ----
-    let html = "<tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Time</th></tr>";
-    Object.keys(data).forEach(symbol => {
-        const labels = data[symbol].labels;
-        const prices = data[symbol].prices;
-
-        for (let i = 0; i < labels.length; i++) {
-            html += `<tr>
-                <td>${symbol}</td>
-                <td>${labels[i]}</td>
-                <td>${prices[i].toFixed(2)}</td>
-            </tr>`;
         }
-    });
 
-    document.getElementById("dailyTable").innerHTML = html;
+        function refreshAlltables(){
+            load("/api/table/day_prices","day_prices_table");
+            load("/api/table/daily_prices","daily_prices_table");
+            load("/api/table/positions","positions_table");
+            load("/api/table/trades","trades_table");
+            load("/api/table/top_symbols","top_symbols_table");
+            load("/api/table/account","account_table");
+        }        
 
-}
-</script>
+
+    //setInterval(refreshAll, 300000);
+    refreshAlltables();
 
 
-<script>
-let positionsChart = null;
+    let barChart = echarts.init(document.getElementById('positions_barChart'));
+    let daypricelineChart = echarts.init(document.getElementById('day_prices_lineChart'));
+    let dailypricelineChart = echarts.init(document.getElementById('daily_prices_lineChart'));
 
-async function loadPositions() {
-    const res = await fetch("/api/positions");
-    const data = await res.json();
+    // ==============================
+    // 加载 Chart（交易触发）
+    // ==============================
+    async function loadChart() {
+        const res = await fetch('/api/chart');
+        const data = await res.json();        
+        renderLine(data.line)
+        renderBar(data.bar)
+    }
 
-    // ---- Table ----
-    let html = "<tr><th>Symbol</th><th>Qty</th><th>Price</th><th>Time</th></tr>";
-    data.forEach(p => {
-        html += `<tr>
-            <td>${p.symbol}</td>
-            <td>${p.qty}</td>
-            <td>${p.price.toFixed(2)}</td>
-            <td>${p.time}</td>
-        </tr>`;
-    });
-    document.getElementById("positionsTable").innerHTML = html;
+    async function loadBarChart() {
+        const res = await fetch('/api/barchart');
+        const bar = await res.json();
+        renderBar(bar);
+    }
 
-    // ---- Chart ----
-    const labels = data.map(p => p.symbol);
-    const qtys = data.map(p => p.qty);
+    async function loadLineChart() {
+        const res = await fetch('/api/linechart');
+        const data = await res.json();
+        renderLine(data);
+    }
 
-    // 如果 chart 已存在，先 destroy 再重建
-    if (positionsChart) positionsChart.destroy();
 
-    const ctx = document.getElementById('positionsChart').getContext('2d');
-    positionsChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Quantity',
-                data: qtys,
-                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                borderColor: 'rgba(54, 162, 235, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: { beginAtZero: true }
+
+    // ==============================
+    // 5分钟刷新价格
+    // ==============================
+    async function refreshDayPrices() {
+        const res = await fetch('/api/day_prices');
+        const data = await res.json();
+        renderLine(data)         
+    }
+
+    async function refreshDailyPrices() {
+        const res = await fetch('/api/daily_prices');
+        const data = await res.json(); 
+        renderLine(data);
+    }
+
+    // 👉 每5分钟
+    //setInterval(refreshPrices, 5 * 60 * 1000);
+
+
+    // ==============================
+    // BAR CHART
+    // ==============================
+    function renderBar1(data) {
+
+        let series = [];
+
+        data.forEach(sym => {
+
+            series.push({
+                name: sym.symbol,
+                type: 'bar',
+                data: sym.bars.map(p => p.price),
+
+                markLine: {
+                    symbol: 'none',
+                    lineStyle: { width: 3 },
+                    data: [
+                        { yAxis: sym.cost_line }
+                    ]
+                }
+            });
+        });
+
+        barChart.setOption({
+            tooltip: {
+                trigger: 'axis'
+            },
+            xAxis: {
+                type: 'category',
+                data: data[0].bars.map(p => p.time)
+            },
+            yAxis: { type: 'value' },
+            series: series
+        });
+    }
+
+
+    // ==============================
+    // LINE CHART
+    // ==============================
+    function renderLine1(data) {
+
+        let series = [];
+        data.forEach(sym => {
+            series.push({
+                name: sym.symbol,
+                type: 'line',
+                data: sym.line.map(p => p.price),
+
+                markPoint: {
+                    data: sym.markers.map(m => ({
+                        coord: [m.time, m.price],
+                        value: m.action,
+                        tooltip: {
+                            formatter: `${m.action}<br/>${m.reason}`
+                        }
+                    }))
+                }
+            });
+        });
+
+        daypricelineChart.setOption({
+            tooltip: { trigger: 'axis' },
+            xAxis: {
+                type: 'category',
+                data: data[0].line.map(p => p.time)
+            },
+            yAxis: { type: 'value' },
+            series: series
+        });
+    }
+
+
+    // ==============================
+    // 模拟交易
+    // ==============================
+    async function triggerTrade() {
+        //await fetch('/api/trade');
+        //await loadChart(); // 👉 只有交易才刷新
+    }
+
+
+    // 初始化    
+    //loadtable();
+    loadBarChart()
+    loadLineChart()    
+    //refreshDailyPrices()
+
+
+    function renderLine(data) {
+
+        let series = [];
+
+        data.forEach(sym => {
+
+            series.push({
+                name: sym.symbol,
+                type: 'line',
+                data: sym.series.map(p => p.y)
+            });
+        });
+
+        daypricelineChart.setOption({
+            xAxis: {
+                data: data[0].series.map(p => p.x)
+            },
+            yAxis: { type: 'value' },
+            series: series
+        });
+    }
+
+function renderBar(data) {
+    //console.log(data)
+    const symbols = data.map(d => d.x);
+    const values = data.map(d => d.y);
+    //console.log(symbols)
+    //console.log(values)
+    barChart.setOption({
+
+        tooltip: {
+            formatter: (p) => {
+                return `
+                    ${p.name}<br/>
+                    Change: ${(p.value * 100).toFixed(2)}%
+                `;
             }
-        }
+        },
+
+        xAxis: {
+            type: 'category',
+            data: symbols   // ✅ symbol 做 x轴
+        },
+
+        yAxis: {
+            type: 'value',
+            axisLabel: {
+                formatter: (v) => (v * 100).toFixed(2) + "%"
+            }
+        },
+
+        series: [{
+            type: 'bar',
+            data: values,
+
+            itemStyle: {
+                color: (params) => {
+                    return params.value >= 0 ? "#00FF99" : "#FF3366";
+                }
+            },
+
+            // ✅ 参考线（成本 / 0线）
+            markLine: {
+                data: [
+                    { yAxis: 0 }
+                ],
+                lineStyle: {
+                    width: 2
+                }
+            }
+        }]
     });
 }
-
 </script>
 
 
-<script>
-
-let pnlChart = null;
-async function loadTrades() {
-    const res = await fetch("/api/trades");
-    const data = await res.json();
-
-    if (pnlChart) pnlChart.destroy();
-
-
-// ===== PnL Chart =====
-    if (pnlChart) pnlChart.destroy();
-
-    let pnl = 0;
-    const pnlData = [];
-    const labels = [];
-
-    // 👉 按时间顺序（从旧到新）
-    const sorted = data.slice().reverse();
-
-    sorted.forEach(t => {
-        let value = t.price * t.qty;
-
-        if (t.side === "BUY") pnl -= value;
-        if (t.side === "SELL") pnl += value;
-
-        pnlData.push(pnl);
-        labels.push(t.time);
-    });
-
-    const ctx = document.getElementById("pnlChart").getContext("2d");
-
-    pnlChart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "PnL",
-                data: pnlData,
-                borderColor: pnl >= 0 ? "green" : "red",
-                fill: false
-            }]
-        }
-    });
-
-    // ---- Table ----
-    let html = "<tr><th>Symbol</th><th>Side</th><th>Price</th><th>Qty</th><th>Time</th></tr>";
-    data.forEach(p => {
-        html += `<tr>
-            <td>${p.symbol}</td>
-            <td>${p.side}</td>
-            <td>${p.price.toFixed(2)}</td>
-            <td>${p.qty}</td>
-            <td>${p.time}</td>
-        </tr>`;
-    });
-    document.getElementById("tradeTable").innerHTML = html;
-}
-</script>
-
-<script>
-let currentSection = "day";
-
-function showSection(type) {
-    currentSection = type;
-
-    document.getElementById("section-day").style.display = "none";
-    document.getElementById("section-daily").style.display = "none";
-    document.getElementById("section-positions").style.display = "none";
-
-    document.getElementById("section-" + type).style.display = "block";
-
-    refreshCurrent();
-}
-
-function refreshCurrent() {
-    if (currentSection === "day") loadAllDayPrices();
-    //if (currentSection === "daily") loadAllDailyPrices();
-    if (currentSection === "positions") loadPositions();
-}
-
-'setInterval(refreshCurrent, 30000);'
-</script>
-
-<script>
-function showSection(type) {
-    document.getElementById("section-day").style.display = "none";
-    document.getElementById("section-daily").style.display = "none";
-    document.getElementById("section-positions").style.display = "none";
-
-    document.getElementById("section-" + type).style.display = "block";
-
-    // 切换时加载数据
-    if (type === "day") loadAllDayPrices();
-    //if (type === "daily") loadAllDailyPrices();
-    if (type === "positions") loadPositions();
-}
-</script>
-
-<script>
-
-async function scan_symbols() {
-    const res = await fetch("/api/scansymbols");
-    const data = await res.json();
-
-    let html = "<tr><th>Symbol</th><th>Score</th><th>Price</th><th>Volume</th><th>Time</th></tr>";
-
-    data.forEach(p => {
-        html += `<tr>
-            <td>${p.symbol}</td>
-            <td>${p.score}</td>
-            <td>${p.price}</td>
-            <td>${p.volume}</td>
-            <td>${p.timestamp}</td>
-        </tr>`;
-    });
-    document.getElementById("scanTable").innerHTML = html;
-
-
-}
-</script>
-
-{% endblock %}
+</body>
+</html>

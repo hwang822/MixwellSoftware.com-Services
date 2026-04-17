@@ -107,3 +107,4 @@ def update_symbols_scan():
         for r in rows
     ]
     return results
+
