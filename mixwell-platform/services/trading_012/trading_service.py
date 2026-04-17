@@ -820,17 +820,6 @@ def execute_scan(symbols, prices):
 
         CASH -= invest
 
-def run_cycle():
-
-    symbols = SYMBOLS #scan_symbols()     # 你的选股逻辑
-    prices = update_symbols_daily_prices()
-    #prices = get_last_n_high(symbols)  # 或 API
-
-#    execute_scan(symbols, prices)
-
-    update_positions(prices)
-
-    return POSITIONS
 
 def alpaca_trading_api():
 
