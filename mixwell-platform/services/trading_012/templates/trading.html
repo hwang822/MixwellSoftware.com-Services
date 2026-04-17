@@ -132,12 +132,15 @@
             const html = await res.text();
             document.getElementById("day_prices_table").innerHTML = html;
             
-            const lineres = await fetch("/api/chart/day_prices");
+            const lineres = await fetch("/api/linechart");
+            console.log(lineres);
+            
             const data = await lineres.json();
             document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
-            renderLine(lineChart, 'day_prices_lineChart');        
+            console.log(data);
+            renderLine(data, 'day_prices_lineChart');        
         }        
-        updateDayPriceData()        
+        //updateDayPriceData()        
 
         async function updateDailyPriceData()
         {
@@ -148,7 +151,9 @@
 
             const lineres = await fetch('/api/linechart');
             const data = await lineres.json();
+            console.log(data);
             document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();
+            console.log(data);
             renderLine(data, 'daily_prices_lineChart');
         
         }
@@ -161,8 +166,8 @@
             document.getElementById("positions_table").innerHTML = html;
 
             const barres = await fetch('/api/barchart');
-            const data = {} // await barres.json();
-            renderLine(data, 'day_positons_barChart');       
+            const data = await barres.json();
+            renderBar(data, 'positions_barChart');       
             document.getElementById("positionsUpdated").textContent = "Positions updated at " + getNYTime();
 
         }        
@@ -180,7 +185,7 @@
             document.getElementById("scansUpdated").textContent = "Scans updated at " + getNYTime();
         
         }        
-        updateTopSymbolsData()
+        //updateTopSymbolsData()
         async function updateTradesData()        
         {
             const res = await fetch("/api/table/trades");
@@ -192,7 +197,7 @@
             renderLine(data, 'trades_barChart');
             document.getElementById("tradesUpdated").textContent = "Trades updated at " + getNYTime();
         }
-        updateTradesData()
+        //updateTradesData()
 
         function toggleRow(i) {
 
@@ -213,7 +218,7 @@
     // BAR CHART
     // ==============================
     function renderBar1(data) {
-
+        console.log(data)
         let series = [];
 
         data.forEach(sym => {
@@ -251,7 +256,7 @@
     // LINE CHART
     // ==============================
     function renderLine1(data) {
-
+        
         let series = [];
         data.forEach(sym => {
             series.push({
@@ -293,8 +298,10 @@
 
 
     function renderLine(data, chartName) {
+        console.log(data)
         lineChart = echarts.init(document.getElementById(chartName));
         let series = [];
+        console.log(data)
         data.forEach(sym => {
             series.push({
                 name: sym.symbol,
@@ -312,12 +319,66 @@
     }
 
     function renderBar(data, chartName) {
-        //console.log(data)
+        console.log("data", data)
         barChart = echarts.init(document.getElementById(chartName));    
         const symbols = data.map(d => d.x);
         const values = data.map(d => d.y);
-        //console.log(symbols)
-        //console.log(values)
+        console.log("symbols: ", symbols)
+        console.log("values: ", values)
+        barChart.setOption({
+
+            tooltip: {
+                formatter: (p) => {
+                    return `
+                        ${p.name}<br/>
+                        Change: ${(p.value * 100).toFixed(2)}%
+                    `;
+                }
+            },
+
+            xAxis: {
+                type: 'category',
+                data: symbols   // ✅ symbol 做 x轴
+            },
+
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: (v) => (v * 100).toFixed(2) + "%"
+                }
+            },
+
+            series: [{
+                type: 'bar',
+                data: values,
+
+                itemStyle: {
+                    color: (params) => {
+                        return params.value >= 0 ? "#00FF99" : "#FF3366";
+                    }
+                },
+
+                // ✅ 参考线（成本 / 0线）
+                markLine: {
+                    data: [
+                        { yAxis: 0 }
+                    ],
+                    lineStyle: {
+                        width: 2
+                    }
+                }
+            }]
+        });
+    }
+
+
+    function renderBar_good(data, chartName) {
+        console.log(data)
+        barChart = echarts.init(document.getElementById(chartName));    
+        const symbols = data.map(d => d.x);
+        const values = data.map(d => d.y);
+        console.log(symbols)
+        console.log(values)
         barChart.setOption({
 
             tooltip: {
