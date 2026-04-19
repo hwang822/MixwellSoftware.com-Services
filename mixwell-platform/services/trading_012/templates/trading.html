@@ -1,3 +1,6 @@
+{% extends "servicebase.html" %}
+{% block content %}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,15 +23,14 @@
     <h2>Trading Dashboard</h2>
     <h3>Auto Update Every 5 Minutes</h3>
     <p>🤖 New York Time: <span id="time">Loading...</span></p>
-    <hr>
     <div id="table_container"></div>    
-    <p id="accountUpdated"> </p>
+    <hr>
     
     <h3>📈 Today Prices <span><button onclick="updateDayPriceData(true)">Update</button></span></h3>
     <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
     <table id="day_prices_table" border="1"></table>
-    <hr>
     <p id="dayPricesUpdated"> </p>
+    <hr>
     
     <h3>📉 Month Prices <span><button onclick="updateDailyPriceData(true)">Update</button></span></h3>
     <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
@@ -39,25 +41,25 @@
     <h3>💼 Positions <span><button onclick="updatePositionsData(true)">Update</button></span></h3>
     <div id="positions_barChart" style="width:100%;height:400px;"></div>
     <table id="positions_table" border="1"></table>
-    <hr>    
     <p id="positionsUpdated"> </p>
+    <hr>    
 
     <h3>📊 Trades <span><button onclick="updateTradesData(true)">Update</button></span></h3>
     <div id="trades_barChart" style="width:100%;height:400px;"></div>    
     <table id="trades_table" border="1"></table>
-    <!--button onclick="updateTrades()">Symbols Trades</button-->
-    <hr>
     <p id="tradesUpdated"> </p>
+    <hr>
 
     <h3>🔥 Top Symbols <span><button onclick="updateTopSymbolsData(true)">Update</button></span></h3>
     <div id="top_symbols_barChart" style="width:100%;height:400px;"></div>    
     <table id="top_symbols_table" border="1"></table>
-    <!--button onclick="updateScans()">Scan Symbols</button-->
     <p id="scansUpdated"> </p>
+    <hr>
     
     <h3>💰 Account <span><button onclick="updateAccountData(true)">Update</button></span></h3>
     <table id="account_table" border="1"></table>
     <p id="accountUpdated"> </p>
+    <hr>
 
     <!-- ================= Run Auto Trade ================= -->    
     <h3>🚀 Run Trades <span><button onclick="startTrade(true)">Update</button></span></h3>        
@@ -70,7 +72,6 @@
         {
             document.getElementById("time").textContent = getNYTime();
         }
-        //updateTradeTime()
 
         async function updateAccountData()
         {
@@ -84,31 +85,24 @@
         {
             const res = await fetch("/api/table/day_prices");
             const html = await res.text();
-            document.getElementById("day_prices_table").innerHTML = html;
+            document.getElementById("day_prices_table").innerHTML = html;    
             
-            const lineres = await fetch("/api/linechart/day_prices");
-            console.log(lineres);
-            
+            const lineres = await fetch("/api/linechart/day_prices");            
             const data = await lineres.json();
             document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
-            console.log(data);
             renderLine(data, 'day_prices_lineChart');        
         }        
 
         async function updateDailyPriceData()
         {
-
             const res = await fetch("/api/table/daily_prices");
             const html = await res.text();
             document.getElementById("daily_prices_table").innerHTML = html;
-
+            
             const lineres = await fetch('/api/linechart/daily_prices');
             const data = await lineres.json();
-            console.log(data);
             document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();
-            console.log(data);
-            renderLine(data, 'daily_prices_lineChart');
-        
+            renderLine(data, 'daily_prices_lineChart');        
         }
 
         async function updatePositionsData()
@@ -119,10 +113,8 @@
 
             const barres = await fetch('/api/barchart/positions');
             const data = await barres.json();
-            console.log(data)
             renderBar(data, 'positions_barChart');       
             document.getElementById("positionsUpdated").textContent = "Positions updated at " + getNYTime();
-
         }        
         
         async function updateTopSymbolsData()
@@ -133,12 +125,10 @@
 
             const resSymbol = await fetch('/api/barchart/top_symbols');
             const data = await resSymbol.json();
-            console.log(data)
             renderBar(data, 'top_symbols_barChart');
             document.getElementById("scansUpdated").textContent = "Scans updated at " + getNYTime();
         
         }                
-
 
         async function updateTradesData()        
         {
@@ -161,39 +151,6 @@
             });
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
-
-    // ==============================
-    // BAR CHART
-    // ==============================
-    function renderBar_1(data) {
-        let series = [];
-        data.forEach(sym => {
-            series.push({
-                name: sym.symbol,
-                type: 'bar',
-                data: sym.bars.map(p => p.price),
-                markLine: {
-                    symbol: 'none',
-                    lineStyle: { width: 3 },
-                    data: [
-                        { yAxis: sym.cost_line }
-                    ]
-                }
-            });
-        });
-
-        barChart.setOption({
-            tooltip: {
-                trigger: 'axis'
-            },
-            xAxis: {
-                type: 'category',
-                data: data[0].bars.map(p => p.time)
-            },
-            yAxis: { type: 'value' },
-            series: series
-        });
-    }
 
     function renderLine(data, chartName) {
         console.log(data)
@@ -262,57 +219,6 @@
         });
     }
 
-    function renderBar_good(data, chartName) {
-        console.log(data)
-        barChart = echarts.init(document.getElementById(chartName));    
-        const symbols = data.map(d => d.x);
-        const values = data.map(d => d.y);
-        console.log(symbols)
-        console.log(values)
-        barChart.setOption({
-
-            tooltip: {
-                formatter: (p) => {
-                    return `
-                        ${p.name}<br/>
-                        Change: ${(p.value * 100).toFixed(2)}%
-                    `;
-                }
-            },
-
-            xAxis: {
-                type: 'category',
-                data: symbols   // ✅ symbol 做 x轴
-            },
-
-            yAxis: {
-                type: 'value',
-                axisLabel: {
-                    formatter: (v) => (v * 100).toFixed(2) + "%"
-                }
-            },
-
-            series: [{
-                type: 'bar',
-                data: values,
-                itemStyle: {
-                    color: (params) => {
-                        return params.value >= 0 ? "#00FF99" : "#FF3366";
-                    }
-                },
-                // ✅ 参考线（成本 / 0线）
-                markLine: {
-                    data: [
-                        { yAxis: 0 }
-                    ],
-                    lineStyle: {
-                        width: 2
-                    }
-                }
-            }]
-        });
-    }
-
     function getNYTime() {
         return new Date().toLocaleString("en-US", {
             timeZone: "America/New_York",
@@ -330,14 +236,14 @@
             return currentMinutes >= start && currentMinutes <= end;
         });
     }
-
+    
+    updateTradeTime()
     updateAccountData()
     updateDayPriceData()        
     updateDailyPriceData()
     updatePositionsData()
     updateTopSymbolsData()
     updateTradesData()
-
 
     // ==============================
     // 模拟交易
@@ -353,3 +259,4 @@
 </script>
 </body>
 </html>
+{% endblock %}

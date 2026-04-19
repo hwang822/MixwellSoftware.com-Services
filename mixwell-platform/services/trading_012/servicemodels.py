@@ -84,3 +84,14 @@ def save_activities(grouped_activities):
     except Exception as e:
         print(e)
 
+def get_account_info():
+    result = Account.query.all()
+    return result
+
+def get_trades_info():
+    result = Account.query.all()
+    return result
+
+def get_db_info():
+    get_account_info()
+    get_trades_info() 

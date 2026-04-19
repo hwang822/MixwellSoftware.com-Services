@@ -7,7 +7,7 @@ base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
 
-from servicemodels import save_activities, Position, Trade, DailyPrice, OneDayPrice, db
+from servicemodels import get_account_info, save_activities, Position, Trade, DailyPrice, db
 
 import alpaca_trade_api as tradeapi
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
@@ -31,7 +31,7 @@ def alpaca_prices_api(symbol, days, interver, limit):
         limit = limit,
         feed='iex'
     ).df
-#    bars = api.get_bars(symbol, interver, limit).df
+
     result = []
     if not bars.empty:
         for index, bar in bars.iterrows():
@@ -45,7 +45,6 @@ def alpaca_prices_api(symbol, days, interver, limit):
                 "vw" : bar.vwap,
                 "timestamp" : utc_to_est((index).strftime("%Y-%m-%d %H:%M")) 
                 })             
-    #print(result)
     return result 
 
 from zoneinfo import ZoneInfo  # Built-in from Python 3.9+
@@ -58,9 +57,7 @@ def get_top_symbols():
         if a.tradable and a.exchange in ["NASDAQ", "NYSE"]
     ]
 
-    #return symbols[:100]   # ⚠️ 控制数量
     return symbols
-
 
 
 def utc_to_est(time_str):
@@ -82,7 +79,6 @@ def utc_to_est(time_str):
 #print (result)
 
 
-#get_daytrading("AAPL","2026-04-02",5)        #计算 “$/5分钟变化”
 def get_daytrading(symbol, date, min):
     end = datetime.utcnow()
     start = end - timedelta(days=30)        
@@ -126,44 +122,9 @@ def scan_market():
         results = sorted(results, key=lambda x: x["score"], reverse=True)
 
     return results
-#scan_market()
-def clean_old_prices():
-    now = datetime.utcnow()
-    # 今天 00:00 UTC
-    today_start = datetime(now.year, now.month, now.day)
-    # 删除昨天及之前的数据
-    OneDayPrice.query.filter(
-        OneDayPrice.timestamp < today_start
-    ).delete()
-    db.session.commit()    
-
 
 from datetime import datetime, timedelta
 import pytz
-
-def get_today_5min(symbol):
-    # 美东时间
-    est = pytz.timezone("US/Eastern")
-
-    now = datetime.now(est)
-
-    # 今日开盘时间
-    market_open = now.replace(hour=9, minute=30, second=0, microsecond=0)
-    market_end = now.replace(hour=15, minute=0, second=0, microsecond=0)
-    # 👉 转 UTC（Alpaca 必须）
-    start = market_open.astimezone(pytz.utc)
-    end = market_end.astimezone(pytz.utc)
-
-    bars = api.get_bars(
-        symbol,
-        "5Min",
-        start=start.isoformat(),
-        end=end.isoformat(),
-        feed="iex"   # 🔥 免费账户必须加
-    ).df
-
-    return bars
-
 
 def get_recommended_symbols():
     # 临时：用 movers 代替
@@ -688,18 +649,17 @@ def alpaca_trading_api():
 ################################
 
 def update_user_account():
-
     result = []           
     account = api.get_account()    
     result.append({
-        "account_number": account.account_number,
-        "buying_power": float(account.buying_power),
-        "cash": float(account.cash),
-        "equity": float(account.equity),
-        "position_market_value": float(account.portfolio_value),
-        "long_market_value": float(account.long_market_value),
-        "short_market_value": float(account.short_market_value),
-        "created_at": account.created_at.strftime("%Y-%m-%d")
+        "Account Number": account.account_number,
+        "Buying Power": float(account.buying_power),
+        "Cash": float(account.cash),
+        "Equity": float(account.equity),
+        "Position Market Value": float(account.portfolio_value),
+        "Long Market Value": float(account.long_market_value),
+        "Short Market Value": float(account.short_market_value),
+        "Created Date": account.created_at.strftime("%Y-%m-%d")
     })
     return result
 
@@ -712,10 +672,10 @@ def update_symbols_scan():
     scans = scan_market()
     for scan in scans:
         results.append({
-                "symbol": scan["symbol"],
-                "score": round(float(scan["score"]), 2),
-                "price": round(float(scan["change"]), 2),
-                "volume": round(float(scan["volume"]), 2)
+                "Symbol": scan["symbol"],
+                "Score": round(float(scan["score"]), 2),
+                "Price": round(float(scan["change"]), 2),
+                "Volume": round(float(scan["volume"]), 2)
             })
     return results
 
@@ -740,14 +700,26 @@ def update_symbols_positions():  # core functions
     equity = float(act.equity)
     positions = api.list_positions()
     for pos in positions:
+        mv = float(pos.market_value)
+        cost = float(pos.cost_basis)
+        pnl = mv-cost
+        pct = pnl / abs(cost) * 100 if cost else 0
+        if pct <= -2:
+            action = f" PNL % <= -2 SELL (STOP LOSS) "
+        elif pct >= 3:
+            action = f" PNL % >= 3 SELL (TAKE PROFIT) "
+        else:
+            action = f" PNL % (-2, 3) HOLD "        
+
         result.append({
             "Symbol": pos.symbol,
-            "Cash" : cash, 
-            "Equity" : equity,            
             "Qty": int(pos.qty),
             "Avg Entry Price": round(float(pos.avg_entry_price), 2),
             "Market Value": round(float(pos.market_value), 2),
-            "Cost Basis": round(float(pos.cost_basis), 2)
+            "Cost Basis": round(float(pos.cost_basis), 2),
+            "Pnl": round(float(pnl), 2),
+            "Pnl %": round(float(pct), 2),
+            "Action": action
         })
     return result
     
@@ -888,28 +860,22 @@ def update_symbols_trades():
                 total_sell += qty * price   # ✅ FIX                
             pnl = total_sell - total_buy
             trade_data = {
-                "id": t.id.split("::")[0],
-                "symbol": symbol,
-                "side": t.side,
-                "price": round(price, 2),
-                "qty": qty,
-                "total_buy": round(total_buy, 2),
-                "total_sell": round(total_sell, 2),
-                "total_qty": round(total_qty, 2),
-                "pnl": round(pnl, 2),                
-                "reason" : t.side,
-                "transaction_time": utc_to_est((t.transaction_time).strftime("%Y-%m-%d %H:%M"))
+#                "id": t.id.split("::")[0],
+                "Symbol": symbol,
+                "Side": t.side,
+                "Price": round(price, 2),
+                "Qty": qty,
+                "Total Buy": round(total_buy, 2),
+                "Total Sell": round(total_sell, 2),
+                "Total Qty": round(total_qty, 2),
+                "Pnl": round(pnl, 2),                
+                "Reason" : t.side,
+                "Transaction Time": utc_to_est((t.transaction_time).strftime("%Y-%m-%d %H:%M"))
             }
             trade_datas.append(trade_data)
         grouped[symbol] =  trade_datas
-        save_activities(grouped)
-            # ===== 5️⃣ 写 DB（可选去重）=====
-            #exists = Trade.query.filter_by(id=trade_data["id"]).first()
-            #if not exists:
-            #   db.session.add(Trade(**trade_data))
-            #db.session.commit()
-    return grouped          
-#update_symbols_trades()  
+        #save_activities(grouped)
+    return grouped
 
 def update_last_trade_info(symbol, sdie, price):    
     lastTrade = Trade.query.filter_by(symbol = symbol).last()
@@ -927,5 +893,5 @@ def update_symbols_trades_bar():
         })
     print (grouped)
     return grouped
-
+    
         

@@ -1,71 +1,129 @@
-from flask import Flask, jsonify, render_template
-from tradingmolders import db
-from trading_service import update_symbols_trades, update_symbols_trades_bar, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_day_prices_line
-from trading_service import update_symbols_scan_bar, update_symbols_day_prices, update_symbols_daily_prices, update_symbols_daily_prices_line, update_symbols_positions_bar
+import os
+import sys
+
+from flask import Blueprint, Config, Flask, jsonify, render_template
+from servicemodels import db
+from tradingservice import update_symbols_trades, update_symbols_trades_bar, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_day_prices_line
+from tradingservice import update_symbols_scan_bar, update_symbols_day_prices, update_symbols_daily_prices, update_symbols_daily_prices_line, update_symbols_positions_bar
 import random
 from datetime import datetime
-app = Flask(__name__)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trades.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trades.db"
+#app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+sys.path.insert(0, f"{base_dir}")
+from config.settings import Config
+
+app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
+shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
+app.jinja_loader.searchpath.append(shared_templates)
+print("Shared templates:", shared_templates)  
+sys.path.insert(0, f"{base_dir}")
+
+baseport = int(Config.PORTAL_PORT)
+baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
+serviceport = int(app.root_path.rsplit("_")[1]) + baseport
+
+servicename = "Trading"  
+servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"{servicedb.lower()}" 
 
 db.init_app(app)
 
+tradingService = Blueprint("tradingService", __name__)
 
 # =========================
 # 页面
 # =========================
 
-@app.route("/")
+@tradingService.route("/")
 def home():
-    return render_template("trading.html")
-
-# =========================
-# API - TABLE
-# =========================
+    return render_template("trading.html", servicename = f"{servicename} Service")
 
 # =========================
 # Mock 实时数据（之后换 Alpaca）
 # =========================
 #通用版本（支持：group + flat + expandable）
-@app.route("/api/barchart")
+
+@tradingService.route("/api/barchart")
 def api_barchart():
     result = build_bar_chart_json(data, schema)
     return jsonify(result)
 
-@app.route("/api/linechart")
+@tradingService.route("/api/linechart")
 def api_linechart():        
     result = build_line_chart_json(data, schema)
     return jsonify(result)
 
-@app.route("/api/barchart/positions")
+@tradingService.route("/api/barchart/positions")
 def api_barchart_positionss():
     positionsBar = update_symbols_positions_bar()
     print (positionsBar)
     return positionsBar
 
-@app.route("/api/barchart/top_symbols")
+@tradingService.route("/api/barchart/top_symbols")
 def api_barchart_topsymbols():    
     result = update_symbols_scan_bar()
     return jsonify(result)
 
-@app.route("/api/barchart/trades")
+@tradingService.route("/api/barchart/trades")
 def api_barchart_trades():
     result = update_symbols_trades_bar()
     #result = build_bar_chart_json(data,schema)
     return jsonify(result)
 
-@app.route("/api/linechart/day_prices")
+@tradingService.route("/api/linechart/day_prices")
 def api_linechart_dayprices():
     daypriceLine = update_symbols_day_prices_line()   
     return jsonify(daypriceLine)
-@app.route("/api/linechart/daily_prices")
+@tradingService.route("/api/linechart/daily_prices")
 def api_linechart_dailyprices():
     dailypriceLine = update_symbols_daily_prices_line()   
     return jsonify(dailypriceLine)
 
+
+###### Table
+
+@tradingService.route("/api/table/day_prices")
+def api_day_prices():            
+    dayprices = update_symbols_day_prices()         
+    html = build_table_html(dayprices)
+    return html
+
+@tradingService.route("/api/table/daily_prices")
+def api_daily_prices():
+    dailyprices = update_symbols_daily_prices()  
+    html = build_table_html(dailyprices)
+    return html
+
+@tradingService.route("/api/table/positions")
+def api_positions():
+    positions = update_symbols_positions()  
+    html = build_table_html(positions)
+    return html
+
+@tradingService.route("/api/table/top_symbols")
+def api_topsymbols():
+    topsymbols = update_symbols_scan()
+    html = build_table_html(topsymbols)
+    return html
+
+@tradingService.route("/api/table/trades")
+def api_trades():
+    trades = update_symbols_trades()
+    html = build_table_html(trades)
+    return html
+
+@tradingService.route("/api/table/account")
+def api_account():
+    account = update_user_account()
+    html = build_table_html(account)
+    return html
+
 # 👉 模拟交易（触发更新）
-@app.route("/api/trades")
+@tradingService.route("/api/trades")
 def api_trade():
     TRADES.append({
         "symbol": "AAPL",
@@ -79,48 +137,13 @@ def api_trade():
 
     return jsonify({"status": "ok"})
 
-###### Table
-
-@app.route("/api/table/day_prices")
-def api_day_prices():            
-    dayprices = update_symbols_day_prices()         
-    html = build_table_html(dayprices)
-    return html
-
-@app.route("/api/table/daily_prices")
-def api_daily_prices():
-    dailyprices = update_symbols_daily_prices()  
-    html = build_table_html(dailyprices)
-    return html
-
-@app.route("/api/table/positions")
-def api_positions():
-    positions = update_symbols_positions()  
-    html = build_table_html(positions)
-    return html
-
-@app.route("/api/table/top_symbols")
-def api_topsymbols():
-    topsymbols = update_symbols_scan()
-    html = build_table_html(topsymbols)
-    return html
-
-@app.route("/api/table/trades")
-def api_trades():
-    trades = update_symbols_trades()
-    html = build_table_html(trades)
-    return html
-
-@app.route("/api/table/account")
-def api_account():
-    account = update_user_account()
-    html = build_table_html(account)
-    return html
-
 ##########################
 # ==============================
 # 模拟数据（你后面换成真实 trading table）
 # ==============================
+# =========================
+# API - TABLE
+# =========================
 
 TRADES = [
     {
@@ -217,7 +240,6 @@ schema = {
     }
 }
 
-
 def build_table_html(data):
     has_expand = False
     if isinstance(data, dict):
@@ -266,26 +288,17 @@ def build_table_html(data):
                         tbody += "<td></td>"   # button column                    
 
                     values= item.values()
+                    keys= item.keys()
 
-                    for v in values:
+                    for k, v in item.items():
                         # 👉 symbol 不显示
-                        if v == "symbol":
+                        if k == "symbol":
                             tbody += "<td></td>"
                         else:
                             tbody += f"<td>{v}</td>"
 
                     tbody += "</tr>"                                                        
-
-                    """
-                    for c in cols:
-                        # 👉 symbol 不显示
-                        if c == "symbol":
-                            tbody += "<td></td>"
-                        else:
-                            tbody += f"<td>{item.get(c,'')}</td>"
-
-                    tbody += "</tr>"                                                        
-                    """
+                                    
     # ================= FLAT MODE =================
     else:
         for r in data:
@@ -301,6 +314,11 @@ def build_table_html(data):
         <tbody>{tbody}</tbody>
     </table>
     """
+
+# =========================
+# API - TABLE
+# =========================
+
 
 # 📊 5. LINE CHART → JSON GENERATOR
 def build_line_chart_json(data_input, schema):
@@ -331,36 +349,8 @@ def build_line_chart_json(data_input, schema):
     ]
 
 
-# 📊 5. LINE CHART → JSON GENERATOR
-def build_line_chart_json_good(data, schema):
-    x_key = schema["chart"]["line"]["x"]
-    y_key = schema["chart"]["line"]["y"]
-    group = schema["chart"]["line"]["group"]
-
-    result = {}
-
-    for d in data:
-        g = d[group]
-
-        if g not in result:
-            result[g] = []
-
-        result[g].append({
-            "x": d[x_key],
-            "y": d[y_key]
-        })
-
-    return [
-        {
-            "symbol": k,
-            "series": v
-        }
-        for k, v in result.items()
-    ]
-
 #📊 6. BAR CHART → JSON GENERATOR
 def build_bar_chart_json(data, schema):
-
 
 ###########################
 
@@ -382,14 +372,16 @@ def build_bar_chart_json(data, schema):
         for k, v in latest.items()
     ]
 
-def build_bar_chart_json_test():
-    result = build_bar_chart_json(data, schema)
-    return result
 
+def create_app():
+    app.register_blueprint(tradingService)
+    return app
 
 # =========================
 
 if __name__ == "__main__":
     with app.app_context():    
         db.create_all()
-    app.run(debug=True)
+        #get_db_info()        
+    #app.run(debug=True)
+    create_app().run(host="127.0.0.1", port=serviceport)
