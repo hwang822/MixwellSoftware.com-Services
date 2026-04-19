@@ -60,51 +60,27 @@ class OneDayPrice(db.Model):
     vw = db.Column(db.Float)
     timestamp = db.Column(db.DateTime, index=True)
 
-##################################
-# Update Scan Symbols
-##################################
-def update_symbols_scan():    
-    #from scanner import scan_market
+def save_activities(grouped_activities):
     try:
-        df = scan_market()
-
-        symbol_scores = df.to_json(orient="records")
-
-        # 1️⃣ 排序（高 → 低）
-        sorted_symbols = sorted(
-            symbol_scores.items(),
-            key=lambda x: x[1]["score"],
-            reverse=True
-        )
-
-        # 2️⃣ 清空旧数据（推荐方式）
-        ScanResult.query.delete()
-
-        # 3️⃣ 写入新数据
-        for rank, (symbol, data) in enumerate(sorted_symbols, start=1):
-            row = ScanResult(
-                symbol=symbol,
-                score=data["score"],
-                price=data["price"],
-                rank=rank,
-                updated_at=datetime.utcnow()
-            )
-            db.session.add(row)
-
-        db.session.commit()
+        symbols = grouped_activities.keys()
+        for symbol in symbols:
+            activitys = grouped_activities[symbol]
+            for activity in activitys:
+                trade = Trade(
+                    id = activity["id"],
+                    symbol = activity["symbol"],                          #The symbol of the security being traded.
+                    side = activity["side"],                            #buy or sell
+                    price = round(float(activity["price"]), 2),           #The per-share price that the trade was executed at.
+                    qty = int(activity["qty"]),                           #The number of shares involved in the trade execution.
+                    total_buy = round(float(activity["total_buy"]),2),    #total cost buy of chash
+                    total_sell = round(float(activity["total_sell"]), 2), #total cost sell of chash 
+                    total_qty = round(float(activity["total_qty"]), 2),   #total cost buy/sell of qty 
+                    pnl = round(float(activity["pnl"]), 2),               #gain/loss
+                    reason = activity["reason"] ,                         #reason for sell/buy
+                    transaction_time = activity["transaction_time"]       #The time at which the execution occurred.
+                )                                   
+                db.session.add(trade)
+        #db.session.commit()
     except Exception as e:
         print(e)
-
-    rows = ScanResult.query.all()
-    results = [
-        {
-            "symbol": r["symbol"],
-            "score": round(r["score"], 2),
-            "price": round(r["price"], 2),
-            "volume": round(r["volume"], 2),
-            "timestamp": r["timestamp"].strftime("%Y-%m-%d %H:%M")
-        }
-        for r in rows
-    ]
-    return results
 

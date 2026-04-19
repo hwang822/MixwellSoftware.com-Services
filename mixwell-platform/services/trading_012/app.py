@@ -1,8 +1,7 @@
-from typing import Counter
-
 from flask import Flask, jsonify, render_template
-from tradingmolders import db, Trade
-from trading_service import update_symbols_day_prices, update_symbols_daily_prices, update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan
+from tradingmolders import db
+from trading_service import update_symbols_trades, update_symbols_trades_bar, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_day_prices_line
+from trading_service import update_symbols_scan_bar, update_symbols_day_prices, update_symbols_daily_prices, update_symbols_daily_prices_line, update_symbols_positions_bar
 import random
 from datetime import datetime
 app = Flask(__name__)
@@ -31,391 +30,39 @@ def home():
 #通用版本（支持：group + flat + expandable）
 @app.route("/api/barchart")
 def api_barchart():
-#    data = update_symbols_positions()
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
-
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            },
-            "bar": {
-                "x": "symbol",
-                "y": "change_rate"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-
     result = build_bar_chart_json(data, schema)
     return jsonify(result)
 
 @app.route("/api/linechart")
-def api_linechart():
-    #data = update_symbols_day_prices()
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
-
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            },
-            "bar": {
-                "x": "symbol",
-                "y": "change_rate"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-    
+def api_linechart():        
     result = build_line_chart_json(data, schema)
     return jsonify(result)
 
-@app.route("/api/barchart/positionss")
+@app.route("/api/barchart/positions")
 def api_barchart_positionss():
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
+    positionsBar = update_symbols_positions_bar()
+    print (positionsBar)
+    return positionsBar
 
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            },
-            "bar": {
-                "x": "symbol",
-                "y": "change_rate"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-    result = build_bar_chart_json(data, schema)
-    return jsonify(result)
-
-@app.route("/api/barchart/topsymbols")
-def api_barchart_topsymbols():
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
-
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            },
-            "bar": {
-                "x": "symbol",
-                "y": "change_rate"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-    result = build_bar_chart_json(data, schema)
+@app.route("/api/barchart/top_symbols")
+def api_barchart_topsymbols():    
+    result = update_symbols_scan_bar()
     return jsonify(result)
 
 @app.route("/api/barchart/trades")
 def api_barchart_trades():
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
-
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-    result = build_bar_chart_json(data,schema)
+    result = update_symbols_trades_bar()
+    #result = build_bar_chart_json(data,schema)
     return jsonify(result)
 
 @app.route("/api/linechart/day_prices")
 def api_linechart_dayprices():
-    daypriceLine = update_symbols_day_prices()    
-    schema = {
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            },
-        }
-    }
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-        
-    result = build_line_chart_json(data, schema)
-    return jsonify(result)
-
+    daypriceLine = update_symbols_day_prices_line()   
+    return jsonify(daypriceLine)
 @app.route("/api/linechart/daily_prices")
 def api_linechart_dailyprices():
-    schema = {
-        "table_columns": ["symbol", "qty", "avg_price", "mv"],
-
-        "chart": {
-            "line": {
-                "x": "time",
-                "y": "change_rate",
-                "group": "symbol"
-            }
-        }
-    }
-
-    data = [
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1500,
-            "time": "10:00",
-            "change_rate": 0.01
-        },
-        {
-            "symbol": "AAPL",
-            "qty": 10,
-            "avg_price": 148,
-            "mv": 1520,
-            "time": "10:05",
-            "change_rate": 0.02
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4500,
-            "time": "10:00",
-            "change_rate": -0.01
-        },
-        {
-            "symbol": "NVDA",
-            "qty": 5,
-            "avg_price": 880,
-            "mv": 4480,
-            "time": "10:05",
-            "change_rate": -0.015
-        }
-    ]
-
-    result = build_line_chart_json(data, schema)
-    return jsonify(result)
-
-
-@app.route("/api/linechart")
-def api_linechart_1():
-    result = build_line_chart_json_test()
-    return jsonify(result)
+    dailypriceLine = update_symbols_daily_prices_line()   
+    return jsonify(dailypriceLine)
 
 # 👉 模拟交易（触发更新）
 @app.route("/api/trades")
@@ -438,36 +85,31 @@ def api_trade():
 def api_day_prices():            
     dayprices = update_symbols_day_prices()         
     html = build_table_html(dayprices)
-    lines = {} # build_line_chart_json(dayprices)    
-    return html, lines
+    return html
 
 @app.route("/api/table/daily_prices")
 def api_daily_prices():
     dailyprices = update_symbols_daily_prices()  
     html = build_table_html(dailyprices)
-    lines = {} #build_line_chart_json(dailyprices)
-    return html, lines
+    return html
 
 @app.route("/api/table/positions")
 def api_positions():
     positions = update_symbols_positions()  
     html = build_table_html(positions)
-    bars = {} #build_bar_chart_json(positions)
-    return html, bars
+    return html
 
 @app.route("/api/table/top_symbols")
 def api_topsymbols():
     topsymbols = update_symbols_scan()
     html = build_table_html(topsymbols)
-    bars = {} #build_bar_chart_json(topsymbols)
-    return html, bars
+    return html
 
 @app.route("/api/table/trades")
 def api_trades():
     trades = update_symbols_trades()
     html = build_table_html(trades)
-    bars = {} #build_bar_chart_json(trades)
-    return html, bars
+    return html
 
 @app.route("/api/table/account")
 def api_account():
@@ -475,9 +117,7 @@ def api_account():
     html = build_table_html(account)
     return html
 
-
 ##########################
-
 # ==============================
 # 模拟数据（你后面换成真实 trading table）
 # ==============================
@@ -509,54 +149,6 @@ COLOR_MAP = {
 }
 
 
-
-
-# ==============================
-# Chart 数据构建
-# ==============================
-"""
-def build_chart_data():
-
-    result_bar = []
-    result_line = []
-
-    symbols = set([t["symbol"] for t in TRADES])
-
-    for sym in symbols:
-
-        prices = DAY_PRICES.get(sym, [])
-        trades = [t for t in TRADES if t["symbol"] == sym]
-
-        avg_cost = trades[-1]["avg_cost"]
-
-        # ===== BAR =====
-        bar = {
-            "symbol": sym,
-            "color": COLOR_MAP.get(sym, "#ccc"),
-            "bars": prices,
-            "cost_line": avg_cost
-        }
-
-        # ===== LINE =====
-        line = {
-            "symbol": sym,
-            "color": COLOR_MAP.get(sym, "#ccc"),
-            "line": prices,
-            "markers": [
-                {
-                    "time": t["time"],
-                    "price": t["price"],
-                    "action": t["action"],
-                    "reason": t["reason"]
-                } for t in trades
-            ]
-        }
-
-        result_bar.append(bar)
-        result_line.append(line)
-
-    return result_bar, result_line
-"""
 
 # 👉 交易触发更新
 
@@ -711,12 +303,36 @@ def build_table_html(data):
     """
 
 # 📊 5. LINE CHART → JSON GENERATOR
-def build_line_chart_json(data, schema):
-###########################
+def build_line_chart_json(data_input, schema):
+    
+    x_key = schema["chart"]["line"]["x"]
+    y_key = schema["chart"]["line"]["y"]
+    group = schema["chart"]["line"]["group"]
+
+    result = {}
+
+    for d in data_input:
+        g = d[group]
+
+        if g not in result:
+            result[g] = []
+
+        result[g].append({
+            "x": d[x_key],
+            "y": d[y_key]
+        })
+
+    return [
+        {
+            "symbol": k,
+            "series": v
+        }
+        for k, v in result.items()
+    ]
 
 
-###########################
-
+# 📊 5. LINE CHART → JSON GENERATOR
+def build_line_chart_json_good(data, schema):
     x_key = schema["chart"]["line"]["x"]
     y_key = schema["chart"]["line"]["y"]
     group = schema["chart"]["line"]["group"]
@@ -741,9 +357,6 @@ def build_line_chart_json(data, schema):
         }
         for k, v in result.items()
     ]
-
-def build_line_chart_json_test():    
-    return build_line_chart_json(data, schema)
 
 #📊 6. BAR CHART → JSON GENERATOR
 def build_bar_chart_json(data, schema):
