@@ -45,7 +45,7 @@
     <hr>    
 
     <h3>📊 Trades <span><button onclick="updateTradesData(true)">Update</button></span></h3>
-    <div id="trades_barChart" style="width:100%;height:400px;"></div>    
+    <div id="trades_lineChart" style="width:100%;height:400px;"></div>    
     <table id="trades_table" border="1"></table>
     <p id="tradesUpdated"> </p>
     <hr>
@@ -83,62 +83,47 @@
 
         async function updateDayPriceData()
         {
-            const res = await fetch("/api/table/day_prices");
-            const html = await res.text();
-            document.getElementById("day_prices_table").innerHTML = html;    
-            
-            const lineres = await fetch("/api/linechart/day_prices");            
-            const data = await lineres.json();
+            const res = await fetch("/api/table/day_prices");                              
+            const data = await res.json() 
+            document.getElementById("day_prices_table").innerHTML = data.html;                   
+            renderLine(data.lines, 'day_prices_lineChart');
             document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
-            renderLine(data, 'day_prices_lineChart');        
         }        
 
         async function updateDailyPriceData()
         {
-            const res = await fetch("/api/table/daily_prices");
-            const html = await res.text();
-            document.getElementById("daily_prices_table").innerHTML = html;
-            
-            const lineres = await fetch('/api/linechart/daily_prices');
-            const data = await lineres.json();
-            document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();
-            renderLine(data, 'daily_prices_lineChart');        
+            const res = await fetch("/api/table/daily_prices");                              
+            const data = await res.json() 
+            document.getElementById("daily_prices_table").innerHTML = data.html;                   
+            renderLine(data.lines, 'daily_prices_lineChart');
+            document.getElementById("dailyPricesUpdated").textContent = "Daily prices updated at " + getNYTime();        
         }
 
         async function updatePositionsData()
         {
             const res = await fetch("/api/table/positions");
-            const html = await res.text();
-            document.getElementById("positions_table").innerHTML = html;
-
-            const barres = await fetch('/api/barchart/positions');
-            const data = await barres.json();
-            renderBar(data, 'positions_barChart');       
+            const data = await res.json()
+            document.getElementById("positions_table").innerHTML = data.html;
+            renderBar(data.bars, 'positions_barChart');       
             document.getElementById("positionsUpdated").textContent = "Positions updated at " + getNYTime();
         }        
         
         async function updateTopSymbolsData()
         {
             const res = await fetch("/api/table/top_symbols");
-            const html = await res.text();
-            document.getElementById("top_symbols_table").innerHTML = html;
-
-            const resSymbol = await fetch('/api/barchart/top_symbols');
-            const data = await resSymbol.json();
-            renderBar(data, 'top_symbols_barChart');
+            const data = await res.json()
+            document.getElementById("top_symbols_table").innerHTML = data.html;
+            renderBar(data.bars, 'top_symbols_barChart');
             document.getElementById("scansUpdated").textContent = "Scans updated at " + getNYTime();
         
         }                
 
         async function updateTradesData()        
         {
-            const res = await fetch("/api/table/trades");
-            const html = await res.text();
-            document.getElementById("trades_table").innerHTML = html;
-
-            const resTrades = await fetch('/api/barchart/trades');
-            const data = {} // await resTrades.json();
-            renderLine(data, 'trades_barChart');
+            const res = await fetch("/api/table/trades");            
+            const data = await res.json();
+            document.getElementById("trades_table").innerHTML = data.html;                        
+            renderLine(data.lines, 'trades_lineChart');
             document.getElementById("tradesUpdated").textContent = "Trades updated at " + getNYTime();
         }
 
@@ -152,111 +137,216 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
-    function renderLine(data, chartName) {
-        console.log(data)
-        lineChart = echarts.init(document.getElementById(chartName));
-        let series = [];
-        data.forEach(sym => {
-            series.push({
-                name: sym.symbol,
-                type: 'line',
-                data: sym.series.map(p => p.y)
+        const COLOR_POOL = [
+            "#00c853", "#ff5252", "#448aff", "#ffab00", "#9c27b0",
+            "#00bcd4", "#e91e63", "#8bc34a", "#ff9800", "#3f51b5"
+        ];
+
+        const symbolColorMap = {};
+        let colorIndex = 0;
+
+        function getColor(symbol) {
+            if (!symbolColorMap[symbol]) {
+                symbolColorMap[symbol] = COLOR_POOL[colorIndex % COLOR_POOL.length];
+                colorIndex++;
+            }
+            return symbolColorMap[symbol];
+        }
+
+        function renderLine(data, chartName) {
+            const chart = echarts.init(document.getElementById(chartName));
+
+            let series = [];
+            let xAxis = [];
+
+            data.forEach((sym, idx) => {
+
+                if (idx === 0) {
+                    xAxis = sym.series.map(p => p.x);
+                }
+                const color = sym.colors
+
+                series.push({
+                    name: sym.symbol,
+                    type: 'line',
+                    data: sym.series.map(p => {
+
+                        if (typeof p.y === "number") {
+                            return { value: p.y, symbol: "none" };
+                        }
+
+                        if (typeof p.y === "object") {
+                            const isBuy = p.y.side === "buy";
+
+                            return {
+                                value: p.y.price,
+                                symbol: "circle",
+                                symbolSize: 10,
+                                itemStyle: {
+                                    color: isBuy ? "#00c853" : "#ff5252"
+                                }
+                            };
+                        }
+                    }),
+
+                    lineStyle: {
+                        color: color,
+                        width: 2
+                    },
+
+                    showSymbol: false
+                });
             });
-        });
-        lineChart.setOption({
-            xAxis: {
-                data: data[0].series.map(p => p.x)
-            },
-            yAxis: { type: 'value' },
-            series: series
-        });
-    }
 
-    function renderBar(data, chartName) {
-        console.log("data", data)
-        barChart = echarts.init(document.getElementById(chartName));    
-        const symbols = data.map(d => d.x);
-        const values = data.map(d => d.y);
-        console.log("symbols: ", symbols)
-        console.log("values: ", values)
-        barChart.setOption({
-        tooltip: {
-            formatter: (p) => {
-                return `
-                    ${p.name}<br/>
-                    Change: ${(p.value * 100).toFixed(2)}%
-                `;
-            }
-        },
-        xAxis: {
-            type: 'category',
-            data: symbols   // ✅ symbol 做 x轴
-        },
+            chart.setOption({
+                legend: {
+                    data: data.map(d => d.symbol)
+                },
+                xAxis: { type: "category", data: xAxis },
+                yAxis: { type: "value" },
+                series: series
+            });
+        }
 
-        yAxis: {
-            type: 'value',
-            axisLabel: {
-                formatter: (v) => (v * 100).toFixed(2) + "%"
-            }
-        },
-        series: [{
-            type: 'bar',
-            data: values,
-            itemStyle: {
-                color: (params) => {
-                    return params.value >= 0 ? "#00FF99" : "#FF3366";
+        function renderLine_1(data, chartName) {
+            lineChart = echarts.init(document.getElementById(chartName));
+            let series = [];
+            data.forEach(sym => {
+                series.push({
+                    name: sym.symbol,
+                    type: 'line',
+                    data: sym.series.map(p => p.y)
+                });
+            });
+            lineChart.setOption({
+                xAxis: {
+                    data: data[0].series.map(p => p.x)
+                },
+                yAxis: { type: 'value' },
+                series: series
+            });
+        }
+
+
+        function renderBar_color(data, chartName) {
+            const chart = echarts.init(document.getElementById(chartName));
+
+            const labels = data.map(d => d.symbol);
+            const values = data.map(d => d.value);
+
+            const colors = labels.map(sym => getColor(sym));
+
+            chart.setOption({
+                xAxis: {
+                    type: 'category',
+                    data: labels
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    type: 'bar',
+                    data: values,
+                    itemStyle: {
+                        color: function(params) {
+                            return colors[params.dataIndex];
+                        }
+                    }
+                }]
+            });
+        }        
+
+        function renderBar(data, chartName) {
+            barChart = echarts.init(document.getElementById(chartName));    
+            const symbols = data.map(d => d.x);
+            const labels = data.map(d => d.symbol);
+            const values = data.map(d => d.y);
+            //const colors = labels.map(sym => getColor(sym));
+            const colors = data.map(d => d.color);            
+            barChart.setOption({
+            tooltip: {
+                formatter: (p) => {
+                    return `
+                        ${p.name}<br/>
+                        Change: ${(p.value * 100).toFixed(2)}%
+                    `;
                 }
             },
-            // ✅ 参考线（成本 / 0线）
-            markLine: {
-                data: [
-                    { yAxis: 0 }
-                ],
-                lineStyle: {
-                    width: 2
-                }}
-            }]
-        });
-    }
+            xAxis: {
+                type: 'category',
+                data: symbols   // ✅ symbol 做 x轴
 
-    function getNYTime() {
-        return new Date().toLocaleString("en-US", {
-            timeZone: "America/New_York",
-            hour12: false,
-            timeZoneName: "short"
-        });
-    }
+                //data: data.map(d => ({
+                //    value: d.symbol,
+                //    textStyle: {
+                //        color: d.color
+                //    }
+                //}))                
+            },
 
-    function isBestTradeTime() {
-        const now = getNYTime();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-        return TRADE_WINDOWS.some(w => {
-            const start = w.start[0] * 60 + w.start[1];
-            const end   = w.end[0] * 60 + w.end[1];
-            return currentMinutes >= start && currentMinutes <= end;
-        });
-    }
-    
-    updateTradeTime()
-    updateAccountData()
-    updateDayPriceData()        
-    updateDailyPriceData()
-    updatePositionsData()
-    updateTopSymbolsData()
-    updateTradesData()
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: (v) => (v * 100).toFixed(2) + "%"
+                }
+            },
+            series: [{
+                type: 'bar',
+                data: values,
+                itemStyle: {
+                    color: (params) => {
+                        return params.value >= 0 ? "#00FF99" : "#FF3366";
+                    }},
+                // ✅ 参考线（成本 / 0线）
+                markLine: {
+                    data: [
+                        { yAxis: 0 }
+                    ],
+                    lineStyle: {
+                        width: 2
+                    }}
+                }]
+            });
+        }
 
-    // ==============================
-    // 模拟交易
-    // ==============================
-    async function triggerTrade() {
-        //await fetch('/api/trade');
-        //await loadChart(); // 👉 只有交易才刷新
-    }
+        function getNYTime() {
+            return new Date().toLocaleString("en-US", {
+                timeZone: "America/New_York",
+                hour12: false,
+                timeZoneName: "short"
+            });
+        }
 
-    // 5分钟循环刷新
-    setInterval(updateTradeTime, 5 * 60 * 1000);
+        function isBestTradeTime() {
+            const now = getNYTime();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            return TRADE_WINDOWS.some(w => {
+                const start = w.start[0] * 60 + w.start[1];
+                const end   = w.end[0] * 60 + w.end[1];
+                return currentMinutes >= start && currentMinutes <= end;
+            });
+        }
+        
+        updateTradeTime()
+        updateAccountData()
+        updateDayPriceData()        
+        updateDailyPriceData()
+        updatePositionsData()
+        updateTopSymbolsData()        
+        updateTradesData()
 
-</script>
+        // ==============================
+        // 模拟交易
+        // ==============================
+        async function triggerTrade() {
+            //await fetch('/api/trade');
+            //await loadChart(); // 👉 只有交易才刷新
+        }
+
+        // 5分钟循环刷新
+        setInterval(updateTradeTime, 5 * 60 * 1000);
+
+    </script>
 </body>
 </html>
 {% endblock %}

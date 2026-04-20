@@ -59,6 +59,12 @@ def get_top_symbols():
 
     return symbols
 
+import hashlib
+
+def get_color(symbol):
+    h = int(hashlib.md5(symbol.encode()).hexdigest(), 16)
+    hue = h % 360
+    return f"hsl({hue}, 70%, 50%)"
 
 def utc_to_est(time_str):
     # 1️⃣ 解析 UTC 字符串
@@ -102,7 +108,7 @@ def scan_market():
 
     for symbol in SYMBOLS:
 
-        bars = alpaca_prices_api(symbol, 2, "5min", 100)
+        bars = alpaca_prices_api(symbol, 3, "5min", 100)
 
         if len(bars) < 2:
             continue
@@ -652,14 +658,14 @@ def update_user_account():
     result = []           
     account = api.get_account()    
     result.append({
-        "Account Number": account.account_number,
-        "Buying Power": float(account.buying_power),
-        "Cash": float(account.cash),
-        "Equity": float(account.equity),
-        "Position Market Value": float(account.portfolio_value),
-        "Long Market Value": float(account.long_market_value),
-        "Short Market Value": float(account.short_market_value),
-        "Created Date": account.created_at.strftime("%Y-%m-%d")
+        "account_number": account.account_number,
+        "buying_power": float(account.buying_power),
+        "cash": float(account.cash),
+        "equity": float(account.equity),
+        "position_market_value": float(account.portfolio_value),
+        "long_market_value": float(account.long_market_value),
+        "short_market_value": float(account.short_market_value),
+        "created_date": account.created_at.strftime("%Y-%m-%d")
     })
     return result
 
@@ -669,15 +675,22 @@ def update_user_account():
 def update_symbols_scan():    
     #from scanner import scan_market
     results = []
+    bars = []
     scans = scan_market()
     for scan in scans:
         results.append({
-                "Symbol": scan["symbol"],
-                "Score": round(float(scan["score"]), 2),
-                "Price": round(float(scan["change"]), 2),
-                "Volume": round(float(scan["volume"]), 2)
+                "symbol": scan["symbol"],
+                "score": round(float(scan["score"]), 2),
+                "price": round(float(scan["change"]), 2),
+                "volume": round(float(scan["volume"]), 2)
             })
-    return results
+        bars.append({
+                "x": scan["symbol"],
+                "y": round(float(scan["score"]), 2),
+                "color" : get_color(scan["symbol"])
+            })
+        
+    return results, bars
 
 def update_symbols_scan_bar():    
     #from scanner import scan_market
@@ -686,7 +699,8 @@ def update_symbols_scan_bar():
     for scan in scans:
         results.append({
                 "x": scan["symbol"],
-                "y": round(float(scan["score"]), 2)
+                "y": round(float(scan["score"]), 2),
+                "color" : get_color(scan.symbol)
             })
     return results
 
@@ -695,9 +709,7 @@ def update_symbols_scan_bar():
 ################################
 def update_symbols_positions():  # core functions
     result = []           
-    act = api.get_account()    
-    cash = float(act.cash)
-    equity = float(act.equity)
+    bars = []
     positions = api.list_positions()
     for pos in positions:
         mv = float(pos.market_value)
@@ -712,16 +724,21 @@ def update_symbols_positions():  # core functions
             action = f" PNL % (-2, 3) HOLD "        
 
         result.append({
-            "Symbol": pos.symbol,
-            "Qty": int(pos.qty),
-            "Avg Entry Price": round(float(pos.avg_entry_price), 2),
-            "Market Value": round(float(pos.market_value), 2),
-            "Cost Basis": round(float(pos.cost_basis), 2),
-            "Pnl": round(float(pnl), 2),
-            "Pnl %": round(float(pct), 2),
-            "Action": action
+                "symbol": pos.symbol,
+                "qty": int(pos.qty),
+                "avg_entry_price": round(float(pos.avg_entry_price), 2),
+                "market_value": round(float(pos.market_value), 2),
+                "cost_basis": round(float(pos.cost_basis), 2),
+                "pnl": round(float(pnl), 2),
+                "pct": round(float(pct), 2),
+                "action": action
+            })
+        bars.append({
+            "x": pos.symbol,
+            "y" : pos.market_value,
+            "color" : get_color(pos.symbol)
         })
-    return result
+    return result, bars
     
 def update_symbols_positions_bar():  # core functions
     grouped = []
@@ -729,7 +746,8 @@ def update_symbols_positions_bar():  # core functions
     for pos in positions:
         grouped.append({
             "x": pos.symbol,
-            "y" : pos.market_value
+            "y" : pos.market_value,
+            "color" : get_color(pos.symbol)
         })
     print (grouped)
     return grouped
@@ -742,7 +760,8 @@ def update_symbols_daily_prices():
     grouped = {}
     for symbol in SYMBOLS:
         prices = alpaca_prices_api(symbol, 30, "1Day", 30)        
-        grouped[symbol] = prices
+        #grouped[symbol] = prices
+        grouped[symbol] = {"colors" : get_color(symbol), "items" : prices }
     return grouped
 
 def update_symbols_daily_prices_line():  # core function    
@@ -763,7 +782,9 @@ def update_symbols_daily_prices_line():  # core function
             v.append(time_price)                
         grouped.append({
                 "symbol": symbol,
+                "color" : get_color(symbol),
                 "series": v
+
             })    
     return grouped
 
@@ -774,34 +795,57 @@ def update_symbols_daily_prices_line():  # core function
 # update_symbols_day_prices()  #
 ################################
 
-def update_symbols_day_prices():  # core function    
-    grouped = {}
+def update_symbols_day_prices(daily):  # core function    
+    lines = []
+    grouped = {}    
     for symbol in SYMBOLS:
-        prices = alpaca_prices_api(symbol, 2, "5min", 100)   
-        grouped[symbol] = prices
-    return grouped
-
-def update_symbols_day_prices_line():  # core function    
-    grouped = []
-    for symbol in SYMBOLS:
-        prices = alpaca_prices_api(symbol, 2, "5min", 100)   
+        if daily:
+            prices = alpaca_prices_api(symbol, 30, "1Day", 30)      
+        else:
+            prices = alpaca_prices_api(symbol, 3, "5min", 100)   
+        grouped[symbol] = {"colors" : get_color(symbol), "items" : prices }    
         v = []
         lastPrice = 0
         priceRate = 0
-
         for price in prices:
-            currentPrice = float(price["price_close"])
             if lastPrice==0:
                 lastPrice = float(price["price_close"])
             else:
+                currentPrice = float(price["price_close"])
                 priceRate = round(float((currentPrice-lastPrice)*100),2) 
-            time_price = {"x" : price["timestamp"], "y" : priceRate}
-            v.append(time_price)                
-        grouped.append({
-                "symbol": symbol,
-                "series": v
-            })    
-    return grouped
+                time_price = {"x" : price["timestamp"], "y" : priceRate}
+                v.append(time_price)
+        lines.append({
+            "symbol" : symbol,
+            "color"  : get_color(symbol),
+            "series" : v
+        })
+    return grouped, lines
+
+def update_symbols_day_prices_line(grouped):  # core function    
+#    grouped = update_symbols_day_prices() # []
+    lines = {}
+    for symbol in grouped:
+        lines[symbol] = symbol
+        lines[symbol]["colol"] = grouped[symbol]["colol"]
+        items = grouped[symbol]["items"]
+        v = []
+        lastPrice = 0
+        priceRate = 0
+        for item in items:
+            if lastPrice==0:
+                lastPrice = float(item["price_close"])
+            else:
+                currentPrice = float(item["price_close"])
+                priceRate = round(float((currentPrice-lastPrice)*100),2) 
+                time_price = {"x" : item["timestamp"], "y" : priceRate}
+                v.append(time_price)
+        lines.append({
+            "symbol" : symbol,
+            "color"  : get_color(symbol),
+            "series" : v
+        })
+    return lines
 
 ################################
 # update_symbols_trades()      #
@@ -830,6 +874,7 @@ def get_all_activities():
 def update_symbols_trades():
     activities = get_all_activities()
     grouped = {}  # it is dict, easy go through
+    lines = []
     if not activities:
         return grouped
 
@@ -848,50 +893,47 @@ def update_symbols_trades():
         total_qty = 0
         total_buy = 0
         total_sell = 0
-        reason = "" 
+        v = [] 
         for t in trades:
-            qty = float(t.qty)
-            price = float(t.price)
+            qty = int(t.qty)
+            price = round(float(t.price),2)
             if t.side == "buy":
                 total_qty += qty
                 total_buy += qty * price
             elif t.side == "sell":
                 total_qty -= qty
                 total_sell += qty * price   # ✅ FIX                
-            pnl = total_sell - total_buy
+            pnl = round(float(total_sell - total_buy), 2)
+            time = utc_to_est((t.transaction_time).strftime("%Y-%m-%d %H:%M"))
             trade_data = {
-#                "id": t.id.split("::")[0],
-                "Symbol": symbol,
-                "Side": t.side,
-                "Price": round(price, 2),
-                "Qty": qty,
-                "Total Buy": round(total_buy, 2),
-                "Total Sell": round(total_sell, 2),
-                "Total Qty": round(total_qty, 2),
-                "Pnl": round(pnl, 2),                
-                "Reason" : t.side,
-                "Transaction Time": utc_to_est((t.transaction_time).strftime("%Y-%m-%d %H:%M"))
+                "symbol": symbol,
+                "side": t.side,
+                "price": price,
+                "qty": qty,
+                "total_buy": round(float(total_buy), 2),
+                "total_sell": round(float(total_sell), 2),
+                "total_qty": total_qty,
+                "pnl": pnl,                
+                "reason" : t.side,
+                "id": t.id.split("::")[0],
+                "transaction_time": time
             }
             trade_datas.append(trade_data)
-        grouped[symbol] =  trade_datas
+            time_price = {"x" : time, "y" : pnl}
+            v.append(time_price)         
+        grouped[symbol] = {"colors" : get_color(symbol), "items" : trade_datas }
+        lines.append({
+            "symbol" : symbol,
+            "color"  : get_color(symbol),
+            "series" : v
+        })
         #save_activities(grouped)
-    return grouped
+    return grouped, lines
 
 def update_last_trade_info(symbol, sdie, price):    
     lastTrade = Trade.query.filter_by(symbol = symbol).last()
     db.session.add(lastTrade)
     db.session.commit()
     return lastTrade
-
-def update_symbols_trades_bar():    
-    grouped = []
-    for symbol in SYMBOLS:
-        last_trade = Trade.query.filter_by(symbol = symbol).order_by(Trade.transaction_time.desc()).first()
-        grouped.append({
-            "x": last_trade.symbol,
-            "y" : last_trade.pnl
-        })
-    print (grouped)
-    return grouped
     
         

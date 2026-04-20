@@ -3,8 +3,8 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_trades_bar, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_day_prices_line
-from tradingservice import update_symbols_scan_bar, update_symbols_day_prices, update_symbols_daily_prices, update_symbols_daily_prices_line, update_symbols_positions_bar
+from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_day_prices_line
+from tradingservice import get_color, update_symbols_scan_bar, update_symbols_day_prices, update_symbols_daily_prices, update_symbols_daily_prices_line, update_symbols_positions_bar
 import random
 from datetime import datetime
 
@@ -61,7 +61,7 @@ def api_linechart():
 def api_barchart_positionss():
     positionsBar = update_symbols_positions_bar()
     print (positionsBar)
-    return positionsBar
+    return jsonify(positionsBar)
 
 @tradingService.route("/api/barchart/top_symbols")
 def api_barchart_topsymbols():    
@@ -70,7 +70,7 @@ def api_barchart_topsymbols():
 
 @tradingService.route("/api/barchart/trades")
 def api_barchart_trades():
-    result = update_symbols_trades_bar()
+    result = update_symbols_trades()
     #result = build_bar_chart_json(data,schema)
     return jsonify(result)
 
@@ -88,33 +88,48 @@ def api_linechart_dailyprices():
 
 @tradingService.route("/api/table/day_prices")
 def api_day_prices():            
-    dayprices = update_symbols_day_prices()         
+    dayprices, lines = update_symbols_day_prices(True)         
     html = build_table_html(dayprices)
-    return html
+    return jsonify({
+        "html": html,
+        "lines": lines
+    })    
 
 @tradingService.route("/api/table/daily_prices")
 def api_daily_prices():
-    dailyprices = update_symbols_daily_prices()  
+    dailyprices, lines = update_symbols_day_prices(False)  
     html = build_table_html(dailyprices)
-    return html
+    return jsonify({
+        "html": html,
+        "lines": lines
+    })    
 
 @tradingService.route("/api/table/positions")
 def api_positions():
-    positions = update_symbols_positions()  
+    positions, bars = update_symbols_positions()  
     html = build_table_html(positions)
-    return html
+    return jsonify({
+        "html": html,
+        "bars": bars
+    })    
 
 @tradingService.route("/api/table/top_symbols")
 def api_topsymbols():
-    topsymbols = update_symbols_scan()
+    topsymbols, bars = update_symbols_scan()
     html = build_table_html(topsymbols)
-    return html
+    return jsonify({
+        "html": html,
+        "bars": bars
+    })        
 
 @tradingService.route("/api/table/trades")
 def api_trades():
-    trades = update_symbols_trades()
+    trades, lines = update_symbols_trades()
     html = build_table_html(trades)
-    return html
+    return jsonify({
+        "html": html,
+        "lines": lines
+    })    
 
 @tradingService.route("/api/table/account")
 def api_account():
@@ -242,10 +257,11 @@ schema = {
 
 def build_table_html(data):
     has_expand = False
+    lastitem = {}
     if isinstance(data, dict):
-        groups = data.keys()    
+        groups = data.keys()
         for group in groups:
-            lastitem = data[group][-1]
+            lastitem = data[group]["items"][-1]
             break
         cols = lastitem.keys()
         rows = lastitem.values()                    
@@ -256,40 +272,41 @@ def build_table_html(data):
     
     thead = ""
     if has_expand:
-        thead = "<tr><th></th>" + "".join([f"<th>{c}</th>" for c in cols]) + "</tr>"
+        thead = "<tr><th></th>" + "".join([f"<th>{c}</th>" for c in cols]) + f"</tr>"
     else:
-        thead = "<tr>" + "".join([f"<th>{c}</th>" for c in cols]) + "</tr>"
+        thead = "<tr>" + "".join([f"<th>{c}\</th>" for c in cols]) + "</tr>"
     tbody = ""
 
     # ================= GROUPED MODE =================
     if has_expand:
+        colors = {}
+        items = {}
         for i, row in enumerate(data):
-
+            colors = data[row]["colors"]
+            items = data[row]["items"]        
             # ===== 主行 =====
             tbody += "<tr>"
-
             if has_expand:
                 tbody += f"""
                 <td id="btn_{i}" onclick="toggleRow('{i}')" style="cursor:pointer">[+]</td>
                 """            
-            lastitem = data[row][-1]
-            values = lastitem.values()            
-            for v in values:
-                tbody += f"<td>{v}</td>"
+            lastitem = items[-1]            
+            for k, v in lastitem.items():
+                #tbody += f"<td>{v}</td>"
+                if k == "symbol":
+                    tbody += f"<td style='color:{colors}'>{v}</td>"
+                else:
+                    tbody += f"<td>{v}</td>"                
             tbody += "</tr>"    
 
             # ===== child rows（关键修复）=====
             if has_expand:
-                for item in data[row]:
+                for item in items:
                     tbody += f"<tr class='child child_{i}' style='display:none'>"
 
                     # 👉 按列对齐
                     if has_expand:
                         tbody += "<td></td>"   # button column                    
-
-                    values= item.values()
-                    keys= item.keys()
-
                     for k, v in item.items():
                         # 👉 symbol 不显示
                         if k == "symbol":
@@ -306,7 +323,11 @@ def build_table_html(data):
             #tbody += "<td></td>"
             for c in cols:
                 val = r.get(c, "")
-                tbody += f"<td>{val}</td>"
+                if c == "symbol":
+                    colors = get_color(val)
+                    tbody += f"<td style='color:{colors}'>{val}</td>"
+                else:
+                    tbody += f"<td>{val}</td>"                
             tbody += "</tr>"
     return f"""
     <table border="1" style="border-collapse:collapse;width:100%">
