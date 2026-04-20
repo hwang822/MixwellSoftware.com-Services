@@ -692,18 +692,6 @@ def update_symbols_scan():
         
     return results, bars
 
-def update_symbols_scan_bar():    
-    #from scanner import scan_market
-    results = []
-    scans = scan_market()
-    for scan in scans:
-        results.append({
-                "x": scan["symbol"],
-                "y": round(float(scan["score"]), 2),
-                "color" : get_color(scan.symbol)
-            })
-    return results
-
 ################################
 #  update_symbols_positions()  #
 ################################
@@ -740,55 +728,6 @@ def update_symbols_positions():  # core functions
         })
     return result, bars
     
-def update_symbols_positions_bar():  # core functions
-    grouped = []
-    positions = api.list_positions()
-    for pos in positions:
-        grouped.append({
-            "x": pos.symbol,
-            "y" : pos.market_value,
-            "color" : get_color(pos.symbol)
-        })
-    print (grouped)
-    return grouped
-
-################################
-# update_symbols_daily_prices()#
-################################
-
-def update_symbols_daily_prices():
-    grouped = {}
-    for symbol in SYMBOLS:
-        prices = alpaca_prices_api(symbol, 30, "1Day", 30)        
-        #grouped[symbol] = prices
-        grouped[symbol] = {"colors" : get_color(symbol), "items" : prices }
-    return grouped
-
-def update_symbols_daily_prices_line():  # core function    
-    grouped = []
-    for symbol in SYMBOLS:
-        prices = alpaca_prices_api(symbol, 30, "1Day", 30)   
-        v = []
-        lastPrice = 0
-        priceRate = 0
-
-        for price in prices:
-            currentPrice = float(price["price_close"])
-            if lastPrice==0:
-                lastPrice = float(price["price_close"])
-            else:
-                priceRate = round(float((currentPrice-lastPrice)*100),2) 
-            time_price = {"x" : price["timestamp"], "y" : priceRate}
-            v.append(time_price)                
-        grouped.append({
-                "symbol": symbol,
-                "color" : get_color(symbol),
-                "series": v
-
-            })    
-    return grouped
-
-
 
 #update_symbols_daily_prices()
 ################################
@@ -822,30 +761,6 @@ def update_symbols_day_prices(daily):  # core function
         })
     return grouped, lines
 
-def update_symbols_day_prices_line(grouped):  # core function    
-#    grouped = update_symbols_day_prices() # []
-    lines = {}
-    for symbol in grouped:
-        lines[symbol] = symbol
-        lines[symbol]["colol"] = grouped[symbol]["colol"]
-        items = grouped[symbol]["items"]
-        v = []
-        lastPrice = 0
-        priceRate = 0
-        for item in items:
-            if lastPrice==0:
-                lastPrice = float(item["price_close"])
-            else:
-                currentPrice = float(item["price_close"])
-                priceRate = round(float((currentPrice-lastPrice)*100),2) 
-                time_price = {"x" : item["timestamp"], "y" : priceRate}
-                v.append(time_price)
-        lines.append({
-            "symbol" : symbol,
-            "color"  : get_color(symbol),
-            "series" : v
-        })
-    return lines
 
 ################################
 # update_symbols_trades()      #

@@ -75,7 +75,7 @@
 
         async function updateAccountData()
         {
-            const res = await fetch("/api/table/account");
+            const res = await fetch("/api/account");
             const html = await res.text();
             document.getElementById("account_table").innerHTML = html;       
             document.getElementById("accountUpdated").textContent = "Account updated at " + getNYTime();             
@@ -83,7 +83,7 @@
 
         async function updateDayPriceData()
         {
-            const res = await fetch("/api/table/day_prices");                              
+            const res = await fetch("/api/day_prices");                              
             const data = await res.json() 
             document.getElementById("day_prices_table").innerHTML = data.html;                   
             renderLine(data.lines, 'day_prices_lineChart');
@@ -92,7 +92,7 @@
 
         async function updateDailyPriceData()
         {
-            const res = await fetch("/api/table/daily_prices");                              
+            const res = await fetch("/api/daily_prices");                              
             const data = await res.json() 
             document.getElementById("daily_prices_table").innerHTML = data.html;                   
             renderLine(data.lines, 'daily_prices_lineChart');
@@ -101,7 +101,7 @@
 
         async function updatePositionsData()
         {
-            const res = await fetch("/api/table/positions");
+            const res = await fetch("/api/positions");
             const data = await res.json()
             document.getElementById("positions_table").innerHTML = data.html;
             renderBar(data.bars, 'positions_barChart');       
@@ -110,7 +110,7 @@
         
         async function updateTopSymbolsData()
         {
-            const res = await fetch("/api/table/top_symbols");
+            const res = await fetch("/api/top_symbols");
             const data = await res.json()
             document.getElementById("top_symbols_table").innerHTML = data.html;
             renderBar(data.bars, 'top_symbols_barChart');
@@ -120,7 +120,7 @@
 
         async function updateTradesData()        
         {
-            const res = await fetch("/api/table/trades");            
+            const res = await fetch("/api/trades");            
             const data = await res.json();
             document.getElementById("trades_table").innerHTML = data.html;                        
             renderLine(data.lines, 'trades_lineChart');
@@ -135,22 +135,6 @@
                 r.style.display = isHidden ? "table-row" : "none";
             });
             btn.innerText = isHidden ? "[-]" : "[+]";
-        }
-
-        const COLOR_POOL = [
-            "#00c853", "#ff5252", "#448aff", "#ffab00", "#9c27b0",
-            "#00bcd4", "#e91e63", "#8bc34a", "#ff9800", "#3f51b5"
-        ];
-
-        const symbolColorMap = {};
-        let colorIndex = 0;
-
-        function getColor(symbol) {
-            if (!symbolColorMap[symbol]) {
-                symbolColorMap[symbol] = COLOR_POOL[colorIndex % COLOR_POOL.length];
-                colorIndex++;
-            }
-            return symbolColorMap[symbol];
         }
 
         function renderLine(data, chartName) {
@@ -208,53 +192,6 @@
             });
         }
 
-        function renderLine_1(data, chartName) {
-            lineChart = echarts.init(document.getElementById(chartName));
-            let series = [];
-            data.forEach(sym => {
-                series.push({
-                    name: sym.symbol,
-                    type: 'line',
-                    data: sym.series.map(p => p.y)
-                });
-            });
-            lineChart.setOption({
-                xAxis: {
-                    data: data[0].series.map(p => p.x)
-                },
-                yAxis: { type: 'value' },
-                series: series
-            });
-        }
-
-
-        function renderBar_color(data, chartName) {
-            const chart = echarts.init(document.getElementById(chartName));
-
-            const labels = data.map(d => d.symbol);
-            const values = data.map(d => d.value);
-
-            const colors = labels.map(sym => getColor(sym));
-
-            chart.setOption({
-                xAxis: {
-                    type: 'category',
-                    data: labels
-                },
-                yAxis: {
-                    type: 'value'
-                },
-                series: [{
-                    type: 'bar',
-                    data: values,
-                    itemStyle: {
-                        color: function(params) {
-                            return colors[params.dataIndex];
-                        }
-                    }
-                }]
-            });
-        }        
 
         function renderBar(data, chartName) {
             barChart = echarts.init(document.getElementById(chartName));    
