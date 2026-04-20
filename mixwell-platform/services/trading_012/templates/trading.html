@@ -62,7 +62,11 @@
     <hr>
 
     <!-- ================= Run Auto Trade ================= -->    
-    <h3>🚀 Run Trades <span><button onclick="startTrade(true)">Update</button></span></h3>        
+    <label>
+        <input type="checkbox" id="autoRun">
+        Auto Run
+    </label>
+    <h3>🚀 Run Trades <span><button onclick="triggerTrade()">Update</button></span></h3>        
     <p id="runTradeUpdated"> </p>
     <hr>
 
@@ -213,12 +217,6 @@
                 type: 'category',
                 data: symbols   // ✅ symbol 做 x轴
 
-                //data: data.map(d => ({
-                //    value: d.symbol,
-                //    textStyle: {
-                //        color: d.color
-                //    }
-                //}))                
             },
 
             yAxis: {
@@ -276,12 +274,32 @@
         // 模拟交易
         // ==============================
         async function triggerTrade() {
-            //await fetch('/api/trade');
+            res = await fetch('/api/run_trades');
             //await loadChart(); // 👉 只有交易才刷新
         }
 
         // 5分钟循环刷新
-        setInterval(updateTradeTime, 5 * 60 * 1000);
+        //setInterval(updateTradeTime, 5 * 60 * 1000);
+
+        setInterval(async () => {
+
+            const auto = document.getElementById("autoRun").checked;
+
+            if (!auto) {
+                console.log("Auto OFF");
+                return;
+            }
+
+            console.log("Auto RUNNING...");
+
+            // 👉 自动执行你的流程
+            await setInterval(updateTradeTime, 5 * 60 * 1000);
+            await updateDayPriceData();
+            await updatePositions();
+            await updateTradesData();
+            //await runStrategy();   // 你的交易逻辑
+
+        }, 5 * 60 * 1000);  // 每5秒（或5分钟 300000）
 
     </script>
 </body>

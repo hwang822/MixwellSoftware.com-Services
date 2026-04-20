@@ -3,7 +3,7 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, get_color, update_symbols_day_prices
+from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, get_color, update_symbols_day_prices, auto_trade, update_last_trade_info
 import random
 from datetime import datetime
 
@@ -97,8 +97,10 @@ def api_account():
     return html
 
 # 👉 模拟交易（触发更新）
+TRADES = []
 @tradingService.route("/api/run_trades")
-def api_run_trade():
+def api_run_trade():    
+    auto_trade()
     TRADES.append({
         "symbol": "AAPL",
         "time": datetime.now().strftime("%H:%M"),
@@ -108,7 +110,7 @@ def api_run_trade():
         "avg_cost": 149,
         "reason": "Auto trade"
     })
-
+    
     return jsonify({"status": "ok"})
 
 
@@ -131,7 +133,7 @@ def build_table_html(data):
     if has_expand:
         thead = "<tr><th></th>" + "".join([f"<th>{c}</th>" for c in cols]) + f"</tr>"
     else:
-        thead = "<tr>" + "".join([f"<th>{c}\</th>" for c in cols]) + "</tr>"
+        thead = "<tr>" + "".join([f"<th>{c}</th>" for c in cols]) + "</tr>"
     tbody = ""
 
     # ================= GROUPED MODE =================

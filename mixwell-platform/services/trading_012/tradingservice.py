@@ -49,6 +49,41 @@ def alpaca_prices_api(symbol, days, interver, limit):
 
 from zoneinfo import ZoneInfo  # Built-in from Python 3.9+
 
+from datetime import datetime
+
+def write_trade_log(symbol, side, price, qty, reason, transaction_time=None):
+    
+    # 1️⃣ 时间
+    now = transaction_time or datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+
+    # 2️⃣ 文件名
+    filename = f"{date_str}_trading_log.txt"
+
+    # 👉 可选：放到 logs 文件夹
+    log_dir = "logs"
+    os.makedirs(log_dir, exist_ok=True)
+    filepath = os.path.join(log_dir, filename)
+
+    # 3️⃣ 一行内容
+    line = (
+        f"{now.strftime('%Y-%m-%d %H:%M:%S')}, "
+        f"{symbol}, {side}, {price}, {qty}, {reason}\n"
+    )
+
+    # 4️⃣ 追加写入
+    with open(filepath, "a", encoding="utf-8") as f:
+        f.write(line)
+
+
+def update_last_trade_info(symbol, sdie, price, qty):    
+    
+    lastTrade = Trade.query.filter_by(symbol = symbol).last()
+    db.session.add(lastTrade)
+    db.session.commit()
+    return lastTrade
+
+
 def get_top_symbols():
     assets = api.list_assets(status='active')
 
@@ -513,7 +548,7 @@ def auto_trade():
 
         price = get_current_price(symbol)
         pos = Position.query.filter_by(symbol=symbol).first()
-        qty = 10  # 固定买入数量，可改成策略
+        #qty = 10  # 固定买入数量，可改成策略
         buy_flag = False
         sell_flag = False
         # 买入策略
@@ -531,20 +566,29 @@ def auto_trade():
         if pos and pos.quantity > 0:
             pnl = (price - pos.avg_price) * pos.quantity
             sell_flag, reason = should_sell(symbol, price, pos.avg_price, pnl)
-    #        if sell_flag:
-    #            print (f"Sell {symbol} at {price}, {reason}")
+            if sell_flag:
+                print (f"Sell {symbol} at {price}, {reason}")
                 #sell(symbol, reason)
 
+        #for test
+        #qty = int(2000/price)
+        #write_trade_log(symbol, "buy", price, qty, reason) 
 
         # ❌ 冲突处理
         if buy_flag and sell_flag:
             print (f"Hold {symbol} at {price}, 同一根K线内冲突!")
         if buy_flag:
             print (f"Buy {symbol} at {price}, {reason}")
+            qty = int(2000/price)
+            #update_last_trade_info(symbol, "buy", price, qty)            
+            #buy(symbol, reason)
+            write_trade_log(symbol, "buy", price, qty, reason) 
 
         if sell_flag:
             print (f"Sell {symbol} at {price}, {reason}")
-            sell(symbol, reason)
+            #update_last_trade_info(symbol, "sell", price)            
+            write_trade_log(symbol, "sell", price, qty, reason) 
+            #sell(symbol, reason)
 
 
 ######################
@@ -845,10 +889,5 @@ def update_symbols_trades():
         #save_activities(grouped)
     return grouped, lines
 
-def update_last_trade_info(symbol, sdie, price):    
-    lastTrade = Trade.query.filter_by(symbol = symbol).last()
-    db.session.add(lastTrade)
-    db.session.commit()
-    return lastTrade
     
         
