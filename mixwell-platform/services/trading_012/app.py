@@ -3,12 +3,7 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, get_color, update_symbols_day_prices, auto_trade, update_last_trade_info
-import random
-from datetime import datetime
-
-#app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///trades.db"
-#app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, get_color, update_symbols_prices, auto_trade, update_last_trade_info
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -47,7 +42,7 @@ def home():
 
 @tradingService.route("/api/day_prices")
 def api_day_prices():            
-    dayprices, lines = update_symbols_day_prices(True)         
+    dayprices, lines = update_symbols_prices(False)         
     html = build_table_html(dayprices)
     return jsonify({
         "html": html,
@@ -56,7 +51,7 @@ def api_day_prices():
 
 @tradingService.route("/api/daily_prices")
 def api_daily_prices():
-    dailyprices, lines = update_symbols_day_prices(False)  
+    dailyprices, lines = update_symbols_prices(True)  
     html = build_table_html(dailyprices)
     return jsonify({
         "html": html,
@@ -90,6 +85,7 @@ def api_trades():
         "lines": lines
     })    
 
+
 @tradingService.route("/api/account")
 def api_account():
     account = update_user_account()
@@ -97,22 +93,10 @@ def api_account():
     return html
 
 # 👉 模拟交易（触发更新）
-TRADES = []
 @tradingService.route("/api/run_trades")
 def api_run_trade():    
     auto_trade()
-    TRADES.append({
-        "symbol": "AAPL",
-        "time": datetime.now().strftime("%H:%M"),
-        "action": "BUY",
-        "price": random.randint(149, 155),
-        "qty": 10,
-        "avg_cost": 149,
-        "reason": "Auto trade"
-    })
-    
     return jsonify({"status": "ok"})
-
 
 def build_table_html(data):
     has_expand = False

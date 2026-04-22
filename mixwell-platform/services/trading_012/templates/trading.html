@@ -7,7 +7,6 @@
     <title>Trading Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-
     <style>
         body { font-family: Arial; }
         table {border-collapse: collapse;} /* 很重要，避免双线 */
@@ -21,36 +20,46 @@
 </head>
 <body>
     <h2>Trading Dashboard</h2>
-    <h3>Auto Update Every 5 Minutes</h3>
+    <hr>
     <p>🤖 New York Time: <span id="time">Loading...</span></p>
     <div id="table_container"></div>    
     <hr>
     
-    <h3>📈 Today Prices <span><button onclick="updateDayPriceData(true)">Update</button></span></h3>
+    <!-- ================= Run Auto Trade ================= -->    
+    <h3>🚀 Run Trades</h3>
+    <div style="display:flex; align-items:center; gap:12px;">
+        <label style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="autoRun"> Auto Run </label>
+        <button onclick="triggerTrade()">🚀 Run Trades </button>
+    </div>
+    <p id="runTradeUpdated"> </p>
+    <hr>
+
+    <h3>📈 Today Prices (Prices in Today) <span><button onclick="updateDayPriceData()">Update</button></span></h3>
     <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
     <table id="day_prices_table" border="1"></table>
     <p id="dayPricesUpdated"> </p>
     <hr>
     
-    <h3>📉 Month Prices <span><button onclick="updateDailyPriceData(true)">Update</button></span></h3>
+    <h3>📉 Month Prices (Prices in 30 days) <span><button onclick="updateDailyPriceData()">Update</button></span></h3>
     <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
     <table id="daily_prices_table" border="1"></table>
     <p id="dailyPricesUpdated"> </p>
     <hr>
 
-    <h3>💼 Positions <span><button onclick="updatePositionsData(true)">Update</button></span></h3>
+    <h3>💼 Positions (Market Value) <span><button onclick="updatePositionsData(true)">Update</button></span></h3>
     <div id="positions_barChart" style="width:100%;height:400px;"></div>
     <table id="positions_table" border="1"></table>
     <p id="positionsUpdated"> </p>
     <hr>    
 
-    <h3>📊 Trades <span><button onclick="updateTradesData(true)">Update</button></span></h3>
+    <h3>📊 Trades (PNL) <span><button onclick="updateTradesData(true)">Update</button></span></h3>
     <div id="trades_lineChart" style="width:100%;height:400px;"></div>    
     <table id="trades_table" border="1"></table>
     <p id="tradesUpdated"> </p>
     <hr>
 
-    <h3>🔥 Top Symbols <span><button onclick="updateTopSymbolsData(true)">Update</button></span></h3>
+    <h3>🔥 Top Symbols (Score) <span><button onclick="updateTopSymbolsData(true)">Update</button></span></h3>
     <div id="top_symbols_barChart" style="width:100%;height:400px;"></div>    
     <table id="top_symbols_table" border="1"></table>
     <p id="scansUpdated"> </p>
@@ -59,15 +68,6 @@
     <h3>💰 Account <span><button onclick="updateAccountData(true)">Update</button></span></h3>
     <table id="account_table" border="1"></table>
     <p id="accountUpdated"> </p>
-    <hr>
-
-    <!-- ================= Run Auto Trade ================= -->    
-    <label>
-        <input type="checkbox" id="autoRun">
-        Auto Run
-    </label>
-    <h3>🚀 Run Trades <span><button onclick="triggerTrade()">Update</button></span></h3>        
-    <p id="runTradeUpdated"> </p>
     <hr>
 
     <script>
@@ -152,22 +152,28 @@
                 if (idx === 0) {
                     xAxis = sym.series.map(p => p.x);
                 }
-                const color = sym.colors
+                const color = sym.color
+                console.log("sym: ", sym)
+                console.log("sym colors: ", color)
 
                 series.push({
                     name: sym.symbol,
                     type: 'line',
+                    showSymbol: true,
                     data: sym.series.map(p => {
 
                         if (typeof p.y === "number") {
-                            return { value: p.y, symbol: "none" };
+                            return {
+                                value: [p.x, p.y],
+                                symbol: "none"
+                            };
                         }
 
                         if (typeof p.y === "object") {
                             const isBuy = p.y.side === "buy";
-
+                            console.log("p.y.prices: ", p.y.price)
                             return {
-                                value: p.y.price,
+                                value: [p.x, p.y.price],
                                 symbol: "circle",
                                 symbolSize: 10,
                                 itemStyle: {
@@ -175,15 +181,9 @@
                                 }
                             };
                         }
-                    }),
+                    })
+                });                
 
-                    lineStyle: {
-                        color: color,
-                        width: 2
-                    },
-
-                    showSymbol: false
-                });
             });
 
             chart.setOption({
@@ -191,7 +191,9 @@
                     data: data.map(d => d.symbol)
                 },
                 xAxis: { type: "category", data: xAxis },
-                yAxis: { type: "value" },
+                yAxis: {
+                    type: "value"
+                },
                 series: series
             });
         }
@@ -209,7 +211,7 @@
                 formatter: (p) => {
                     return `
                         ${p.name}<br/>
-                        Change: ${(p.value * 100).toFixed(2)}%
+                        Change: ${(p.value).toFixed(2)}%
                     `;
                 }
             },
@@ -222,7 +224,7 @@
             yAxis: {
                 type: 'value',
                 axisLabel: {
-                    formatter: (v) => (v * 100).toFixed(2) + "%"
+                    formatter: (v) => (v).toFixed(2) + "%"
                 }
             },
             series: [{
@@ -251,16 +253,6 @@
                 timeZoneName: "short"
             });
         }
-
-        function isBestTradeTime() {
-            const now = getNYTime();
-            const currentMinutes = now.getHours() * 60 + now.getMinutes();
-            return TRADE_WINDOWS.some(w => {
-                const start = w.start[0] * 60 + w.start[1];
-                const end   = w.end[0] * 60 + w.end[1];
-                return currentMinutes >= start && currentMinutes <= end;
-            });
-        }
         
         updateTradeTime()
         updateAccountData()
@@ -275,6 +267,8 @@
         // ==============================
         async function triggerTrade() {
             res = await fetch('/api/run_trades');
+            updatePositionsData()
+            updateTradesData()            
             //await loadChart(); // 👉 只有交易才刷新
         }
 
@@ -295,8 +289,7 @@
             // 👉 自动执行你的流程
             await setInterval(updateTradeTime, 5 * 60 * 1000);
             await updateDayPriceData();
-            await updatePositions();
-            await updateTradesData();
+            await updatePositionsData();
             //await runStrategy();   // 你的交易逻辑
 
         }, 5 * 60 * 1000);  // 每5秒（或5分钟 300000）
