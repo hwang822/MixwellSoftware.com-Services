@@ -29,7 +29,7 @@
     <h3>🚀 Run Trades</h3>
     <div style="display:flex; align-items:center; gap:12px;">
         <label style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="autoRun"> Auto Run </label>
+        <input type="checkbox" id="autoRun"> Auto Run </label>
         <button onclick="triggerTrade()">🚀 Run Trades </button>
     </div>
     <p id="runTradeUpdated"> </p>
@@ -153,8 +153,6 @@
                     xAxis = sym.series.map(p => p.x);
                 }
                 const color = sym.color
-                console.log("sym: ", sym)
-                console.log("sym colors: ", color)
 
                 series.push({
                     name: sym.symbol,
@@ -171,7 +169,6 @@
 
                         if (typeof p.y === "object") {
                             const isBuy = p.y.side === "buy";
-                            console.log("p.y.prices: ", p.y.price)
                             return {
                                 value: [p.x, p.y.price],
                                 symbol: "circle",
@@ -267,8 +264,15 @@
         // ==============================
         async function triggerTrade() {
             res = await fetch('/api/run_trades');
+            updateTradeTime()
+            updateAccountData()
+            updateDayPriceData()        
+            updateDailyPriceData()
             updatePositionsData()
-            updateTradesData()            
+            updateTopSymbolsData()        
+            updateTradesData()
+            document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
+
             //await loadChart(); // 👉 只有交易才刷新
         }
 
