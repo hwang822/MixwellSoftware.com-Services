@@ -15,7 +15,7 @@ app.jinja_loader.searchpath.append(shared_templates)
 print("Shared templates:", shared_templates)  
 sys.path.insert(0, f"{base_dir}")
 
-baseport = 8000 #int(Config.PORTAL_PORT)
+baseport = int(Config.PORTAL_PORT)
 baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
 serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 
