@@ -506,7 +506,7 @@ def is_best_trading_time(ts):
     return morning or afternoon
 
 def auto_trade():
-    #if is_best_trading_time(datetime.now()):
+    if is_best_trading_time(datetime.now()):
         for symbol in SYMBOLS:
             try:        
                 pos = get_symbol_position(symbol) #Position.query.filter_by(symbol=symbol).first()
@@ -760,8 +760,8 @@ def update_symbols_prices(daily):  # core function
             "series" : v
         })
 
-    trades, trade_lines = update_symbols_trades()
-    merge_all(lines, trade_lines)
+    #trades, trade_lines = update_symbols_trades()
+    #lines_merged = merge_all(lines, trade_lines)
 
     return grouped, lines
 
