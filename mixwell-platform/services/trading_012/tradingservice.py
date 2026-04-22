@@ -4,6 +4,7 @@ import sys
 import hashlib
 from zoneinfo import ZoneInfo
 import alpaca_trade_api as tradeapi
+from datetime import datetime, time, timedelta, timezone
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -12,7 +13,6 @@ from servicemodels import Position, Trade, DailyPrice, db
 
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
-from datetime import datetime, time, timedelta, timezone
 
 #get_alpaca_prices_api("AAPL", 3, "5min", 100)
 #get_alpaca_prices_api("AAPL", 20, "1Day", 30)
@@ -365,49 +365,6 @@ def get_moving_averages(symbol, periods=[5, 20, 50]):
             ma[period] = sum([r.avg_price for r in rows]) / len(rows)
     return ma
 
-def should_buy_1(symbol, position):
-    # 买入策略
-    
-    if in_cooldown(symbol):  #冷却时间（防止连续买）
-        reason = f"⏳ cooldown {symbol}"
-        buy_flag = False
-        return buy_flag , reason
-
-    if get_buy_count(symbol) >= MAX_ADD: #加仓控制（允许但有限制, 最多加仓2次）        
-        reason = f"⛔ {symbol} max add reached"
-        buy_flag = False
-        return buy_flag, reason
-
-    #account = api.get_account()
-    cash = 10000 #float(account.cash)
-    equity = 2000 #float(account.equity)
-    price = get_current_price(symbol)
-
-    #if (equity - cash) / equity > MAX_TOTAL_EXPOSURE:
-    #    buy_flag = False
-    #    reason = f"⛔ too much exposure"
-    #    return buy_flag, reason
-
- 
-        
-    last_high = get_last_n_high(symbol, 20)
-    ma = get_moving_averages(symbol, [5, 20])
-    ma_short = ma[5]
-    ma_long = ma[20]
-
-#    buy_flag, reason = should_buy(symbol, price, last_high, ma_short, ma_long)
-        
-    # 突破策略 + 均线策略
-    if price > last_high:
-        return True, "Breakout above high"
-    if ma_short > ma_long and price > ma_short:
-        return True, "Bullish crossover"
-
-    return False, ""
-
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
 def should_buy(symbol, position):
     prices = get_alpaca_prices_api(symbol, 1, "5min", 30)
     buy_flag = False    
@@ -487,24 +444,6 @@ def should_sell(symbol, position):
 
     return False, f"HOLD {pct:.2f}%"
 
-def should_sell_1(symbol, position):
-    sell_flag = False
-    reason = ""
-    if position > 0:  # 不卖空头支票 position.qty 《= 0
-        price = get_current_price(symbol)
-        qty = int (position.qty)
-        cost = float(position.cost_basis)
-        pnl = price*qty-cost
-        pct = pnl / abs(cost) * 100 if cost else 0            
-        if pct <= -2:
-            reason = f"PNL % = {pct} <= -2 SELL (STOP LOSS) "
-            sell_flag = True
-        elif pct >= 3:
-            reason = f" PNL % = {pct} >= 3 SELL (TAKE PROFIT) "
-            sell_flag = True
-        else:
-            reason = f" PNL % = {pct}, (-2, 3) HOLD "        
-    return sell_flag, reason
 
 COOLDOWN_MINUTES = 15
 def in_cooldown(symbol):
@@ -582,12 +521,14 @@ def auto_trade():
                     print (f"Hold {symbol} at {price}, 同一根K线内冲突!")
                     continue
                 if sell_flag:
-                    sell_qty = int(pos.qty) 
+                    qty = int(pos.qty)
+                    side = "sell" if qty > 0 else "buy"
+                    sell_qty = abs(qty) 
                     """                           
                     api.submit_order(
                         symbol=symbol,
                         qty=sell_qty,
-                        side="sell",
+                        side=side,
                         type="market",
                         time_in_force="day"
                     )
@@ -760,6 +701,26 @@ def update_symbols_positions():  # core functions
     return result, bars
     
 
+def merge_all(price_lines, trade_lines):
+    result = []
+
+    trade_map = {t["symbol"]: t["series"] for t in trade_lines}
+
+    for p in price_lines:
+        symbol = p["symbol"]
+        price_series = p["series"]
+        trade_series = trade_map.get(symbol, [])
+
+        merged_series = merge_price_and_trades(price_series, trade_series)
+
+        result.append({
+            "symbol": symbol,
+            "color": p["color"],
+            "series": merged_series
+        })
+
+    return result
+
 #update_symbols_daily_prices()
 ################################
 # update_symbols_prices()  #
@@ -798,8 +759,53 @@ def update_symbols_prices(daily):  # core function
             "color"  : get_color(symbol),
             "series" : v
         })
+
+    trades, trade_lines = update_symbols_trades()
+    merge_all(lines, trade_lines)
+
     return grouped, lines
 
+def merge_price_and_trades(price_series, trade_series):
+    merged = []
+
+    # 加入 price
+    for p in price_series:
+        merged.append({
+            "x": p["x"],
+            "y": p["y"]
+        })
+
+    # 加入 trade（保持 object）
+    for t in trade_series:
+        merged.append({
+            "x": t["x"],
+            "y": t["y"]
+        })
+
+    # 🔥 关键：按时间排序
+    merged.sort(key=lambda i: i["x"])
+
+    return merged
+
+def merge_all(price_lines, trade_lines):
+    result = []
+
+    trade_map = {t["symbol"]: t["series"] for t in trade_lines}
+
+    for p in price_lines:
+        symbol = p["symbol"]
+        price_series = p["series"]
+        trade_series = trade_map.get(symbol, [])
+
+        merged_series = merge_price_and_trades(price_series, trade_series)
+
+        result.append({
+            "symbol": symbol,
+            "color": p["color"],
+            "series": merged_series
+        })
+
+    return result
 
 ################################
 # update_symbols_trades()      #
