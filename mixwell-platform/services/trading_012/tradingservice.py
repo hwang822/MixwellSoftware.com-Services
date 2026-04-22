@@ -91,6 +91,10 @@ def get_color(symbol):
     hue = h % 360
     return f"hsl({hue}, 70%, 50%)"
 
+SYMBOL_COLORS = {}
+for symbol in SYMBOLS:
+    SYMBOL_COLORS[symbol] = get_color(symbol) 
+
 def utc_to_est(time_str):
     # 1️⃣ 解析 UTC 字符串
     dt_utc = datetime.strptime(time_str, "%Y-%m-%d %H:%M")
@@ -274,16 +278,6 @@ def execute_sell(pos, price, reason):
 
     except Exception as e:
         print("Sell error:", e)
-
-position = {
-    "symbol": str,
-    "qty": float,
-    "cost": float,        # 你的 total_cost（剩余本金）
-    "avg_price": float,
-    "unrealized_pnl": float,
-    "profit_pct": float,
-    "status": str
-}
 
 def scan_top_50_symbols():
     symbols =get_top_symbols() # get_tradable_symbols()   # 你已有 or Alpaca assets
@@ -659,8 +653,8 @@ def update_symbols_scan():
         bars.append({
                 "x": scan["symbol"],
                 "y": round(float(scan["score"]), 2),
-                "color" : get_color(scan["symbol"])
-            })
+                "color" : SYMBOL_COLORS[scan["symbol"]]
+                })
         
     return results, bars
 
@@ -696,7 +690,7 @@ def update_symbols_positions():  # core functions
         bars.append({
             "x": pos.symbol,
             "y" : abs(mv -cost),
-            "color" : get_color(pos.symbol)
+            "color" : SYMBOL_COLORS[pos.symbol]
         })
     return result, bars
     
@@ -736,10 +730,11 @@ def update_symbols_prices(daily):  # core function
             prices = get_alpaca_prices_api(symbol, 1, "5min", 100)   
         if not prices:
             return grouped, lines 
-        grouped[symbol] = {"colors" : get_color(symbol), "items" : prices }    
+        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : prices }    
         v = []
         lastPrice = 0
         priceRate = 0
+        currentPrice = 0
         for price in prices:
             ts = datetime.fromisoformat(price["timestamp"])
 
@@ -751,14 +746,19 @@ def update_symbols_prices(daily):  # core function
                 lastPrice = float(price["price_close"])
             else:
                 currentPrice = float(price["price_close"])
-                priceRate = round(float((currentPrice-lastPrice)*100),2) 
+                if lastPrice == 0:
+                    priceRate = 0    
+                else: 
+                    priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)                 
                 time_price = {"x" : time, "y" : priceRate}
                 v.append(time_price)
+
         lines.append({
             "symbol" : symbol,
-            "color"  : get_color(symbol),
+            "color"  : SYMBOL_COLORS[symbol],
             "series" : v
         })
+        
 
     #trades, trade_lines = update_symbols_trades()
     #lines_merged = merge_all(lines, trade_lines)
@@ -903,10 +903,10 @@ def update_symbols_trades():
                     "reason" : t.side
                 }}
             v.append(time_price)                     
-        grouped[symbol] = {"colors" : get_color(symbol), "items" : trade_datas }
+        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : trade_datas }
         lines.append({
             "symbol" : symbol,
-            "color"  : get_color(symbol),
+            "color"  : SYMBOL_COLORS[symbol],
             "series" : v
         })
         #save_activities(grouped)

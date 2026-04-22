@@ -146,18 +146,27 @@
 
             let series = [];
             let xAxis = [];
-
+            const colors = data.map(d => d.color);
+            //console.log("renderLine colors", colors)
             data.forEach((sym, idx) => {
 
                 if (idx === 0) {
                     xAxis = sym.series.map(p => p.x);
-                }
-                const color = sym.color
-
+                }                
                 series.push({
                     name: sym.symbol,
                     type: 'line',
                     showSymbol: true,
+
+                    lineStyle: {
+                        color: colors[idx]   // ✅ line color
+                    },
+
+                    itemStyle: {
+                        color: colors[idx]   // ✅ legend + points color
+                    },
+
+
                     data: sym.series.map(p => {
 
                         if (typeof p.y === "number") {
@@ -201,8 +210,8 @@
             const symbols = data.map(d => d.x);
             const labels = data.map(d => d.symbol);
             const values = data.map(d => d.y);
-            //const colors = labels.map(sym => getColor(sym));
             const colors = data.map(d => d.color);            
+
             barChart.setOption({
             tooltip: {
                 formatter: (p) => {
@@ -212,12 +221,23 @@
                     `;
                 }
             },
+
             xAxis: {
                 type: 'category',
-                data: symbols   // ✅ symbol 做 x轴
-
+                data: symbols,
+                axisLabel: {
+                    formatter: function (value, index) {
+                        return `{color${index}|${value}}`;
+                    },
+                    rich: symbols.reduce((acc, _, i) => {
+                        acc[`color${i}`] = {
+                            color: colors[i]
+                        };
+                        return acc;
+                    }, {})
+                }
             },
-
+            
             yAxis: {
                 type: 'value',
                 axisLabel: {
@@ -264,13 +284,13 @@
         // ==============================
         async function triggerTrade() {
             res = await fetch('/api/run_trades');
-            updateTradeTime()
-            updateAccountData()
+            //updateTradeTime()
+            //updateAccountData()
             updateDayPriceData()        
-            updateDailyPriceData()
-            updatePositionsData()
-            updateTopSymbolsData()        
-            updateTradesData()
+            //updateDailyPriceData()
+            //updatePositionsData()
+            //updateTopSymbolsData()        
+            //updateTradesData()
             document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
 
             //await loadChart(); // 👉 只有交易才刷新

@@ -3,7 +3,7 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, get_color, update_symbols_prices, auto_trade, update_last_trade_info
+from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_prices, auto_trade, update_last_trade_info, SYMBOL_COLORS
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -167,7 +167,7 @@ def build_table_html(data):
             for c in cols:
                 val = r.get(c, "")
                 if c == "symbol":
-                    colors = get_color(val)
+                    colors = SYMBOL_COLORS[val]
                     tbody += f"<td style='color:{colors}'>{val}</td>"
                 else:
                     tbody += f"<td>{val}</td>"                
