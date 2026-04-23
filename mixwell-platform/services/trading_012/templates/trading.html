@@ -217,7 +217,7 @@
                 formatter: (p) => {
                     return `
                         ${p.name}<br/>
-                        Change: ${(p.value).toFixed(2)}%
+                        Change: ${(p.value).toFixed(2)}
                     `;
                 }
             },
@@ -241,7 +241,7 @@
             yAxis: {
                 type: 'value',
                 axisLabel: {
-                    formatter: (v) => (v).toFixed(2) + "%"
+                    formatter: (v) => (v).toFixed(2)
                 }
             },
             series: [{
