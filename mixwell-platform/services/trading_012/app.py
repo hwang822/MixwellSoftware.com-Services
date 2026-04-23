@@ -3,7 +3,7 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_prices, auto_trade, update_last_trade_info, SYMBOL_COLORS
+from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_daily_prices, update_symbols_day_prices, auto_trade, update_last_trade_info, SYMBOL_COLORS
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -42,7 +42,7 @@ def home():
 
 @tradingService.route("/api/day_prices")
 def api_day_prices():            
-    dayprices, lines = update_symbols_prices(False)         
+    dayprices, lines = update_symbols_day_prices()         
     html = build_table_html(dayprices)
     return jsonify({
         "html": html,
@@ -51,7 +51,7 @@ def api_day_prices():
 
 @tradingService.route("/api/daily_prices")
 def api_daily_prices():
-    dailyprices, lines = update_symbols_prices(True)  
+    dailyprices, lines = update_symbols_daily_prices()  
     html = build_table_html(dailyprices)
     return jsonify({
         "html": html,

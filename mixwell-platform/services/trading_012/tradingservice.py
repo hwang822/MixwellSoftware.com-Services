@@ -720,14 +720,11 @@ def merge_all(price_lines, trade_lines):
 # update_symbols_prices()  #
 ################################
 
-def update_symbols_prices(daily):  # core function    
+def update_symbols_day_prices():  # core function    
     lines = []
     grouped = {}    
     for symbol in SYMBOLS:
-        if daily:
-            prices = get_alpaca_prices_api(symbol, 30, "1Day", 30)      
-        else:
-            prices = get_alpaca_prices_api(symbol, 1, "5min", 100)   
+        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)   
         if not prices:
             return grouped, lines 
         grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : prices }    
@@ -737,11 +734,6 @@ def update_symbols_prices(daily):  # core function
         currentPrice = 0
         for price in prices:
             ts = datetime.fromisoformat(price["timestamp"])
-
-            if daily:
-                time = f"{ts.month}/{ts.day}"
-            else:
-                time = ts.strftime("%H:%M")
             if lastPrice==0:
                 lastPrice = float(price["price_close"])
             else:
@@ -750,7 +742,45 @@ def update_symbols_prices(daily):  # core function
                     priceRate = 0    
                 else: 
                     priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)                 
-                time_price = {"x" : time, "y" : priceRate}
+                time_price = {"x" : ts, "y" : priceRate}
+                v.append(time_price)
+
+        lines.append({
+            "symbol" : symbol,
+            "color"  : SYMBOL_COLORS[symbol],
+            "series" : v
+        })
+        
+
+    #trades, trade_lines = update_symbols_trades()
+    #lines_merged = merge_all(lines, trade_lines)
+
+    return grouped, lines
+
+
+def update_symbols_daily_prices():  # core function    
+    lines = []
+    grouped = {}    
+    for symbol in SYMBOLS:
+        prices = get_alpaca_prices_api(symbol, 30, "1Day", 30)      
+        if not prices:
+            continue 
+        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : prices }    
+        v = []
+        lastPrice = 0
+        priceRate = 0
+        currentPrice = 0
+        for price in prices:
+            ts = datetime.fromisoformat(price["timestamp"])
+            if lastPrice==0:
+                lastPrice = float(price["price_close"])
+            else:
+                currentPrice = float(price["price_close"])
+                if lastPrice == 0:
+                    priceRate = 0    
+                else: 
+                    priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)                 
+                time_price = {"x" : ts, "y" : priceRate}
                 v.append(time_price)
 
         lines.append({
