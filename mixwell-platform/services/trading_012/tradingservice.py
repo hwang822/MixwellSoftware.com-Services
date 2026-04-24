@@ -1,4 +1,5 @@
 
+import json
 import os
 import sys
 import hashlib
@@ -40,7 +41,7 @@ def get_alpaca_prices_api(symbol, days, interver, limit):
                 "volume" : bar.volume,
                 "high" : bar.high,
                 "low" : bar.low,
-                "timestamp" : utc_to_est((index).strftime("%Y-%m-%d %H:%M")) 
+                "timestamp" : utc_to_est((index).strftime("%Y-%m-%d %H:%M"))
                 })             
     return result 
 
@@ -433,8 +434,8 @@ def should_sell(symbol, position):
         return True, f"TAKE PROFIT {pct:.2f}%"
 
     # optional trailing logic
-    if pct > 1 and price < max_entry_price * 0.99:
-        return True, "TRAIL STOP"
+#    if pct > 1 and price < max_entry_price * 0.99:
+#        return True, "TRAIL STOP"
 
     return False, f"HOLD {pct:.2f}%"
 
@@ -475,6 +476,17 @@ def get_symbol_position(symbol):
     positions = api.list_positions()
     pos = next((p for p in positions if p.symbol == symbol), None)
     return pos
+
+def is_trading_time(ts):
+    """
+    ts: datetime (UTC or timezone-aware)
+    return: True / False
+    """
+    ny = ts.astimezone(ZoneInfo("America/New_York"))
+    t = ny.time()
+    # 上午 10:00–12:00
+    return time(10, 0) <= t <=  time(16, 0)
+    # 09:30 - 16:00 
 
 def is_best_trading_time(ts):
     """
@@ -694,69 +706,228 @@ def update_symbols_positions():  # core functions
         })
     return result, bars
     
-
-def merge_all(price_lines, trade_lines):
-    result = []
-
-    trade_map = {t["symbol"]: t["series"] for t in trade_lines}
-
-    for p in price_lines:
-        symbol = p["symbol"]
-        price_series = p["series"]
-        trade_series = trade_map.get(symbol, [])
-
-        merged_series = merge_price_and_trades(price_series, trade_series)
-
-        result.append({
-            "symbol": symbol,
-            "color": p["color"],
-            "series": merged_series
-        })
-
-    return result
-
 #update_symbols_daily_prices()
 ################################
 # update_symbols_prices()  #
 ################################
 
-def update_symbols_day_prices():  # core function    
-    lines = []
+def get_trade_color(action):
+    return {
+        "buy": "green",     # 买
+        "sell": "red",      # 卖
+        "hold": "yellow",   # 不卖
+        "skip": "blue"      # 不买
+    }.get(action, "gray")
+
+
+def load_today_log():
+    file = get_today_file()
+
+    if not os.path.exists(file):
+        return []
+
+    logs = []
+
+    with open(file, "r", encoding="utf-8") as f:
+        for line in f:
+            try:
+                logs.append(json.loads(line))
+            except Exception:
+                continue   # 防止单行损坏影响整体
+
+    return logs
+
+LOG_DIR = "logs"
+
+def get_today_file():
+    tz = ZoneInfo("America/New_York")
+    today = datetime.now(tz).strftime("%Y-%m-%d")
+    return os.path.join(LOG_DIR, f"{today}_trading_log.jsonl")
+
+
+def add_today_log(record):
+    """
+    record:
+    {
+        "symbol": "NVDA",
+        "x": datetime or "2026-04-23 10:05",
+        "price": 875.2,
+        "trade": {...} or None
+    }
+    """
+    # 👉 确保目录存在
+    os.makedirs(LOG_DIR, exist_ok=True)
+
+    file = get_today_file()
+
+    # 👉 时间统一格式（强烈建议）
+    if isinstance(record.get("x"), datetime):
+        record["x"] = record["x"].strftime("%Y-%m-%d %H:%M")
+
+    # 👉 自动补字段（避免结构不一致）
+    record.setdefault("symbol", "")
+    record.setdefault("price", None)
+    record.setdefault("trade", None)
+
+    # 👉 如果 trade 存在，自动补 color
+    if record["trade"] and "color" not in record["trade"]:
+        action = record["trade"].get("action")
+        record["trade"]["color"] = {
+            "buy": "green",
+            "sell": "red",
+            "hold": "yellow",
+            "skip": "blue"
+        }.get(action, "gray")
+
+    # 👉 写入（append 模式）
+    with open(file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+
+def should_trade(symbol, time, pos):
+    try:
+        #pos = get_symbol_position(symbol) #Position.query.filter_by(symbol=symbol).first()
+        # 卖出策略
+        sell_flag, sell_reason = should_sell(symbol, pos)
+        # 买入策略
+        buy_flag, buy_reason = should_buy(symbol, pos)
+        price = get_current_price(symbol)
+        # ❌ 冲突处理
+        if buy_flag and sell_flag:
+            reason = f"Hold {symbol} at {price}, 同一根K线内冲突!"
+            print (reason)
+            action = "skip"
+            trade = {
+                "symbol": symbol,
+                "time": time,
+                "price": price,
+                "action": action,
+                "reason": sell_reason,
+                "color": get_trade_color(action)
+            }              
+            #add_today_log(trade)
+            return trade            
+        if sell_flag:
+            qty = int(pos.qty)
+            action = "sell" if qty > 0 else "buy"
+            sell_qty = abs(qty) 
+            """                           
+            api.submit_order(
+                symbol=symbol,
+                qty=sell_qty,
+                side=side,
+                type="market",
+                time_in_force="day"
+            )
+            """            
+            trade = {
+                "symbol": symbol,
+                "time": time,
+                "price": price,
+                "action": action,
+                "reason": sell_reason,
+                "color": get_trade_color(action)
+            }              
+            #add_today_log(trade)        
+            return trade
+
+        elif buy_flag:
+            buy_qty = int(2000/price)
+            action = "buy"
+            """
+            api.submit_order(
+                symbol=symbol,
+                qty= buy_qty,
+                side="buy",
+                type="market",
+                time_in_force="day"
+            )  
+            """                     
+            trade = {
+                "symbol": symbol,
+                "time": time,
+                "price": price,
+                "action": action,
+                "reason": buy_reason,
+                "color": get_trade_color(action)
+            }
+            return trade
+            #add_today_log(trade)        
+        else:
+            action = "skip"
+            reason = "No buy, No shell"
+            trade = {
+                "symbol": symbol,
+                "time": time,
+                "price": price,
+                "action": action,
+                "reason": reason,
+                "color": get_trade_color(action)
+            }
+            #add_today_log(trade)
+            return trade        
+    except Exception as e:
+        print (e)
+        action = "error"                
+        trade = {            
+            "symbol": symbol,
+            "time": time,
+            "price": price,
+            "action": action,
+            "reason": reason,
+            "color": get_trade_color(action)
+        }              
+        #add_today_log(trade)            
+        return trade
+
+def get_NYTime_from_localTime(local_tiem):
+    local_tz = datetime.now().astimezone().tzinfo
+    local_time = datetime.now(local_tz)
+    ny_tz = ZoneInfo("America/New_York")
+    return local_time.astimezone(ny_tz)    
+
+def update_symbols_day_prices():  # core function        
     grouped = {}    
+    lines = []
     for symbol in SYMBOLS:
-        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)   
+        position = get_symbol_position(symbol)
+
+        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
         if not prices:
             return grouped, lines 
         grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : prices }    
-        v = []
+    
+        vpmissed = []
+        vp = []
         lastPrice = 0
         priceRate = 0
         currentPrice = 0
-        for price in prices:
-            ts = datetime.fromisoformat(price["timestamp"])
-            if lastPrice==0:
-                lastPrice = float(price["price_close"])
-            else:
-                currentPrice = float(price["price_close"])
-                if lastPrice == 0:
-                    priceRate = 0    
-                else: 
+        for price in prices:   # only collect prices in side tracking time.
+            time = datetime.strptime(price["timestamp"], "%Y-%m-%d %H:%M")            
+            if is_trading_time(time):                                                                        
+                if lastPrice==0:
+                    lastPrice = float(price["price_close"])
+                else:
+                    currentPrice = float(price["price_close"])
                     priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)                 
-                time_price = {"x" : ts, "y" : priceRate}
-                v.append(time_price)
-
+                trade = None
+                #if is_best_trading_time(time):
+                #    trade = should_trade(symbol, time, position) #update with trade, to check if has trade
+                time_price = {
+                    "x" : time, 
+                    "y" : priceRate,
+                    "trade" : trade 
+                }
+                vp.append(time_price)
+            else:
+                vpmissed.append(time_price)            
+        if len(vp)==0:
+            vp = vpmissed # all old data
         lines.append({
             "symbol" : symbol,
             "color"  : SYMBOL_COLORS[symbol],
-            "series" : v
+            "series" : vp
         })
-        
-
-    #trades, trade_lines = update_symbols_trades()
-    #lines_merged = merge_all(lines, trade_lines)
-
     return grouped, lines
-
 
 def update_symbols_daily_prices():  # core function    
     lines = []
@@ -794,48 +965,6 @@ def update_symbols_daily_prices():  # core function
     #lines_merged = merge_all(lines, trade_lines)
 
     return grouped, lines
-
-def merge_price_and_trades(price_series, trade_series):
-    merged = []
-
-    # 加入 price
-    for p in price_series:
-        merged.append({
-            "x": p["x"],
-            "y": p["y"]
-        })
-
-    # 加入 trade（保持 object）
-    for t in trade_series:
-        merged.append({
-            "x": t["x"],
-            "y": t["y"]
-        })
-
-    # 🔥 关键：按时间排序
-    merged.sort(key=lambda i: i["x"])
-
-    return merged
-
-def merge_all(price_lines, trade_lines):
-    result = []
-
-    trade_map = {t["symbol"]: t["series"] for t in trade_lines}
-
-    for p in price_lines:
-        symbol = p["symbol"]
-        price_series = p["series"]
-        trade_series = trade_map.get(symbol, [])
-
-        merged_series = merge_price_and_trades(price_series, trade_series)
-
-        result.append({
-            "symbol": symbol,
-            "color": p["color"],
-            "series": merged_series
-        })
-
-    return result
 
 ################################
 # update_symbols_trades()      #
@@ -918,19 +1047,20 @@ def update_symbols_trades():
             else:
                 currentPrice = float(price)
                 priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)
-                priceRate1 = (currentPrice-lastPrice)/lastPrice
                 if (priceRate >= 1):
                     print(priceRate) 
 
             time_price = {
                 "x" : time, 
-                "y" : {
+                "y" : priceRate,
+                "trade" : {
                     "symbol": symbol,
                     "side": t.side,
                     "price": priceRate,
                     "qty": qty,
                     "pnl": pnl,                
-                    "reason" : t.side
+                    "reason" : t.side,
+                    "color" : get_color(t.side)
                 }}
             v.append(time_price)                     
         grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : trade_datas }

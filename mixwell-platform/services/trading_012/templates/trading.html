@@ -166,24 +166,21 @@
                         color: colors[idx]   // ✅ legend + points color
                     },
 
-
                     data: sym.series.map(p => {
-
-                        if (typeof p.y === "number") {
+                        console.log("points :", p)
+                        if (p.trade==null) {
                             return {
                                 value: [p.x, p.y],
                                 symbol: "none"
                             };
                         }
-
-                        if (typeof p.y === "object") {
-                            const isBuy = p.y.side === "buy";
+                        else {
                             return {
-                                value: [p.x, p.y.price],
+                                value: [p.x, p.y],
                                 symbol: "circle",
                                 symbolSize: 10,
                                 itemStyle: {
-                                    color: isBuy ? "#00c853" : "#ff5252"
+                                    color: p.trade.color
                                 }
                             };
                         }
