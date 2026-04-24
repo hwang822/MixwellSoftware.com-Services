@@ -782,75 +782,76 @@ def should_trade():
         symbol = line["symbol"]
         prices = line["series"]
         pos = get_symbol_position(symbol)        
-           
-        for price in prices:            
-            time = price["x"]
-            value = price["y"]
-            trade = price["trade"]
-            if is_best_trading_time(time):            
-                try:
-                    # 卖出策略
-                    sell_flag, sell_reason = should_sell(symbol, pos, prices)
-                    # 买入策略
-                    lastbuytime = None 
-                    lastbuycount = 0
-                    for item in reversed(prices):
-                        trade = item.get("trade")
-                        if trade and trade.get("side") == "buy":
-                            last_buy_time = trade.get("traction_time")
-                            lastbuycount += 1
-                            break            
+        if len(prices) == 0:
+            continue
+        lastprice = prices[-1]           
+        time = lastprice["x"]
+        value = lastprice["y"]
+        trade = lastprice["trade"]
+        if is_best_trading_time(time):            
+            try:
+                # 卖出策略
+                sell_flag, sell_reason = should_sell(symbol, pos, prices)
+                # 买入策略
+                lastbuytime = None 
+                lastbuycount = 0
+                for item in reversed(prices):
+                    trade = item.get("trade")
+                    if trade and trade.get("side") == "buy":
+                        last_buy_time = trade.get("traction_time")
+                        lastbuycount += 1
+                        break            
 
-                    buy_flag, buy_reason = should_buy(symbol, pos, prices, lastbuytime, lastbuycount)
-                    #price = get_current_price(symbol)
-                    # ❌ 冲突处理
-                    if buy_flag and sell_flag:
-                        reason = f"Hold {symbol} at {price}, 同一根K线内冲突!"
-                        action = "skip"
-                    elif sell_flag:
-                        qty = int(pos.qty)
-                        action = "sell" if qty > 0 else "buy"
-                        sell_qty = abs(qty) 
-                        reason = sell_reason
-                        """                           
-                        api.submit_order(
-                            symbol=symbol,
-                            qty=sell_qty,
-                            side=side,
-                            type="market",
-                            time_in_force="day"
-                        )
-                        """            
-                    elif buy_flag:
-                        buy_qty = int(2000/price)
-                        action = "buy"
-                        reason = buy_reason
-                        """
-                        api.submit_order(
-                            symbol=symbol,
-                            qty= buy_qty,
-                            side="buy",
-                            type="market",
-                            time_in_force="day"
-                        )  
-                        """
-                    else:
-                        action = "skip"
-                        reason = buy_reason
-                except Exception as e:
-                    print (e)
+                buy_flag, buy_reason = should_buy(symbol, pos, prices, lastbuytime, lastbuycount)
+                #price = get_current_price(symbol)
+                # ❌ 冲突处理
+                if buy_flag and sell_flag:
+                    reason = f"Hold {symbol} at {price}, 同一根K线内冲突!"
                     action = "skip"
-                    reason = f"error: {e}"
-                trade = {
-                    "symbol": symbol,
-                    "time": time,
-                    "price": price,
-                    "action": action,
-                    "reason": reason,
-                    "color": get_trade_color(action)
-                }                                                                                                    
-                if trade: # has trade
-                    prices[-1]["trade"] = trade
+                elif sell_flag:
+                    qty = int(pos.qty)
+                    action = "sell" if qty > 0 else "buy"
+                    sell_qty = abs(qty) 
+                    reason = sell_reason
+                    """                           
+                    api.submit_order(
+                        symbol=symbol,
+                        qty=sell_qty,
+                        side=side,
+                        type="market",
+                        time_in_force="day"
+                    )
+                    """            
+                elif buy_flag:
+                    buy_qty = int(2000/price)
+                    action = "buy"
+                    reason = buy_reason
+                    """
+                    api.submit_order(
+                        symbol=symbol,
+                        qty= buy_qty,
+                        side="buy",
+                        type="market",
+                        time_in_force="day"
+                    )  
+                    """
+                else:
+                    action = "skip"
+                    reason = buy_reason
+            except Exception as e:
+                print (e)
+                action = "skip"
+                reason = f"error: {e}"
+
+            trade = {
+                "symbol": symbol,
+                "time": time,
+                "price": value,
+                "action": action,
+                "reason": reason,
+                "color": get_trade_color(action)
+            }                                                                                                    
+            prices[-1]["trade"] = trade
     save_today_log(lines)
     return lines
 
