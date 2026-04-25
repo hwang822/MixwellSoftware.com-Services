@@ -491,9 +491,9 @@ def is_trading_time(ts):
 
     #ny = ts.astimezone(ZoneInfo("America/New_York"))
     d = ts.date()
-    today = datetime.now().date()
-    if d != today:
-        return False
+    #today = datetime.now().date()
+    #if d != today:
+    #    return False
     t = ts.time()
     # 上午 09:30–12:00
     return time(9, 30) <= t <=  time(16, 0)
@@ -899,20 +899,28 @@ def get_NYTime_from_localTime(local_tiem):
 
 
 def update_symbols_day_prices():  # core function        
+
     grouped = {}
-    lines = []
+    lines = {}
+    lines_ex = []
+    lines_log = load_today_log()
     for symbol in SYMBOLS:
-        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
+        prices = get_alpaca_prices_api(symbol, 2, "5min", 100)
         if not prices:
             continue 
 
-        #group = symbols[symbol]["items"]                        
         vp = []
         vpmissed = []
         lastPrice = 0
         priceRate = 0
         currentPrice = 0
         priceslist=[]
+
+        list_log = {}
+        list_api = {}
+        list_new = {}
+        list_new_ex = []
+
         for price in prices:   # only collect prices in side tracking time.
             time = price["timestamp"]
             currentPrice = round(float(price["price_close"]), 2)
@@ -920,36 +928,39 @@ def update_symbols_day_prices():  # core function
                 lastPrice = float(price["price_close"])
             else:
                 currentPrice = float(price["price_close"])
-                priceRate = round((float(currentPrice-lastPrice)/lastPrice)*100,2)                                 
+                priceRate = round((float(currentPrice-lastPrice)/lastPrice)*100,2)      
             trade = None
             time_price = {
                 "x" : datetime.fromisoformat(time).strftime("%H:%M"), 
                 "y" : priceRate,
                 "trade" : trade 
-            }            
+            } 
             if is_trading_time(time):                        
                 vp.append(time_price)
                 priceslist.append(price)
-            else:
-                vpmissed.append(time_price)                
-        if len(vp) == 0:
-            vp = vpmissed         
-        
-        #vp = should_trade(symbol, vp)    
-
-        lines.append({
+                list_api[time] = time_price
+                list_new_ex.append(time_price)
+        if len(lines_log)>0:            
+            list_log = lines_log[symbol]
+        if len(list_log) == 0:
+            list_new = list_api
+        else:
+            if len(list_api) > 0:
+                for k, v in list_api.items():
+                    list_new[k] = v
+            for k, v in list_log.items():
+                list_new[k] = v
+        if len(priceslist) == 0: 
+            priceslist = prices                      
+        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : priceslist }
+        lines[symbol] = list_new        
+        lines_ex.append({
             "symbol" : symbol,
             "color"  : SYMBOL_COLORS[symbol],
-            "series" : vp
+            "series" : list_new_ex
         }) 
-
-        if len(priceslist) == 0: 
-            priceslist = prices                  
-        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : priceslist }        
-    
     save_today_log(lines)
-    lines = should_trade()
-    return grouped, lines
+    return grouped, lines_ex
 
 def update_symbols_daily_prices():  # core function    
     lines = []
