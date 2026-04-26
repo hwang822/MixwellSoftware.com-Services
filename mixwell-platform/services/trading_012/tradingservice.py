@@ -362,18 +362,19 @@ def get_moving_averages(symbol, periods=[5, 20, 50]):
             ma[period] = sum([r.avg_price for r in rows]) / len(rows)
     return ma
 
-def should_buy(symbol, position, prices, lastbuytime, lastbuycount):
+def should_buy(position, prices, lastbuytime, lastbuycount):
     buy_flag = False    
     """
     prices: 最近30条数据（按时间升序）
     每条: {"price_c","high","volume","timestamp"}
     """
 
-    delta = datetime.now(timezone.utc) - lastbuytime
-    minutes = delta.total_seconds() / 60    
-    if minutes < COOLDOWN_MINUTES:
-        reason = f"⏳ cooldown {symbol}"        
-        return buy_flag , reason
+    if lastbuytime:
+        delta = datetime.now(timezone.utc) - lastbuytime
+        minutes = delta.total_seconds() / 60    
+        if minutes < COOLDOWN_MINUTES:
+            reason = f"⏳ cooldown {symbol}"        
+            return buy_flag , reason
     
     if lastbuycount + 1 >= MAX_ADD: #加仓控制（允许但有限制, 最多加仓2次）        
         reason = f"⛔ {symbol} max add reached"        
@@ -382,15 +383,15 @@ def should_buy(symbol, position, prices, lastbuytime, lastbuycount):
     #account = api.get_account()
     cash = 10000 #float(account.cash)
     equity = 2000 #float(account.equity)
-    current_price = prices[-1]["prices_close"] # get_current_price(symbol)
-    if position and int(position.qty)*current_price > equity:
+    price = float(prices[0]["price_close"])
+    if position and int(position.qty)*price > equity:
         return buy_flag, "over buget"
 
     # ===== 2️⃣ breakout =====
     #current_price = prices[-1]["price_c"]
 
     recent_high = max(p["high"] for p in prices[:-3])  # 不用最后3根
-    breakout = current_price > recent_high
+    breakout = price > recent_high
 
     if not breakout:
         return buy_flag, "not breakout"
@@ -405,7 +406,7 @@ def should_buy(symbol, position, prices, lastbuytime, lastbuycount):
         return buy_flag, "not momentum"
     # ===== 4️⃣ 不追太高 =====
     recent_low = min(p["low"] for p in prices[-10:])
-    pullback_ok = (current_price - recent_low) / recent_low < 0.02  # <2%
+    pullback_ok = (price - recent_low) / recent_low < 0.02  # <2%
 
     if not pullback_ok:
         return buy_flag, "not pullback"        
@@ -414,12 +415,12 @@ def should_buy(symbol, position, prices, lastbuytime, lastbuycount):
     reason = "Cooldown OK, not max add reached, not over buget, breakout OK, momentum ok, pullback ok"
     return buy_flag, reason
 
-def should_sell(symbol, position, prices):
-
+def should_sell(position):
+    
     if not position or int(position.qty) == 0:
-        return False, "no position"
+        return sell_flag, "no position", "skip"
 
-    price = prices[-1]["price_close"] #get_current_price(symbol)
+    price = float(position.current_price)
     qty = int(position.qty)
     cost = float(position.cost_basis)
 
@@ -427,47 +428,22 @@ def should_sell(symbol, position, prices):
     pct = (pnl / cost) * 100 if cost else 0
 
     if pct <= -2:
-        return True, f"STOP LOSS {pct:.2f}%"
+        sell_flag = True
+        return True, f"STOP LOSS {pct:.2f}%, price*qt: {price}*{qty}, cost: {cost}", "sell"
 
     if pct >= 3:
-        return True, f"TAKE PROFIT {pct:.2f}%"
-
+        sell_flag = True
+        return sell_flag, f"TAKE PROFIT {pct:.2f}%, price*qt: {price}*{qty}, cost: {cost}", "sell"
     # optional trailing logic
 #    if pct > 1 and price < max_entry_price * 0.99:
 #        return True, "TRAIL STOP"
 
-    return False, f"HOLD {pct:.2f}%"
+    return sell_flag, f"HOLD {pct:.2f}%, price*qt: {price}*{qty}, cost: {cost}", "hold"
 
 
 COOLDOWN_MINUTES = 15
-def in_cooldown(symbol):
-    buy_trades = get_recent_continuous_buys(symbol)
-    if not buy_trades:
-        return False
-    
-    latest_trade = buy_trades[0]
-    delta = datetime.now(timezone.utc) - latest_trade.transaction_time
-    minutes = delta.total_seconds() / 60
-    return minutes < COOLDOWN_MINUTES
 
 MAX_ADD = 2
-def get_recent_continuous_buys(symbol):
-    activities = get_all_activities()    
-    acts = [a for a in activities if a.symbol == symbol]
-    # 按时间从新到旧（假设 id 越大越新）
-    acts.sort(key=lambda x: x.id, reverse=True)
-    result = []
-    for a in acts:
-        if a.side == "buy":
-            result.append(a)
-        else:
-            break   # ❗ 一旦遇到 sell，停止
-    return result
-
-def get_buy_count(symbol):
-    activities = get_recent_continuous_buys(symbol)
-    count = len(activities)
-    return count
 
 MAX_TOTAL_EXPOSURE = 10000*0.8
 
@@ -506,8 +482,10 @@ def is_best_trading_time(ts):
     """
 
     if isinstance(ts, str):
-        t = time.fromisoformat(ts)     
-    
+        ts = datetime.fromisoformat(ts)     
+
+    t = ts.time()
+
     # 上午 10:00–12:00
     morning = time(10, 0) <= t <= time(12, 0)
 
@@ -528,7 +506,7 @@ def auto_trade_1():
             try:        
                 pos = get_symbol_position(symbol) #Position.query.filter_by(symbol=symbol).first()
                 # 卖出策略
-                sell_flag, sell_reason = should_sell(symbol, pos)
+                sell_flag, sell_reason = should_sell(pos)
                 # 买入策略
                 buy_flag, buy_reason = should_buy(symbol, pos)
 
@@ -776,82 +754,92 @@ def load_today_log():
         return []
 from datetime import datetime
 
-def should_trade():    
+def should_trade(grouped):    
     lines = load_today_log()
-    for line in lines:        
-        symbol = line["symbol"]
-        prices = line["series"]
-        pos = get_symbol_position(symbol)        
-        if len(prices) == 0:
+    for symbol in lines:
+        sell_flag = False
+        buy_flag = False                
+        buy_action = None
+        sell_action = None
+        items = lines[symbol]
+        if len(items) == 0:
             continue
-        lastprice = prices[-1]           
-        time = lastprice["x"]
-        value = lastprice["y"]
-        trade = lastprice["trade"]
-        if is_best_trading_time(time):            
-            try:
-                # 卖出策略
-                sell_flag, sell_reason = should_sell(symbol, pos, prices)
-                # 买入策略
-                lastbuytime = None 
-                lastbuycount = 0
-                for item in reversed(prices):
-                    trade = item.get("trade")
-                    if trade and trade.get("side") == "buy":
-                        last_buy_time = trade.get("traction_time")
+        pos = get_symbol_position(symbol)                        
+        pricese= grouped[symbol]["items"]
+        lastbuytime = None
+        lastbuycount = 0
+        for index, time in enumerate(items):
+            if is_best_trading_time(time):            
+                action = None
+                try:
+                    price = items[time]
+                    trade = items[time]            
+
+                    # 卖出策略
+                    sell_flag, sell_reason, sell_action = should_sell(pos)
+                    # 买入策略
+                    lastbuytime = None 
+                    lastbuycount = 0
+
+                    buy_flag, buy_reason, buy_action = should_buy(pos, pricese[:index], lastbuytime, lastbuycount)
+                    
+                    #price = get_current_price(symbol)
+                    # ❌ 冲突处理
+                    if buy_flag and sell_flag:
+                        reason = f"Hold {symbol} at {price}, 同一根K线内冲突!"
+                        action = "skip"
+                    elif sell_flag:
+                        qty = int(pos.qty)
+                        action = "sell" if qty > 0 else "buy"
+                        sell_qty = abs(qty) 
+                        reason = sell_reason
+                        """                           
+                        api.submit_order(
+                            symbol=symbol,
+                            qty=sell_qty,
+                            side=side,
+                            type="market",
+                            time_in_force="day"
+                        )
+                        """            
+                    elif buy_flag:
                         lastbuycount += 1
-                        break            
-
-                buy_flag, buy_reason = should_buy(symbol, pos, prices, lastbuytime, lastbuycount)
-                #price = get_current_price(symbol)
-                # ❌ 冲突处理
-                if buy_flag and sell_flag:
-                    reason = f"Hold {symbol} at {price}, 同一根K线内冲突!"
+                        lastbuytime = time
+                        buy_qty = int(2000/price)
+                        action = "buy"
+                        reason = buy_reason
+                        """
+                        api.submit_order(
+                            symbol=symbol,
+                            qty= buy_qty,
+                            side="buy",
+                            type="market",
+                            time_in_force="day"
+                        )  
+                        """
+                    else:
+                        action = "skip"
+                        reason = buy_reason
+                except Exception as e:
+                    print (e)
                     action = "skip"
-                elif sell_flag:
-                    qty = int(pos.qty)
-                    action = "sell" if qty > 0 else "buy"
-                    sell_qty = abs(qty) 
-                    reason = sell_reason
-                    """                           
-                    api.submit_order(
-                        symbol=symbol,
-                        qty=sell_qty,
-                        side=side,
-                        type="market",
-                        time_in_force="day"
-                    )
-                    """            
-                elif buy_flag:
-                    buy_qty = int(2000/price)
-                    action = "buy"
-                    reason = buy_reason
-                    """
-                    api.submit_order(
-                        symbol=symbol,
-                        qty= buy_qty,
-                        side="buy",
-                        type="market",
-                        time_in_force="day"
-                    )  
-                    """
-                else:
-                    action = "skip"
-                    reason = buy_reason
-            except Exception as e:
-                print (e)
-                action = "skip"
-                reason = f"error: {e}"
+                    reason = f"error: {e}"
 
-            trade = {
-                "symbol": symbol,
-                "time": time,
-                "price": value,
-                "action": action,
-                "reason": reason,
-                "color": get_trade_color(action)
-            }                                                                                                    
-            prices[-1]["trade"] = trade
+                if sell_action:
+                   action = sell_action
+                elif buy_action:
+                   action = buy_action
+                if action:                    
+                    trade = {
+                        "symbol": symbol,
+                        "time": time,
+                        "price": price,
+                        "action": action,
+                        "reason": reason,
+                        "color": get_trade_color(action)
+                    }     
+                    lines[symbol][time]["trade"] = trade
+                    break
     save_today_log(lines)
     return lines
 
@@ -952,7 +940,9 @@ def update_symbols_day_prices():  # core function
                 list_new[k] = v
         if len(priceslist) == 0: 
             priceslist = prices                      
-        grouped[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : priceslist }
+        grouped[symbol] = {
+            "colors" : SYMBOL_COLORS[symbol], 
+            "items" : priceslist }
         lines[symbol] = list_new        
         lines_ex.append({
             "symbol" : symbol,
@@ -960,6 +950,7 @@ def update_symbols_day_prices():  # core function
             "series" : list_new_ex
         }) 
     save_today_log(lines)
+    #should_trade(grouped)
     return grouped, lines_ex
 
 def update_symbols_daily_prices():  # core function    
