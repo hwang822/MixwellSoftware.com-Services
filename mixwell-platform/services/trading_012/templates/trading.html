@@ -204,7 +204,7 @@
 
                 // 🟢 盈利
                 series.push({
-                    //name: sym.symbol + "_profit",
+                    name: sym.symbol + "_profit",
                     type: 'line',
                     data: sym.series.map(p => {
                         if (p.z <= 0) return null;
@@ -249,7 +249,7 @@
                 });                
                 
                 series.push({
-                    //name: sym.symbol + "_nodes",
+                    name: sym.symbol + "_nodes",
                     type: 'scatter',
                     data: sym.series
                         .filter(p => p.node)
