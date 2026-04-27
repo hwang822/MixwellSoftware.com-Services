@@ -141,58 +141,196 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
+        const NODE_ICONS = {
+            buy: "path://M512 128L896 768H128Z",        // ▲
+            sell: "path://M128 256H896L512 896Z",       // ▼
+            hold: "circle",
+            skip: "rect"
+        };        
+
+        
+        function getNodeIcon(action) {
+            switch(action) {
+                case "buy":
+                    return "triangle";
+                case "sell":
+                    return "triangle";  // 可旋转
+                case "hold":
+                    return "circle";
+                case "skip":
+                    return "rect";
+                default:
+                    return "circle";
+            }
+        }
+
+        function getNodeColor(action) {
+            switch(action) {
+                case "buy":
+                    return "#00c853";   // 绿
+                case "sell":
+                    return "#ff5252";   // 红
+                case "hold":
+                    return "#2962ff";   // 蓝
+                case "skip":
+                    return "#9e9e9e";   // 灰
+                default:
+                    return "#ffffff";
+            }
+        }        
         function renderLine(data, chartName) {
             const chart = echarts.init(document.getElementById(chartName));
+            data.forEach(sym => {
+                sym.series.forEach(p => {
+                    if (p.node && typeof p.node === "string") {
+                        try {
+                            p.node = JSON.parse(p.node);
+                        } catch(e) {
+                            p.node = null;
+                        }
+                    }
+                });
+            });
 
             let series = [];
             let xAxis = [];
             const colors = data.map(d => d.color);
-            //console.log("renderLine colors", colors)
+
             data.forEach((sym, idx) => {
 
                 if (idx === 0) {
                     xAxis = sym.series.map(p => p.x);
-                }                
+                }       
+
+                // 🟢 盈利
+                series.push({
+                    //name: sym.symbol + "_profit",
+                    type: 'line',
+                    data: sym.series.map(p => {
+                        if (p.z <= 0) return null;
+                        return [p.x, p.y];
+                    }),
+                    lineStyle: {
+                        width: 4,
+                        //color: "#00c853"
+                        color: "rgba(0, 200, 83, 0.3)"
+                    },
+                    showSymbol: false,
+                    z: 3
+                });
+
+                // 🔴 亏损
+                series.push({
+                    //name: sym.symbol + "_loss",
+                    type: 'line',
+                    data: sym.series.map(p => {
+                        if (p.z >= 0) return null;
+                        return [p.x, p.y];
+                    }),
+                    lineStyle: {
+                        width: 4,
+                        //color: "#ff5252"
+                        color: "rgba(255, 82, 82, 0.3)"
+                    },
+                    showSymbol: false,
+                    z: 3
+                });
+                
                 series.push({
                     name: sym.symbol,
                     type: 'line',
-                    showSymbol: true,
-
+                    data: sym.series.map(p => [p.x, p.y]),
                     lineStyle: {
-                        color: colors[idx]   // ✅ line color
+                        color: colors[idx],
+                        width: 2
                     },
-
-                    itemStyle: {
-                        color: colors[idx]   // ✅ legend + points color
-                    },
-
-                    data: sym.series.map(p => {
-                        //console.log("points :", p)
-                        if (p.trade==null) {
-                            return {
-                                value: [p.x, p.y],
-                                symbol: "none"
-                            };
-                        }
-                        else {
-                            return {
-                                value: [p.x, p.y],
-                                symbol: "circle",
-                                symbolSize: 10,
-                                itemStyle: {
-                                    color: p.trade.color
-                                }
-                            };
-                        }
-                    })
+                    showSymbol: false,
+                    z: 4
                 });                
+                
+                series.push({
+                    //name: sym.symbol + "_nodes",
+                    type: 'scatter',
+                    data: sym.series
+                        .filter(p => p.node)
+                        .map(p => {
+                            const action = p.node.action;
 
+                            return {
+                                value: [p.x, p.y],
+
+                                symbol: getNodeIcon(action),
+                                symbolSize: 14,
+                                symbolRotate: action === "sell" ? 180 : 0,
+
+                                itemStyle: {
+                                    color: getNodeColor(action)
+                                },
+
+                                node: p.node   // 👉 给 tooltip 用
+                            };
+                        }),
+                    z: 5
+                });                
             });
 
             chart.setOption({
-                legend: {
-                    data: data.map(d => d.symbol)
+                //legend: {
+                //    data: data.map(d => d.symbol)
+                //},
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: function(params) {
+
+                        if (!Array.isArray(params)) params = [params];
+
+                        let res = params[0].axisValue + "<br/>";
+
+                        params.forEach(p => {
+                            if (p.data && p.data.node) {
+                                res += `
+                                ${p.seriesName}
+                                📍 ${p.data.node.action}
+                                📝 ${p.data.node.notes}
+                                <br/>
+                                `;
+                            }
+                        });
+
+                        return res;
+                    }
                 },
+
+                legend: {
+                    data: data.map(d => d.symbol),
+                    selected: Object.fromEntries(data.map(d => [d.symbol, true])),
+
+                    textStyle: {
+                        fontWeight: 'bold'
+                    }
+                },                
+
+                legend: {
+                    formatter: function(name) {
+                        const item = data.find(d => d.symbol === name);
+                        return `{${name}|${name}}`;
+                    },
+                    textStyle: {
+                        rich: Object.fromEntries(
+                            data.map(d => [
+                                d.symbol,
+                                {
+                                    color: d.color,
+                                    backgroundColor: 'rgba(0,0,0,0.1)',
+                                    padding: [4, 6],
+                                    borderRadius: 4
+                                }
+                            ])
+                        )
+                    }
+                },
+
+
                 xAxis: { type: "category", data: xAxis },
                 yAxis: {
                     type: "value"
@@ -268,13 +406,13 @@
             });
         }
         
-        updateTradeTime()
-        updateAccountData()
+        //updateTradeTime()
+        //updateAccountData()
         updateDayPriceData()        
-        updateDailyPriceData()
-        updatePositionsData()
-        updateTopSymbolsData()        
-        updateTradesData()
+        //updateDailyPriceData()
+        //updatePositionsData()
+        //updateTopSymbolsData()        
+        //updateTradesData()
 
         // ==============================
         // 模拟交易
