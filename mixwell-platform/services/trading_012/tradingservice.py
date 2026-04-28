@@ -7,6 +7,8 @@ from zoneinfo import ZoneInfo
 import alpaca_trade_api as tradeapi
 from datetime import date, datetime, time, timedelta, timezone
 
+import pytz
+
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
 from config.settings import Config
@@ -65,72 +67,13 @@ def get_alpaca_prices_api(symbol, days, interval, limit):
                 "low": bar.low,
                 "pnl": 0,
                 "qty": 0,
-                "node" : None,
-                "timestamp": est.strftime("%Y-%m-%d %H:%M")
+                "action" : "",
+                "notes" : "",
+                "timestamp": est.strftime("%Y-%m-%d %H:%M"),
+                "node" : None
             })
 
     return result
-
-
-def get_alpaca_prices_api_1(symbol, days, interver, limit):
-    end = datetime.now(timezone.utc)
-    start = end - timedelta(days=days)        
-
-    bars = api.get_bars(
-        symbol,
-        interver, 
-        start = start.isoformat() + "Z",
-        end = end.isoformat() + "Z",
-        adjustment = 'raw',
-        limit = limit,
-        feed='iex'
-    ).df
-
-    result = []
-    if not bars.empty:
-        for index, bar in bars.iterrows():
-            result.append({
-                "symbol" : symbol,
-                "price_open" : bar.open,
-                "price_close" : bar.close,
-                "volume" : bar.volume,
-                "high" : bar.high,
-                "low" : bar.low,
-                "timestamp" : utc_to_est((index).strftime("%Y-%m-%d %H:%M"))
-                })             
-    return result 
-
-def write_trade_log(symbol, side, price, qty, reason):
-    
-    # 1️⃣ 时间
-    now = datetime.now().astimezone(ZoneInfo("America/New_York"))
-    date_str = now.strftime("%Y-%m-%d")
-
-    # 2️⃣ 文件名
-    filename = f"{date_str}_trading_log.txt"
-
-    # 👉 可选：放到 logs 文件夹
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)
-    filepath = os.path.join(log_dir, filename)
-
-    # 3️⃣ 一行内容
-    line = (
-        f"{now.strftime('%Y-%m-%d %H:%M:%S')}, "
-        f"{symbol}, {side}, {price}, {qty}, {reason}\n"
-    )
-
-    # 4️⃣ 追加写入
-    with open(filepath, "a", encoding="utf-8") as f:
-        f.write(line)
-
-
-def update_last_trade_info(symbol, sdie, price, qty):    
-    
-    lastTrade = Trade.query.filter_by(symbol = symbol).last()
-    db.session.add(lastTrade)
-    db.session.commit()
-    return lastTrade
 
 
 def get_top_symbols():
@@ -141,18 +84,7 @@ def get_top_symbols():
     ]
 
     return symbols
-"""
-def get_color(symbol):
-    h = int(hashlib.md5(symbol.encode()).hexdigest(), 16)
-    index = h % 360
-    hue = (index * 137.508) % 360
-    return f"hsl({hue}, 75%, 55%)"
 
-SYMBOL_COLORS = {}
-for i, symbol in enumerate(SYMBOLS):
-    SYMBOL_COLORS[symbol] = get_color(i)
-
-"""
 def get_color(symbol):
     h = int(hashlib.md5(symbol.encode()).hexdigest(), 16)
     #hue = h % 360
@@ -182,20 +114,6 @@ def utc_to_est(time_str):
     # 3️⃣ 输出字符串
     return dt_est.strftime("%Y-%m-%d %H:%M")
 
-
-def get_daytrading(symbol, date, min):
-    end = datetime.utcnow()
-    start = end - timedelta(days=30)        
-    bars = api.get_bars(
-        symbol,
-        min, 
-        start = start.isoformat() + "Z",
-        end = end.isoformat() + "Z",
-        adjustment = 'raw',
-        feed='iex'
-    ).df
-    print(bars.head())
-    return bars    
 
 #计算 最近变化
 
@@ -227,8 +145,8 @@ def scan_market():
 
     return results
 
-from datetime import datetime, timedelta
-import pytz
+#from datetime import datetime, timedelta
+#import pytz
 
 def get_recommended_symbols():
     # 临时：用 movers 代替
@@ -294,66 +212,6 @@ def get_final_symbols():
     final_symbols = [s[0] for s in scored[:3]]
 
     return final_symbols
-
-def trade_executor(symbols):
-    for symbol in symbols:
-
-        # 已持仓跳过
-        pos = Position.query.get(symbol.symbol)
-        if pos and pos.quantity > 0:
-            continue
-
-        try:
-            api.submit_order(
-                symbol=symbol.symbol,
-                qty=1,
-                side="buy",
-                type="market",
-                time_in_force="day"
-            )
-
-            # 写入 trades
-            trade = Trade(
-                symbol=symbol.symbol,
-                side="BUY",
-                qty=1,
-                price=0   # 可后面补真实成交价
-            )
-            db.session.add(trade)
-
-        except Exception as e:
-            print("Trade error:", e)
-
-    db.session.commit()    
-
-def execute_sell(pos, price, reason):
-    try:
-        api.submit_order(
-            symbol=pos.symbol,
-            qty=pos.quantity,
-            side="sell",
-            type="market",
-            time_in_force="day"
-        )
-
-        # 记录 trade
-        db.session.add(Trade(
-            symbol=pos.symbol,
-            side="SELL",
-            quantity=pos.quantity,
-            price=price
-        ))
-
-        # 清仓
-        pos.quantity = 0
-        pos.avg_price = 0
-
-        print(f"SELL {pos.symbol} due to {reason}")
-
-        db.session.commit()
-
-    except Exception as e:
-        print("Sell error:", e)
 
 def scan_top_50_symbols():
     symbols =get_top_symbols() # get_tradable_symbols()   # 你已有 or Alpaca assets
@@ -435,34 +293,15 @@ def get_moving_averages(symbol, periods=[5, 20, 50]):
             ma[period] = sum([r.avg_price for r in rows]) / len(rows)
     return ma
 
-def should_buy(position, prices, lastbuytime, lastbuycount):
+def should_buy(prices):
     
     buy_action = "skip"    
-    """
-    prices: 最近30条数据（按时间升序）
-    每条: {"price_c","high","volume","timestamp"}
-    """
-
-    if lastbuytime:
-        delta = datetime.now(timezone.utc) - lastbuytime
-        minutes = delta.total_seconds() / 60    
-        if minutes < COOLDOWN_MINUTES:
-            reason = f"⏳ cooldown {symbol}"        
-            return buy_action , reason
-    
-    if lastbuycount + 1 >= MAX_ADD: #加仓控制（允许但有限制, 最多加仓2次）        
-        reason = f"⛔ {symbol} max add reached"        
-        return buy_action, reason
-
     #account = api.get_account()
     cash = 10000 #float(account.cash)
     equity = 2000 #float(account.equity)
     price = float(prices[-1]["price_close"])
-    if position and int(position.qty)*price > equity:
-        return buy_action, "over buget"
 
     # ===== 2️⃣ breakout =====
-    #current_price = prices[-1]["price_c"]
 
     recent_high = max(p["high"] for p in prices[:-3])  # 不用最后3根
     breakout = price > recent_high
@@ -486,7 +325,7 @@ def should_buy(position, prices, lastbuytime, lastbuycount):
         return buy_action, "not pullback"        
 
     buy_action = "buy"
-    reason = "Cooldown OK, not max add reached, not over buget, breakout OK, momentum ok, pullback ok"
+    reason = "breakout OK, momentum ok, pullback ok"
     return buy_action, reason
 
 def should_sell(position):
@@ -503,7 +342,7 @@ def should_sell(position):
 
     if pct <= -2:
         sell_action = "sell"
-        sell_reason = f"STOP LOSS {pct:.2f}%, price*qt: {price}*{qty}, cost: {cost}"
+        sell_reason = f"STOP LOSS {pct:.2f}%, price*qt: {price*qty}, cost: {cost}"
         return sell_action, sell_reason
 
     if pct >= 3:
@@ -511,8 +350,12 @@ def should_sell(position):
         sell_reason = f"TAKE PROFIT {pct:.2f}%, price*qt: {price*qty}, cost: {cost}"
         return sell_action, sell_reason
     # optional trailing logic
-        #if pct > 1 and price < max_entry_price * 0.99:
-        #    return True, "TRAIL STOP"
+
+    if pct > 1 and price < position.avg_entry_price * 0.99:
+        sell_action = "sell"
+        sell_reason = "TRAIL STOP"
+        return sell_action, sell_reason
+    
     sell_reason = f"HOLD {pct:.2f}%, price*qt: {price*qty}, cost: {cost}"
     sell_action = "hold"
     return sell_action, sell_reason 
@@ -582,11 +425,6 @@ def get_trade_color(action):
 def get_today_file():
     return f"{date.today()}_trading_log.jsonl"
 
-def get_today_file_1():
-    tz = ZoneInfo("America/New_York")
-    today = datetime.now(tz).strftime("%Y-%m-%d")
-    return os.path.join(LOG_DIR, f"{today}_trading_log.jsonl")
-
 LOG_DIR = "logs"
 def save_today_log(lines):
     try:
@@ -624,32 +462,34 @@ def should_trade(position, prices):
             lastbuycount = 0
             currentprice = lastPrice["price_close"]
             action = None
+            qty = 0
+            if position:                                            
+                qty = int(position.qty)
             try:
                 # 卖出策略
-                sell_action, sell_reason = should_sell(position)
-                if sell_action:
-                    sell_qty = 0
-                    if position:                                            
-                        sell_qty = int(position.qty)
-                    side = "sell" if sell_qty > 0 else "buy"
-                    """                           
-                    api.submit_order(
-                        symbol=symbol,
-                        qty=sell_qty,
-                        side=side,
-                        type="market",
-                        time_in_force="day"
-                    )
-                    """
+                if not qty == 0:
+                    sell_qty = qty 
+                    sell_action, sell_reason = should_sell(position)
+                    if sell_action:                    
+                        side = "sell" if sell_qty > 0 else "buy"
+                        """                           
+                        api.submit_order(
+                            symbol=symbol,
+                            qty=sell_qty,
+                            side=side,
+                            type="market",
+                            time_in_force="day"
+                        )
+                        """
                 else: 
-                    buy_action, buy_reason = should_buy(position, prices, lastbuytime, lastbuycount)                                    
+                    buy_action, buy_reason = should_buy(prices)                                    
                     if buy_action == "buy":
                         # 买入策略
                         lastbuytime = None 
                         lastbuycount = 0                            
                         lastbuycount += 1
                         lastbuytime = time
-                        buy_qty = int(2000/currentprice)
+                        buy_qty = int(3000/currentprice)
                         action = "buy"
                         reason = buy_reason
                         """
@@ -671,18 +511,14 @@ def should_trade(position, prices):
                 reason = sell_reason
             elif buy_action:
                 action = buy_action
-                reason = buy_reason
-            
+                reason = buy_reason            
             if action:            
                 trade = {
                     "icon": ACTION_ICONS[action],
-                    "notes": f"{ACTION_ICONS[action]} | {reason}"
+                    "action" : action,
+                    "notes": reason
                     }                            
     return trade
-    #            lines[symbol][lastTime] = json.dumps(trade)
-                        #break
-    #save_today_log(lines, "trading_log.jsonl")
-    #return lines
 
 def alpaca_trading_api():
 
@@ -791,6 +627,8 @@ def update_symbols_day_prices():  # core function
                qty = int(pos.qty) 
             trade = should_trade(pos, prices)  # if trade in current price.
             if trade:
+                prices[-1]["action"] = trade["action"]
+                prices[-1]["notes"] = trade["notes"]
                 prices[-1]["node"] = trade
 
             lastPrice = 0
@@ -851,16 +689,6 @@ def update_symbols_daily_prices():  # core function
         basePrice = float(prices[0]["price_close"])
         for price in prices:
             ts = datetime.fromisoformat(price["timestamp"]).strftime("%m-%d")
-            #if lastPrice==0:
-            #    lastPrice = float(price["price_close"])
-            #else:
-            #    currentPrice = float(price["price_close"])
-            #    if lastPrice == 0:
-            #        priceRate = 0    
-            #    else:
-            #        priceRate = round(float(currentPrice-basePrice),2) 
-                    #priceRate = round(float(((currentPrice-lastPrice)/lastPrice)*100),2)                 
-
             currentPrice = round(float(price["price_close"]), 2)
             priceRate = round(float(currentPrice - lastPrice),2)
             lastPrice = currentPrice
@@ -878,10 +706,6 @@ def update_symbols_daily_prices():  # core function
             "series" : v
         })
         
-
-    #trades, trade_lines = update_symbols_trades()
-    #lines_merged = merge_all(lines, trade_lines)
-
     return grouped, lines
 
 ################################
@@ -934,12 +758,10 @@ def update_symbols_positions():  # core functions
     bars = []
     positions = api.list_positions()
     for pos in positions:
-        mv = float(pos.market_value)
-        cost = float(pos.cost_basis)
-        price = float(pos.current_price)
-        avg_price = float(pos.avg_entry_price)
-        pnl_ex = price - avg_price
-        pct_ex = (price - avg_price)/avg_price
+        mv = round(float(pos.market_value), 2)
+        cost = round(float(pos.cost_basis), 2)
+        price = round(float(pos.current_price), 2)
+        avg_price = round(float(pos.avg_entry_price), 2)
         pnl = mv-cost
         pct = pnl / abs(cost) * 100 if cost else 0
         if pct <= -2:
