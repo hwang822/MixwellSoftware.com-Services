@@ -15,7 +15,7 @@ from servicemodels import Position, Trade, DailyPrice, db
 api = tradeapi.REST(Config.ALPACA_API_KEY, Config.ALPACA_SECRET_KEY, Config.ALPACA_BASE_URL)
 SYMBOLS = ["AAPL", "NVDA", "TSLA", "AMD", "MSFT", "SPY"]
 
-#get_alpaca_prices_api("AAPL", 3, "5min", 100)
+#get_alpaca_prices_api("AAPL", 1, "5min", 100)
 #get_alpaca_prices_api("AAPL", 20, "1Day", 30)
 
 def get_alpaca_prices_api(symbol, days, interval, limit):
@@ -38,11 +38,23 @@ def get_alpaca_prices_api(symbol, days, interval, limit):
     if not bars.empty:
         for index, bar in bars.iterrows():
 
+            # ✅ 只有分钟级才过滤交易时间
+            if interval in ["1Min", "5Min", "15Min"]:
+                if not (time(9,30) <= est.time() <= time(16,0)):
+                    continue
+
+            # ✅ 时间格式区分
             est = index.astimezone(ZoneInfo("America/New_York"))
+            if interval == "1Day":
+                ts = est.strftime("%Y-%m-%d")
+            else:
+                ts = est.strftime("%Y-%m-%d %H:%M")
+
+            #est = index.astimezone(ZoneInfo("America/New_York"))
 
             # ✅ 只保留交易时间
-            if not (time(9,30) <= est.time() <= time(16,0)):
-                continue
+            #if not (time(9,30) <= est.time() <= time(16,0)):
+            #    continue
 
             result.append({
                 "symbol": symbol,
@@ -53,8 +65,6 @@ def get_alpaca_prices_api(symbol, days, interval, limit):
                 "low": bar.low,
                 "pnl": 0,
                 "qty": 0,
-                "action" : None,
-                "notes" : None,
                 "node" : None,
                 "timestamp": est.strftime("%Y-%m-%d %H:%M")
             })
@@ -154,6 +164,12 @@ SYMBOL_COLORS = {}
 for symbol in SYMBOLS:
     SYMBOL_COLORS[symbol] = get_color(symbol) 
 
+ACTION_ICONS = {
+    "buy":  "path://M512 128 L896 768 L128 768 Z",   # ▲
+    "sell": "path://M128 256 L896 256 L512 896 Z",   # ▼
+    "hold": "path://M512 128 A384 384 0 1 1 511 128 Z",  # ●
+    "skip": "path://M128 128 H896 V896 H128 Z"       # ■
+}
     
 def utc_to_est(time_str):
     # 1️⃣ 解析 UTC 字符串
@@ -659,8 +675,8 @@ def should_trade(position, prices):
             
             if action:            
                 trade = {
-                    "action": str(action),
-                    "notes": str(reason)
+                    "icon": ACTION_ICONS[action],
+                    "notes": f"{ACTION_ICONS[action]} | {reason}"
                     }                            
     return trade
     #            lines[symbol][lastTime] = json.dumps(trade)
@@ -776,8 +792,6 @@ def update_symbols_day_prices():  # core function
             trade = should_trade(pos, prices)  # if trade in current price.
             if trade:
                 prices[-1]["node"] = trade
-                prices[-1]["action"] = trade["action"]
-                prices[-1]["notes"] = trade["notes"]
 
             lastPrice = 0
             priceRate = 0
