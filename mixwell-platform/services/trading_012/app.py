@@ -95,7 +95,7 @@ def api_account():
 # 👉 模拟交易（触发更新）
 @tradingService.route("/api/run_trades")
 def api_run_trade():    
-    should_trade()
+    #should_trade()
     return jsonify({"status": "ok"})
 
 def build_table_html(data):
