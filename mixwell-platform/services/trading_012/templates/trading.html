@@ -40,18 +40,18 @@
     <table id="day_prices_table" border="1"></table>
     <p id="dayPricesUpdated"> </p>
     <hr>
-    
-    <h3>📉 Month Prices (Prices in 30 days) <span><button onclick="updateDailyPriceData()">Update</button></span></h3>
-    <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
-    <table id="daily_prices_table" border="1"></table>
-    <p id="dailyPricesUpdated"> </p>
-    <hr>
 
     <h3>💼 Positions (Market Value) <span><button onclick="updatePositionsData(true)">Update</button></span></h3>
     <div id="positions_barChart" style="width:100%;height:400px;"></div>
     <table id="positions_table" border="1"></table>
     <p id="positionsUpdated"> </p>
     <hr>    
+    
+    <h3>📉 Month Prices (Prices in 30 days) <span><button onclick="updateDailyPriceData()">Update</button></span></h3>
+    <div id="daily_prices_lineChart" style="width:100%;height:400px;"></div>    
+    <table id="daily_prices_table" border="1"></table>
+    <p id="dailyPricesUpdated"> </p>
+    <hr>
 
     <h3>📊 Trades (PNL) <span><button onclick="updateTradesData(true)">Update</button></span></h3>
     <div id="trades_lineChart" style="width:100%;height:400px;"></div>    
@@ -406,7 +406,7 @@
             await updateTradeTime();
             await updateDayPriceData();
             await updatePositionsData();
-            //await runStrategy();   // 你的交易逻辑
+            await runStrategy();   // 你的交易逻辑
 
         }, 5 * 60 * 1000);  // 每5秒（或5分钟 300000）
 

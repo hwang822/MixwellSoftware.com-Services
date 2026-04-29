@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 import alpaca_trade_api as tradeapi
 from datetime import date, datetime, time, timedelta, timezone
 
+from flask import jsonify
 import pytz
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
@@ -69,8 +70,8 @@ def get_alpaca_prices_api(symbol, days, interval, limit, only_today=True):
                 "high": bar.high,
                 "low": bar.low,
                 "change": 0,
-                "cost": 0,
                 "qty": 0,
+                "cost": 0,
                 "pnl": 0,
                 "pct": 0,
                 "action" : "",
@@ -111,6 +112,7 @@ ACTION_ICONS = {
 def utc_to_est(time_str):
     # 1️⃣ 解析 UTC 字符串
     dt_utc = datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+    #dt_utc = datetime.strptime(time_str.replace("Z", "+00:00"))
     dt_utc = dt_utc.replace(tzinfo=ZoneInfo("UTC"))
 
     # 2️⃣ 转换到纽约时区（自动 EST / EDT）
@@ -129,7 +131,7 @@ def scan_market():
 
     for symbol in SYMBOLS:
 
-        bars = get_alpaca_prices_api(symbol, 1, "5min", 100)
+        bars = get_alpaca_prices_api(symbol, 1, "5min", 100, False)
 
         if len(bars) < 2:
             continue
@@ -275,12 +277,12 @@ def normalize(value, min_v, max_v):
 ##################
 # new models
 ##################
-def get_current_price(symbol):
+def get_latest_trade(symbol):
     trade = api.get_latest_trade(symbol)
-    return float(trade.price)
+    return trade # float(trade.price)
 
 def get_last_n_high(symbol, n=5):
-    prices = get_alpaca_prices_api(symbol, 1, "5min", 30)
+    prices = get_alpaca_prices_api(symbol, 1, "5min", 30, False)
     #highest = max(prices, key=lambda x: x.high)
     highest = max(b["high"] for b in prices)
     return highest
@@ -480,54 +482,51 @@ def should_trade(symbol, pos, prices):
     if qty != 0:
         sell_flag, reason = should_sell(current_time, current_price, qty, cost, prices)
         sell_qty = 0
+        sell_cost = 0
         if sell_flag:            
             if qty > 0:
                 side = "sell"
                 sell_qty = qty
             elif qty < 0:
                 side = "buy"
-                sell_qty = abs(qty)                        
+                sell_qty = abs(qty)            
             action = "sell"
-            #api.submit_order(symbol=symbol,qty=sell_qty,side=side,type="market",time_in_force="day")            
+            sell_cost = round(qty*current_price)
+            api.submit_order(symbol=symbol,qty=sell_qty,side=side,type="market",time_in_force="day")            
         else:
+            sell_qty = qty
             action = "hold"
+            sell_cost = round(qty*current_price)
         trade = {
             "icon": ACTION_ICONS[action],
             "action" : action,
             "qty": sell_qty,
-            "cost" : qty*current_price,
+            "cost" : sell_cost,
             "notes": reason
             }               
         return trade
 
     # 🟩 无仓 → 只买
-    if qty == 0:
-        buy_flag, reason = should_buy(current_price, prices)
-        buy_qty = 0
-        buy_cost = 0
-        if buy_flag:
-            buy_qty = int(2000 / current_price)
-            #api.submit_order(symbol=symbol,qty= buy_qty,side="buy",type="market",time_in_force="day")  
-            action = "buy"
-            buy_cost = buy_qty*current_price
+    if is_best_trading_time(current_time):  # ⏰ 时间判断                                                                    
+        if qty == 0:
+            buy_flag, reason = should_buy(current_price, prices)
+            buy_qty = 0
+            buy_cost = 0
+            if buy_flag:
+                buy_qty = int(2000 / current_price)
+                #api.submit_order(symbol=symbol,qty= buy_qty,side="buy",type="market",time_in_force="day")  
+                action = "buy"
+                buy_cost = round(buy_qty*current_price,2)
+            else:
+                action = "skip"
             trade = {
                 "icon": ACTION_ICONS[action],
                 "action" : action,
                 "qty": buy_qty,
-                "cost" : buy_qty*current_price,
+                "cost" : buy_cost,
                 "notes": reason
                 }
-            return  trade                            
-        else:
-            action = "skip"
-        trade = {
-            "icon": ACTION_ICONS[action],
-            "action" : action,
-            "qty": buy_qty,
-            "cost" : buy_cost,
-            "notes": reason
-            }
-        return  trade
+            return  trade
 
 def alpaca_trading_api():
 
@@ -630,7 +629,7 @@ def update_symbols_day_prices_test():
         currentPrice = 0
         qty = 0
         cost = 0
-        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
+        prices = get_alpaca_prices_api(symbol, 1, "5min", 100, False)
         for index, price in enumerate(prices):   # only collect prices in side tracking time.
             time = price["timestamp"]
             if is_trading_time(time):  # ⏰ 时间判断
@@ -643,12 +642,11 @@ def update_symbols_day_prices_test():
                 prices[index]["change"] = priceRate
                 prices[index]["cost"] = cost
                 prices[index]["qty"] = qty
-                if is_best_trading_time(time):  # ⏰ 时间判断                            
-                    trade = should_trade(symbol, prices[:index+1])  # if trade in current price.
-                    if trade:
-                        prices[-1]["action"] = trade["action"]
-                        prices[-1]["notes"] = trade["notes"]
-                        prices[-1]["node"] = trade
+                trade = should_trade(symbol, prices[:index+1])  # if trade in current price.
+                if trade:
+                    prices[-1]["action"] = trade["action"]
+                    prices[-1]["notes"] = trade["notes"]
+                    prices[-1]["node"] = trade
         grouped[symbol] = {
             "colors" : SYMBOL_COLORS[symbol], 
             "items" : prices }
@@ -660,32 +658,32 @@ def update_symbols_day_prices():  # core function
     grouped = {}
     clock = api.get_clock()
     if clock.is_open:
+        trading_log = {}
+        trading_log_new = {}
+        trading_log = load_today_log()
+
         for symbol in SYMBOLS:
+            trading_log_new[symbol] = {}
             prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
             if not prices:
                 continue    
-            qty = 0
+            qty = 0            
+            mv = 0
+            cost = 0
+            pnl = 0
+            pct = 0
             pos = get_symbol_position(symbol)
             if pos:
                 qty = int(pos.qty)
                 mv = round(float(pos.market_value), 2)
                 cost = round(float(pos.cost_basis), 2)
-                #price = round(float(pos.current_price), 2)
                 pnl = round(float(mv-cost), 2)
                 pct = round(pnl / abs(cost) * 100 if cost else 0)
-            if is_best_trading_time(time):  # ⏰ 时间判断                            
-                trade = should_trade(symbol, pos, prices)  # if trade in current price.
-                if trade:
-                    prices[-1]["action"] = trade["action"]
-                    prices[-1]["notes"] = trade["notes"]
-                    if trade["action"] == "sell" or trade["action"] == "buy":
-                        prices[-1]["node"] = trade
-
             lastPrice = 0
             priceRate = 0
             currentPrice = 0
             for index, price in enumerate(prices):   # only collect prices in side tracking time.
-                time = price["timestamp"]
+                time = price["timestamp"]                
                 if is_trading_time(time):
                     if lastPrice == 0:
                         lastPrice = round(float(price["price_close"]), 2)
@@ -694,38 +692,87 @@ def update_symbols_day_prices():  # core function
                         priceRate = round(float(currentPrice - lastPrice), 2)
                         lastPrice = currentPrice
                     prices[index]["change"] = priceRate
-                    prices[index]["cost"] = cost
                     prices[index]["qty"] = qty
+                    prices[index]["cost"] = cost
                     prices[index]["pnl"] = pnl
-                    prices[index]["pct"] = pct
+                    prices[index]["pct"] = pct          
+                trading_log_new[symbol][time] = prices[index]
+            current_trade = get_latest_trade(symbol)
+            current_time = current_trade.t.strftime("%Y-%m-%d %H:%M")
+            trade = should_trade(symbol, pos, prices)  # if trade in current price.
+            if trade:   
+                currentprice = round(float(current_trade.p), 2)                 
+                new_price = prices[-1]
+                symbol = new_price["symbol"]
+                new_price["price_open"] = currentprice
+                new_price["price_close"] = currentprice
+                #new_price["volume"]
+                new_price["high"] = currentprice
+                new_price["low"] = currentprice
+                new_price["change"] = round(currentprice-lastPrice, 2)
+                cost = round(float(qty*currentprice), 2)
+                pnl = round(float(mv-cost), 2)
+                pct = round(float(pnl / abs(cost)) * 100 if cost else 0)
+                new_price["qty"] = trade["qty"]                    
+                new_price["cost"] = round(float(trade["cost"]), 2)
+                new_price["pnl"] = pnl
+                new_price["pct"] = pct
+                new_price["action"] = trade["action"]
+                new_price["notes"] = trade["notes"]
+                new_price["timestamp"] = current_time,
+                if trade["action"] == "sell" or trade["action"] == "buy":
+                    new_price["node"] = trade
+                prices.append(new_price)
+                trading_log_new[symbol][current_time] = new_price                    
 
             grouped[symbol] = {
                 "colors" : SYMBOL_COLORS[symbol], 
                 "items" : prices }
-        save_today_log(grouped)
+        trading_log_ex = {}
+        
+        if not len(trading_log_new)==0:        
+            if len(trading_log)==0:
+                trading_log_ex = trading_log_new
+            else:           
+                for k, v in trading_log_new.items():
+                    trading_log_ex[k] = v
+                for k, v in trading_log.items():    
+                    for vs in v:
+                        trading_log_ex[k][vs] = v[vs]
+                    trading_log_ex[k] = dict(sorted(trading_log_ex[k].items()))
+        save_today_log(trading_log_ex)
     return update_symbols_day_prices_ui()
 
 def update_symbols_day_prices_ui():
-    grouped = load_today_log()
+    grouped_log = load_today_log()
+    grouped_new = {}
     lines = []
-    for symbol in grouped:
-        items = grouped[symbol]["items"]
+    for symbol in grouped_log:
+        items = grouped_log[symbol]
         v = []
+        vx = []
         for item in items:
-            time_price = {
-                "x" : item["timestamp"].split(" ")[1],
-                "y" : item["change"],
-                "z" : item["qty"],
-                "node" : item["node"]
-            }
-            v.append(time_price)
+            try:
+                price = items[item]
+                timestamp = item.split(" ")[1]
+                time_price = {
+                    "x" : timestamp,
+                    "y" : price["change"],
+                    "z" : price["qty"],
+                    "node" : price["node"]
+                }
+                v.append(time_price)
+                vx.append(price)
+            except Exception as e:
+                print(e)
+        grouped_new[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : vx }    
         lines.append({
             "symbol" : symbol,
             "color"  : SYMBOL_COLORS[symbol],
             "series" : v
         })
      
-    return  grouped, lines
+    return  grouped_new, lines
 
 def update_symbols_daily_prices():  # core function    
     lines = []
