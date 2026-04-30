@@ -70,6 +70,12 @@
     <p id="accountUpdated"> </p>
     <hr>
 
+    <h3>📈 Day Prices Test (Prices in Today for test) <span><button onclick="updateDayPriceDataTest()">Test</button></span></h3>
+    <div id="day_prices_test_lineChart" style="width:100%;height:400px;"></div>    
+    <table id="day_prices_test_table" border="1"></table>
+    <p id="dayPricesTestUpdated"> </p>
+    <hr>
+
     <script>
 
         async function updateTradeTime()
@@ -92,6 +98,15 @@
             document.getElementById("day_prices_table").innerHTML = data.html;                   
             renderLine(data.lines, 'day_prices_lineChart');
             document.getElementById("dayPricesUpdated").textContent = "Day prices updated at " + getNYTime();
+        }        
+
+        async function updateDayPriceDataTest()
+        {
+            const res = await fetch("/api/day_prices_test");                              
+            const data = await res.json() 
+            document.getElementById("day_prices_test_table").innerHTML = data.html;                   
+            renderLine(data.lines, 'day_prices_test_lineChart');
+            document.getElementById("dayPricesTestUpdated").textContent = "Day prices test updated at " + getNYTime();
         }        
 
         async function updateDailyPriceData()
@@ -370,7 +385,8 @@
         updatePositionsData()
         updateTopSymbolsData()        
         updateTradesData()
-
+        //updateDayPriceDataTest()
+        
         // ==============================
         // 模拟交易
         // ==============================

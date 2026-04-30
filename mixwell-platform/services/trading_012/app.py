@@ -3,7 +3,9 @@ import sys
 
 from flask import Blueprint, Config, Flask, jsonify, render_template
 from servicemodels import db
-from tradingservice import update_symbols_trades, update_symbols_positions, update_user_account, update_symbols_scan, update_symbols_daily_prices, update_symbols_day_prices, SYMBOL_COLORS, should_trade
+
+from tradingservice import update_symbols_scan, update_symbols_daily_prices, update_symbols_day_prices
+from tradingservice import SYMBOL_COLORS, update_symbols_trades, update_symbols_positions, update_user_account
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -48,6 +50,16 @@ def api_day_prices():
         "html": html,
         "lines": lines
     })    
+
+@tradingService.route("/api/day_prices_test")
+def api_day_prices_test():            
+    dayprices, lines = update_symbols_day_prices()         
+    html = build_table_html(dayprices)
+    return jsonify({
+        "html": html,
+        "lines": lines
+    })    
+
 
 @tradingService.route("/api/daily_prices")
 def api_daily_prices():
@@ -99,85 +111,86 @@ def api_run_trade():
     return jsonify({"status": "ok"})
 
 def build_table_html(data):
-    has_expand = False
-    lastitem = {}
-    if isinstance(data, dict):
-        groups = data.keys()
-        for group in groups:
-            lastitem = data[group]["items"][-1]
-            break
-        cols = lastitem.keys()
-        rows = lastitem.values()                    
-        if len(rows) > 1:
-            has_expand = True
-    else:
-        cols = data[0].keys()        
-    
-    thead = ""
-    if has_expand:
-        thead = "<tr><th></th>" + "".join([f"<th>{c}</th>" for c in cols]) + f"</tr>"
-    else:
-        thead = "<tr>" + "".join([f"<th>{c}</th>" for c in cols]) + "</tr>"
-    tbody = ""
+    if len(data) > 0:
+        has_expand = False
+        lastitem = {}
+        if isinstance(data, dict):
+            groups = data.keys()
+            for group in groups:
+                lastitem = data[group]["items"][-1]
+                break
+            cols = lastitem.keys()
+            rows = lastitem.values()                    
+            if len(rows) > 1:
+                has_expand = True
+        else:
+            cols = data[0].keys()        
+        
+        thead = ""
+        if has_expand:
+            thead = "<tr><th></th>" + "".join([f"<th>{c}</th>" for c in cols]) + f"</tr>"
+        else:
+            thead = "<tr>" + "".join([f"<th>{c}</th>" for c in cols]) + "</tr>"
+        tbody = ""
 
-    # ================= GROUPED MODE =================
-    if has_expand:
-        colors = {}
-        items = {}
-        for i, row in enumerate(data):
-            colors = data[row]["colors"]
-            items = data[row]["items"]        
-            # ===== 主行 =====
-            tbody += "<tr>"
-            if has_expand:
-                tbody += f"""
-                <td id="btn_{i}" onclick="toggleRow('{i}')" style="cursor:pointer">[+]</td>
-                """            
-            lastitem = items[-1]            
-            for k, v in lastitem.items():
-                #tbody += f"<td>{v}</td>"
-                if k == "symbol":
-                    tbody += f"<td style='color:{colors}'>{v}</td>"
-                else:
-                    tbody += f"<td>{v}</td>"                
-            tbody += "</tr>"    
+        # ================= GROUPED MODE =================
+        if has_expand:
+            colors = {}
+            items = {}
+            for i, row in enumerate(data):
+                colors = data[row]["colors"]
+                items = data[row]["items"]        
+                # ===== 主行 =====
+                tbody += "<tr>"
+                if has_expand:
+                    tbody += f"""
+                    <td id="btn_{i}" onclick="toggleRow('{i}')" style="cursor:pointer">[+]</td>
+                    """            
+                lastitem = items[-1]            
+                for k, v in lastitem.items():
+                    #tbody += f"<td>{v}</td>"
+                    if k == "symbol":
+                        tbody += f"<td style='color:{colors}'>{v}</td>"
+                    else:
+                        tbody += f"<td>{v}</td>"                
+                tbody += "</tr>"    
 
-            # ===== child rows（关键修复）=====
-            if has_expand:
-                for item in items:
-                    tbody += f"<tr class='child child_{i}' style='display:none'>"
+                # ===== child rows（关键修复）=====
+                if has_expand:
+                    for item in items:
+                        tbody += f"<tr class='child child_{i}' style='display:none'>"
 
-                    # 👉 按列对齐
-                    if has_expand:
-                        tbody += "<td></td>"   # button column                    
-                    for k, v in item.items():
-                        # 👉 symbol 不显示
-                        if k == "symbol":
-                            tbody += "<td></td>"
-                        else:
-                            tbody += f"<td>{v}</td>"
+                        # 👉 按列对齐
+                        if has_expand:
+                            tbody += "<td></td>"   # button column                    
+                        for k, v in item.items():
+                            # 👉 symbol 不显示
+                            if k == "symbol":
+                                tbody += "<td></td>"
+                            else:
+                                tbody += f"<td>{v}</td>"
 
-                    tbody += "</tr>"                                                        
-                                    
-    # ================= FLAT MODE =================
-    else:
-        for r in data:
-            tbody += "<tr>"
-            #tbody += "<td></td>"
-            for c in cols:
-                val = r.get(c, "")
-                if c == "symbol":
-                    colors = SYMBOL_COLORS[val]
-                    tbody += f"<td style='color:{colors}'>{val}</td>"
-                else:
-                    tbody += f"<td>{val}</td>"                
-            tbody += "</tr>"
-    return f"""
-    <table border="1" style="border-collapse:collapse;width:100%">
-        <thead>{thead}</thead>
-        <tbody>{tbody}</tbody>
-    </table>
-    """
+                        tbody += "</tr>"                                                        
+                                        
+        # ================= FLAT MODE =================
+        else:
+            for r in data:
+                tbody += "<tr>"
+                #tbody += "<td></td>"
+                for c in cols:
+                    val = r.get(c, "")
+                    if c == "symbol":
+                        colors = SYMBOL_COLORS[val]
+                        tbody += f"<td style='color:{colors}'>{val}</td>"
+                    else:
+                        tbody += f"<td>{val}</td>"                
+                tbody += "</tr>"
+        return f"""
+        <table border="1" style="border-collapse:collapse;width:100%">
+            <thead>{thead}</thead>
+            <tbody>{tbody}</tbody>
+        </table>
+        """
 
 def create_app():
     app.register_blueprint(tradingService)
