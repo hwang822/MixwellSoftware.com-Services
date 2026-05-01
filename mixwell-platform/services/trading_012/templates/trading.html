@@ -185,7 +185,7 @@
                     name: sym.symbol, // + "_profit",
                     type: 'line',
                     data: sym.series.map(p => {
-                        if (p.z <= 0) return null;
+                        if (!p || p.z == 0) return null;
                         return [p.x, p.y];
                     }),
                     lineStyle: {
@@ -194,7 +194,7 @@
                         color: "rgba(0, 200, 83, 0.3)"
                     },
                     showSymbol: false,
-                    z: 3
+                    z: 6
                 });
 
                 // 🔴 亏损
@@ -202,7 +202,7 @@
                     name: sym.symbol, // + "_loss",
                     type: 'line',
                     data: sym.series.map(p => {
-                        if (p.z >= 0) return null;
+                        if (!p ||  p.z == 0) return null;
                         return [p.x, p.y];
                     }),
                     lineStyle: {
@@ -211,20 +211,27 @@
                         color: "rgba(255, 82, 82, 0.3)"
                     },
                     showSymbol: false,
-                    z: 3
+                    z: 6
                 });
                 // price line, main line
+                console.log(sym)
                 series.push({
                     name: sym.symbol,
-                    type: 'line',
-                    data: sym.series.map(p => [p.x, p.y]),
+                    type: 'line',                    
+                    data: sym.series.map(p =>
+                        {
+                            if (!p) return null;
+                            return [p.x, p.y];                            
+                        } 
+                    ),
                     lineStyle: {
                         color: colors[idx],
                         width: 2
                     },
                     showSymbol: false,
                     z: 4
-                });                
+                });     
+                //console.log(p),           
                 
                 series.push({
                     name: sym.symbol,  // + "_nodes",
@@ -239,7 +246,7 @@
 
                                 symbol: p.node.icon || "circle", //getNodeIcon(action),
                                 symbolSize: 14,
-                                symbolRotate: action === "sell" ? 180 : 0,
+                                //symbolRotate: action === "sell" ? 180 : 0,
 
                                 itemStyle: {
                                     color: colors[idx] // getNodeColor(action)
@@ -395,10 +402,10 @@
             updateTradeTime()
             updateAccountData()
             updateDayPriceData()        
-            updateDailyPriceData()
-            updatePositionsData()
+            updateDailyPriceData()            
             updateTopSymbolsData()        
             updateTradesData()
+            updatePositionsData()
             document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
 
             //await loadChart(); // 👉 只有交易才刷新
@@ -422,7 +429,7 @@
             await updateTradeTime();
             await updateDayPriceData();
             await updatePositionsData();
-            await runStrategy();   // 你的交易逻辑
+            //await runStrategy();   // 你的交易逻辑
 
         }, 5 * 60 * 1000);  // 每5秒（或5分钟 300000）
 
