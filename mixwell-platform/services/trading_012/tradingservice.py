@@ -63,12 +63,15 @@ def get_alpaca_prices_api(symbol, days, interval, limit, only_today=True):
             result.append({
                 "symbol": symbol,
                 "price_close": bar.close,
+                "price_low": bar.low,
+                "price_high": bar.high,
                 "volume" : bar.volume,
                 "qty": 0,
                 "mv": 0,
                 "cost": 0,
                 "pnl": 0,
                 "pct": 0,
+                "total_pnl": 0,
                 "action" : "",
                 "notes" : "",
                 "timestamp": ts,
@@ -431,8 +434,8 @@ def load_today_log(today=True):
 
 ###################################
 def get_volatility(prices, n=10):
-    highs = [p["high"] for p in prices[-n:]]
-    lows  = [p["low"]  for p in prices[-n:]]
+    highs = [p["price_high"] for p in prices[-n:]]
+    lows  = [p["price_low"]  for p in prices[-n:]]
 
     return (max(highs) - min(lows)) / min(lows)
 
@@ -444,8 +447,8 @@ def should_buy(current_price, prices):
         # 最近 N 根（比如 10 根）
         recent = prices[-10:]
 
-        recent_low = min(p["low"] for p in recent)
-        recent_high = max(p["high"] for p in recent)
+        recent_low = min(p["price_low"] for p in recent)
+        recent_high = max(p["price_high"] for p in recent)
 
         # 1️⃣ 接近低点（核心）
         near_low = (current_price - recent_low) / recent_low < 0.003   # <0.3%
@@ -641,25 +644,101 @@ def alpaca_trading_api():
 ################################
 # update_symbols_prices()  #
 ###############################
+def should_buy_test(prices):
+    return False
+
+def should_sell_test(prices):
+    return False
+
+def save_test_log(lines):
+    try:
+        # 👉 确保目录存在
+        os.makedirs(LOG_DIR, exist_ok=True)
+        file = os.path.join(LOG_DIR, "trading_test.jsonl")         
+        with open(file, "w") as f:   # "w" = overwrite
+            json.dump(lines, f, indent=2, default=str)
+    except Exception as e:
+        print (e)
+
+
+def load_test_log():
+    src_file = os.path.join(LOG_DIR, "trading_test.jsonl")
+    if not os.path.exists(src_file):
+        return []
+    with open(src_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+TRADING_INDEX = 0
+def update_symbols_day_prices_test():  # core function        
+    global TRADING_INDEX
+    grouped_log = load_test_log()
+    grouped_new = {}
+    lines = []
+    for symbol in grouped_log:
+        #items = get_alpaca_prices_api(symbol, 1, "5min", 100, False)
+        items = grouped_log[symbol]    
+        v = []
+        vx = []
+        #for index, item in enumerate(items):
+        for index, item in enumerate(items):
+            try:
+                datatimestamp = item["timestamp"]
+                if is_trading_time(datatimestamp):                
+                    timestamp = datatimestamp.split(" ")[1]
+                    sell_flag = False
+                    buy_flag = False
+                    if index == TRADING_INDEX:
+                        sell_flag, reason = should_sell_test(items[:index+1])                    
+                        if not sell_flag:
+                            buy_flag, reason = should_buy_test(items[:index+1])                                                    
+                        """
+                        time_price = {
+                            "x" : timestamp,
+                            "y" : item["price_close"],
+                            "z" : item["qty"],
+                            "node" : item["node"]
+                        }
+                        """
+                        #v.append(time_price)
+                        vx.append(item)
+            except Exception as e:
+                print(e)
+        grouped_new[symbol] = {"colors" : SYMBOL_COLORS[symbol], "items" : vx }    
+
+        min_y = min(p["y"] for p in v)   
+        for p in v:
+            p["y"] = round((float(p["y"]) - float(min_y)), 2)                       
+        
+        lines.append({
+            "symbol" : symbol,
+            "color"  : SYMBOL_COLORS[symbol],
+            "series" : v
+        })
+    TRADING_INDEX += 1 
+    
+    #save_test_log(grouped_new)
+    return  grouped_new, lines
+#update_symbols_day_prices_test()
+
 def update_symbols_day_prices():  # core function        
     grouped = {}
-    clock = api.get_clock()
+    clock = api.get_clock()    
     if clock.is_open:
         trading_log = {}
         trading_log_new = {}
         trading_log = load_today_log(True)
-
         for symbol in SYMBOLS:
             trading_log_new[symbol] = {}
             prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
             if not prices:
-                continue    
+                continue 
             qty = 0            
             mv = 0
             cost = 0
             pnl = 0
             pct = 0
             pos = get_symbol_position(symbol)
+            total_pnl = 0
             if pos:
                 qty = int(pos.qty)
                 mv = round(float(pos.market_value), 2)
@@ -680,17 +759,24 @@ def update_symbols_day_prices():  # core function
             trade = should_trade(symbol, pos, prices)  # if trade in current price.
             print (f"{current_time} {symbol} {trade} ")
             if trade:   
+                if qty == 0:
+                    total_pnl = total_pnl + pnl
+                else:
+                    total_pnl = 0
                 currentprice = round(float(current_trade.p), 2)                 
                 prices[-1]["price_close"] = currentprice
                 cost = round(float(qty*currentprice), 2)
                 pnl = round(float(mv-cost), 2)
                 pct = round(float(pnl / abs(cost)) * 100 if cost else 0)
+                total_pnl = prices[-1]["total_pnl"]
+                total_pnl = total_pnl + pnl
                 prices[-1]["qty"] = trade["qty"]                    
-                prices[-1]["volume"] = trade["volume"]
+                #prices[-1]["volume"] = trade["volume"]
                 prices[-1]["mv"] = mv                 
                 prices[-1]["cost"] = round(float(trade["cost"]), 2)
                 prices[-1]["pnl"] = pnl
                 prices[-1]["pct"] = pct
+                prices[-1]["total_pnl"] = total_pnl
                 prices[-1]["action"] = trade["action"]
                 prices[-1]["notes"] = trade["notes"]
                 prices[-1]["timestamp"] = current_time,
@@ -701,6 +787,7 @@ def update_symbols_day_prices():  # core function
             grouped[symbol] = {
                 "colors" : SYMBOL_COLORS[symbol], 
                 "items" : prices }
+            break
         trading_log_ex = {}
         
         if not len(trading_log_new)==0:        
@@ -718,16 +805,18 @@ def update_symbols_day_prices():  # core function
     else:
         return update_symbols_day_prices_ui(False)
 def update_symbols_day_prices_ui(today=True):
-    grouped_log = load_today_log(False)
+    grouped_log = load_today_log(today)
     grouped_new = {}
     lines = []
     for symbol in grouped_log:
         items = grouped_log[symbol]
         v = []
         vx = []
-        for item in items:
+        for index, item in enumerate(items):
             try:
                 price = items[item]
+                #if price["node"]:
+                #    print(price["node"])
                 timestamp = item.split(" ")[1]
                 time_price = {
                     "x" : timestamp,
