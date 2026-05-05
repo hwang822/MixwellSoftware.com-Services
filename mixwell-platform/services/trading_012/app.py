@@ -146,7 +146,7 @@ def build_table_html(data):
                     tbody += f"""
                     <td id="btn_{i}" onclick="toggleRow('{i}')" style="cursor:pointer">[+]</td>
                     """            
-                lastitem = items[-1]            
+                lastitem = items[0]            
                 for k, v in lastitem.items():
                     #tbody += f"<td>{v}</td>"
                     if k == "symbol":
