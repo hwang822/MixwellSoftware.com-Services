@@ -374,7 +374,9 @@ def get_alpaca_prices_test(symbol):
         #data[symbol]["items"].append(new_items)
     return new_items
 
-def execut_order(symbol, side):
+def execut_order(symbol, side, test = False):
+    if test: # not execut for test
+        return
     pos = get_symbol_position(symbol)
     if pos:                
         if side == "sell":        
@@ -412,7 +414,7 @@ def update_symbols_day_prices_test():
             last_ref = lastTrade["mv_ref"]
             last_cost = lastTrade["cost"]  # same as postion.qty
             last_mv = lastTrade["mv"]
-            last_total_pnl = lastTrade["total_pan"]
+            #last_total_pnl = lastTrade["total_pnl"]
 
         prices = get_alpaca_prices_test(symbol)
         #prices = get_alpaca_prices_api(symbol, 1, "5min", 100, False)
@@ -427,7 +429,7 @@ def update_symbols_day_prices_test():
         current_qty = test_qty
         current_mv = current_qty*current_price
         recent_price["mv"] = current_mv
-        lastTrade["total_pnl"] = last_total_pnl 
+        #lastTrade["total_pnl"] = last_total_pnl 
         if last_mv==0:
             recent_price["price_change($)"] = 0
         else:
@@ -471,7 +473,7 @@ def update_symbols_day_prices_test():
                     recent_price["action"] = acction
                     pnl = current_mv - last_cost
                     last_total_pnl += pnl
-                    recent_price["total_pnl"] = last_total_pnl
+                    #recent_price["total_pnl"] = last_total_pnl
                     recent_price["pnl"] = pnl
                     recent_price["notes"] = f"{acction}: mv:{round(last_ref,2)} < ref:{round(last_ref,2)} = {round(mv_change,2)}  < -3$,  to take win {round(pnl, 2)} $ "                       
                     recent_price["cost"] = 0
@@ -484,7 +486,7 @@ def update_symbols_day_prices_test():
                         recent_price["action"] = acction
                         pnl = current_mv - last_cost
                         total_pnl += pnl
-                        recent_price["total_pnl"] = total_pnl
+                        #recent_price["total_pnl"] = total_pnl
                         recent_price["pnl"] = pnl
                         recent_price["notes"] = f"{acction}: mv:{round(last_ref,2)} < ref:{round(last_ref,2)} = {round(mv_change,2)}  < -3$,  to take win {round(pnl, 2)} $ "                       
                         recent_price["cost"] = 0
@@ -671,10 +673,10 @@ def update_symbols_day_prices():  # core function
                 last_ref = lastTrade["mv_ref"]
                 last_cost = lastTrade["cost"]  # same as postion.qty
                 last_mv = lastTrade["mv"]
-                last_total_pnl = lastTrade["total_pan"]
+                #last_total_pnl = lastTrade["total_pnl"]
 
             #prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
-            prices = get_alpaca_prices_api(symbol, 1, "5min", 100, False)
+            prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
             if not prices:
                 continue             
             #total_pnl = 0
@@ -686,7 +688,7 @@ def update_symbols_day_prices():  # core function
             current_qty = test_qty
             current_mv = current_qty*current_price
             recent_price["mv"] = current_mv
-            lastTrade["total_pan"] = last_total_pnl 
+            #lastTrade["total_pnl"] = last_total_pnl 
             if last_mv==0:
                 recent_price["price_change($)"] = 0
             else:
