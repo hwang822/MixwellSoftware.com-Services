@@ -214,7 +214,7 @@
                     z: 6
                 });
                 // price line, main line
-                console.log(sym)
+                //console.log(sym)
                 series.push({
                     name: sym.symbol,
                     type: 'line',                    
@@ -406,32 +406,49 @@
             updateTopSymbolsData()        
             updateTradesData()
             updatePositionsData()
-            document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
+            //document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
 
             //await loadChart(); // 👉 只有交易才刷新
         }
 
-        // 5分钟循环刷新
-        //setInterval(updateTradeTime, 5 * 60 * 1000);
+        function startPreciseAlignedTimer(intervalMinutes, fn) {
+            const intervalMs = intervalMinutes * 60 * 1000;
 
-        setInterval(async () => {
+            function scheduleNext() {
+                const now = new Date();
 
-            const auto = document.getElementById("autoRun").checked;
+                const ms =
+                    now.getMinutes() * 60 * 1000 +
+                    now.getSeconds() * 1000 +
+                    now.getMilliseconds();
 
-            if (!auto) {
-                console.log("Auto OFF");
-                return;
+                const delay = intervalMs - (ms % intervalMs);
+
+                setTimeout(() => {
+
+                    scheduleNext();   // ✅ 先安排下一次（防漂移）
+
+                    const auto = document.getElementById("autoRun").checked;
+
+                    if (!auto) {
+                        console.log("Auto OFF");
+                        return;
+                    }
+
+                    console.log("Auto RUNNING...", new Date());
+
+                    updateDayPriceData();
+                    updatePositionsData();
+                    fn();
+
+                }, delay);
             }
 
-            console.log("Auto RUNNING...");
+            scheduleNext();
+        }
 
-            // 👉 自动执行你的流程
-            await updateTradeTime();
-            await updateDayPriceData();
-            await updatePositionsData();
-            //await runStrategy();   // 你的交易逻辑
-
-        }, 5 * 60 * 1000);  // 每5秒（或5分钟 300000）
+        // ✅ 正确调用
+        startPreciseAlignedTimer(5, updateTradeTime);
 
     </script>
 </body>

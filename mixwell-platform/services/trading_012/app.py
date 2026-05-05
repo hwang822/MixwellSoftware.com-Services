@@ -14,7 +14,7 @@ from config.settings import Config
 app = Flask(__name__,static_folder=os.path.join(base_dir, 'static'),static_url_path='/static')
 shared_templates = os.path.abspath(os.path.join(base_dir, "templates"))
 app.jinja_loader.searchpath.append(shared_templates)
-print("Shared templates:", shared_templates)  
+#print("Shared templates:", shared_templates)  
 sys.path.insert(0, f"{base_dir}")
 
 baseport = int(Config.PORTAL_PORT)
@@ -117,7 +117,7 @@ def build_table_html(data):
         if isinstance(data, dict):
             groups = data.keys()
             for group in groups:
-                lastitem = data[group]["items"][-1]
+                lastitem = data[group]["items"][0]
                 break
             cols = lastitem.keys()
             rows = lastitem.values()                    
