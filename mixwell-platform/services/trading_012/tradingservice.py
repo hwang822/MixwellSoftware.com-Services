@@ -723,16 +723,9 @@ def update_symbols_day_prices():  # core function
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
                         if start > 5:
-<<<<<<< HEAD
-
-                            if current_mv_change > 3: # start up from lower
-                                current_action = "buy"
-                                current_notes = f"{current_action}: mv:{round(current_mv, 2)} - ref:{round(last_mv_ref, 2)} = {round((current_mv_change),2)}  > 3$ "
-=======
                             if current_mv-last_mv_ref > 3: # start up from lowest poing 
                                 current_action = "buy" 
                                 current_notes = f"{current_action} mv:{round(current_mv, 2)} - ref:{round(last_mv_ref, 2)} = {round((current_mv-last_mv_ref),2)}  > 3$ "
->>>>>>> 36570dda75ea97ab1c275772ce2297ce4a69ceb8
                                 current_cost = current_mv
                                 current_mv_ref = current_mv                                
                                 current_qty = test_qty
@@ -748,10 +741,6 @@ def update_symbols_day_prices():  # core function
                                     current_mv_ref = last_mv_ref
                     
                 else: # sell only
-<<<<<<< HEAD
-                    #current_mv = last_mv                  
-=======
->>>>>>> 36570dda75ea97ab1c275772ce2297ce4a69ceb8
                     if time >= "15:55": # not sell all after nytime 15:55
                         current_action = "sell"              
                         #execut_order(symbol, acction)                      
@@ -769,11 +758,7 @@ def update_symbols_day_prices():  # core function
                             current_pnl = current_mv - last_cost
                             current_pct = (current_mv - last_cost)/last_cost*100
                             current_total_pnl += current_pnl
-<<<<<<< HEAD
-                            current_notes = f"{current_action}: mv:{round(last_mv_ref,2)} < ref:{round(last_mv_ref,2)} = {round(current_mv_change,2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
-=======
                             current_notes = f"{current_action}: current mv: {current_mv} higher last cost {last_cost} than {current_mv-last_cost} 8$ or lower last_ref {last_mv_ref} than {current_mv-last_mv_ref} = {round((current_mv-last_mv_ref), 2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
->>>>>>> 36570dda75ea97ab1c275772ce2297ce4a69ceb8
                             current_cost = 0
                             current_mv_ref = current_mv                         
                         else:
