@@ -156,8 +156,19 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
+        let charts = {}
         function renderLine(data, chartName) {
-            const chart = echarts.init(document.getElementById(chartName));
+            let chart = charts[chartName];
+            console.log("update chart for comming data: ", chartName)
+            if (!chart) {
+                console.log("create new chart: ", chartName)
+                chart = echarts.init(
+                    document.getElementById(chartName)
+                );
+
+                charts[chartName] = chart;
+            }            
+            //const chart = echarts.init(document.getElementById(chartName));
             data.forEach(sym => {
                 sym.series.forEach(p => {
                     if (p.node && typeof p.node === "string") {
@@ -257,9 +268,9 @@
                         }),
                     z: 5
                 });                
-            });
-
-            chart.setOption({
+            });            
+            chart.setOption({                
+                //series: updatedSeries,
                 //legend: {
                 //    data: data.map(d => d.symbol)
                 //},
@@ -318,60 +329,70 @@
             });
         }
 
-
+        let barChart = {}
         function renderBar(data, chartName) {
-            barChart = echarts.init(document.getElementById(chartName));    
+            let barChart = charts[chartName];
+
+            if (!barChart) {
+
+                barChart = echarts.init(
+                    document.getElementById(chartName)
+                );
+
+                charts[chartName] = barChart;
+            }
+            //barChart = echarts.init(document.getElementById(chartName));    
             const symbols = data.map(d => d.x);
             const labels = data.map(d => d.symbol);
             const values = data.map(d => d.y);
             const colors = data.map(d => d.color);            
 
             barChart.setOption({
-            tooltip: {
-                formatter: (p) => {
-                    return `
-                        ${p.name}<br/>
-                        Change: ${(p.value).toFixed(2)}
-                    `;
-                }
-            },
+                tooltip: {
+                    formatter: (p) => {
+                        return `
+                            ${p.name}<br/>
+                            Change: ${(p.value).toFixed(2)}
+                        `;
+                    }
+                },
 
-            xAxis: {
-                type: 'category',
-                data: symbols,
-                axisLabel: {
-                    formatter: function (value, index) {
-                        return `{color${index}|${value}}`;
-                    },
-                    rich: symbols.reduce((acc, _, i) => {
-                        acc[`color${i}`] = {
-                            color: colors[i]
-                        };
-                        return acc;
-                    }, {})
-                }
-            },
-            
-            yAxis: {
-                type: 'value',
-                axisLabel: {
-                    formatter: (v) => (v).toFixed(2)
-                }
-            },
-            series: [{
-                type: 'bar',
-                data: values,
-                itemStyle: {
-                    color: (params) => {
-                        return params.value >= 0 ? "#00FF99" : "#FF3366";
-                    }},
-                // ✅ 参考线（成本 / 0线）
-                markLine: {
-                    data: [
-                        { yAxis: 0 }
-                    ],
-                    lineStyle: {
-                        width: 2
+                xAxis: {
+                    type: 'category',
+                    data: symbols,
+                    axisLabel: {
+                        formatter: function (value, index) {
+                            return `{color${index}|${value}}`;
+                        },
+                        rich: symbols.reduce((acc, _, i) => {
+                            acc[`color${i}`] = {
+                                color: colors[i]
+                            };
+                            return acc;
+                        }, {})
+                    }
+                },
+                
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: (v) => (v).toFixed(2)
+                    }
+                },
+                series: [{
+                    type: 'bar',
+                    data: values,
+                    itemStyle: {
+                        color: (params) => {
+                            return params.value >= 0 ? "#00FF99" : "#FF3366";
+                        }},
+                    // ✅ 参考线（成本 / 0线）
+                    markLine: {
+                        data: [
+                            { yAxis: 0 }
+                        ],
+                        lineStyle: {
+                            width: 2
                     }}
                 }]
             });
