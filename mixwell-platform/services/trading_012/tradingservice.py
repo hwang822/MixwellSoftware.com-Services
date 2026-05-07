@@ -38,7 +38,14 @@ def get_alpaca_prices_api(symbol, days, interval, limit, only_today=True):
 
     if not bars.empty:
 
-        today_est = datetime.now(ZoneInfo("America/New_York")).date()
+        # ✅ remove forming bar
+        if interval in ["1min", "5min", "15min"] and len(bars) > 1:
+            bars = bars.iloc[:-1]
+        today_est = datetime.now(
+            ZoneInfo("America/New_York")
+        ).date()
+
+        #today_est = datetime.now(ZoneInfo("America/New_York")).date()
 
         for index, bar in bars.iterrows():
 
@@ -396,8 +403,173 @@ def execut_order(symbol, side, test = False):
                     api.submit_order(symbol=symbol,qty= buy_qty,side= side,type="market",time_in_force="day")  
     return
 
-def update_symbols_day_prices_test():
-    return
+
+def should_trade(prices):
+     
+    curreent_prices = prices
+    last_prices = prices[:-1]
+    last_price = last_prices[-1]
+    price = curreent_prices[-1]
+    
+    last_cost = last_price["cost"]
+    last_mv = last_price["mv"]
+    last_mv_ref = last_price["mv_ref"]
+    last_qty = last_price["qty"]
+    last_pnl = last_price["pnl"]
+    last_total_pnl = last_price["total_pnl"]
+    
+
+    current_price = price["price_close"]
+    current_qty = round(2000/current_price)
+    current_mv = current_price*current_qty 
+    price["mv"] = round(current_price*current_qty, 2)
+    current_mv_change = 0
+    if last_mv > 0:
+        current_mv_change = current_mv - last_mv
+    price["mv_change($)"] = current_mv
+
+    return price 
+    if len(prices)<5:        
+        recent = last_prices
+        last_mv_ref = min(p["price_close"] for p in recent) * current_qty 
+    else:
+        timestamp = price["timestamp"] 
+        time = timestamp.split(" ")[1]
+        current_price = price["price_close"]
+        current_qty = round(2000/current_price)
+        current_mv = current_price*current_qty 
+        current_pnl = 0
+        current_action = None
+        price["mv"] = round(current_mv, 2)
+        price["mv_change($)"] = round(current_mv_change, 2) 
+        price["mv_ref"] = last_mv_ref
+        if last_cost == 0:  # buy only                
+            if time <= "15:50": # not buy after nytime 15:50
+                if len(prices) > 5:
+                    if current_mv_change > 3: # start up from lower
+                        price["action"] = "buy"
+                        price["notes"] = f"{current_action}: mv:{round(current_mv, 2)} - ref:{round(last_mv_ref, 2)} = {round((current_mv_change),2)}  > 3$ "
+                        price["cost"] = current_mv
+                        price["mv_ref"] = current_mv                                
+                        price["qty"] = current_qty                    
+                        #execut_order(symbol,acction) 
+                    else:
+                        price["action"] = "skip"                        
+                        price["cost"] = last_cost
+                        price["notes"] = f"Skip: mv={round(current_mv, 2)} with ref={round(last_mv_ref, 2)} in range 3$ "                    
+                        if current_mv < last_mv_ref:
+                            price["mv_ref"] = current_mv
+                        else:
+                            price["mv_ref"] = last_mv_ref
+            
+        else: # sell only
+            #current_mv = last_mv                  
+            if time >= "15:55": # not sell all after nytime 15:55
+                price["action"] = "sell"              
+                #execut_order(symbol, acction)
+                current_pnl = current_mv - last_cost                      
+                price["pnl"] = round(current_pnl, 2)
+                price["pct"] = round((current_mv - last_cost)/last_cost*100, 2)
+                price["total_pnl"] += int(current_pnl)                    
+                price["notes"] = f"{current_action}: mv:{round(last_mv_ref,2)} < ref:{round(last_mv_ref,2)} = {round(current_mv_change,2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
+                price["cost"] = 0
+                price["qty"] = last_qty
+                price["mv_ref"] = current_mv                         
+            else:
+                if (current_mv - last_mv_ref) > 8 or current_mv_change < -3:                             
+                    current_action = "sell"
+                    price["action"] = current_action              
+                    #execut_order(symbol, acction)                      
+                    price["pnl"] = current_mv - last_cost
+                    price["pct"] = (current_mv - last_cost)/last_cost*100
+                    price["pnl"] += current_pnl
+                    price["notes"] = f"{current_action}: mv:{round(last_mv_ref,2)} < ref:{round(last_mv_ref,2)} = {round(current_mv_change,2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
+                    price["cost"] = 0
+                    price["mv_ref"] = current_mv                         
+                else:
+                    price["action"] = "hold"
+                    price["notes"] = f"Hold: mv:{round(last_mv_ref,2)} - ref:{round(last_mv_ref,2)} = {round((current_mv_change), 2)} in range 3$"                    
+                    price["cost"] = last_cost
+                    price["mv"] = last_mv                    
+                    price["qty"] = current_qty 
+                    if current_mv > last_mv_ref:
+                        price["mv_ref"] = current_mv
+                    else:
+                        price["mv_ref"] = last_mv_ref
+    return price
+
+def update_symbols_day_prices_test_ui():
+    log_data = load_test_log()
+    new_log_data = {}
+    for symbol in SYMBOLS:
+        items = log_data[symbol]
+        new_items = sorted(items, key=lambda x: x["timestamp"], reverse=True)    
+        new_log_data[symbol] = {
+                "symbol" : symbol,
+                "colors" : SYMBOL_COLORS[symbol],
+                "items" : new_items
+            }
+    lines = []                
+    for symbol in SYMBOLS:
+        v = []
+        items = log_data[symbol]
+        last_qty = 0
+        for item in items:
+            timestamp = item["timestamp"]        
+            timestamp = timestamp.split(" ")[1]
+            action = item["action"]
+            notes =  item["notes"]
+            qty = int(item["qty"])
+            mv = int(item["mv"])
+            last_qty = qty
+            node = None
+            if action=="sell" or action=="sell":                                                
+                node = {
+                        "icon": ACTION_ICONS[action],
+                        "notes" : notes 
+                    }   
+            
+            time_price = {
+                "x" : timestamp,
+                "y" : mv,
+                "z" : last_qty,
+                "node" : node
+            }
+            v.append(time_price)            
+        
+        min_y = min(p["y"] for p in v)   
+        for p in v:
+            p["y"] = (p["y"] - min_y)             
+
+        lines.append({
+            "symbol" : symbol,
+            "color"  : SYMBOL_COLORS[symbol],
+            "series" : v
+        })
+    return  new_log_data, lines
+
+TRADING_INDEX = 0
+def update_symbols_day_prices_test():    
+    global TRADING_INDEX
+    
+    trading_log = {}
+    start = len(trading_log)
+    for symbol in SYMBOLS:                    
+        new_prices = []
+        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)                
+        for index, price in enumerate(prices):        
+            p = price["price_close"]
+            qty = round(2000/p)
+            price["mv"] =  round(qty * p, 2)                        
+            if TRADING_INDEX > 5:
+                price = should_trade(prices[:TRADING_INDEX])
+            new_prices.append(price)
+        trading_log[symbol] = new_prices
+    TRADING_INDEX = TRADING_INDEX +1 
+    if TRADING_INDEX > 70:
+        TRADING_INDEX = 0
+    save_test_log(trading_log)    
+    return update_symbols_day_prices_test_ui()
 
 def update_symbols_day_prices_ui(today = True):  # core function            
     log_data = load_today_log(today)    
@@ -546,13 +718,6 @@ def update_symbols_day_prices():  # core function
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
                         if start > 5:
-                            #if last_ref == 0:
-                            #    last_ref  = current_mv
-                            #else:
-                            #    if current_mv < last_ref:
-                            #        last_ref = current_mv                                                    
-                        #    recent = trading_log[-5:]
-                            #last_ref = min(p["price_close"] for p in recent) * current_qty                             
 
                             if current_mv_change > 3: # start up from lower
                                 current_action = "buy"
@@ -572,11 +737,7 @@ def update_symbols_day_prices():  # core function
                                     current_mv_ref = last_mv_ref
                     
                 else: # sell only
-                    #pos = get_symbol_position(symbol)
-                    
-                    #current_qty = pos.qty
-                    #current_price =  pos.current_price
-                    current_mv = last_mv                  
+                    #current_mv = last_mv                  
                     if time >= "15:55": # not sell all after nytime 15:55
                         current_action = "sell"              
                         #execut_order(symbol, acction)                      
@@ -593,7 +754,7 @@ def update_symbols_day_prices():  # core function
                             #execut_order(symbol, acction)                      
                             current_pnl = current_mv - last_cost
                             current_pct = (current_mv - last_cost)/last_cost*100
-                            total_pnl += current_pnl
+                            current_total_pnl += current_pnl
                             current_notes = f"{current_action}: mv:{round(last_mv_ref,2)} < ref:{round(last_mv_ref,2)} = {round(current_mv_change,2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
                             current_cost = 0
                             current_mv_ref = current_mv                         
@@ -601,7 +762,7 @@ def update_symbols_day_prices():  # core function
                             current_action = "hold"
                             current_notes = f"Hold: mv:{round(last_mv_ref,2)} - ref:{round(last_mv_ref,2)} = {round((current_mv_change), 2)} in range 3$"                    
                             current_cost = last_cost
-                            current_mv = last_mv                    
+                            #current_mv = last_mv                    
                             current_qty = test_qty 
                             if current_mv > last_mv_ref:
                                 current_mv_ref = current_mv
