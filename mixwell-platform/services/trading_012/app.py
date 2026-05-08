@@ -19,7 +19,7 @@ sys.path.insert(0, f"{base_dir}")
 
 baseport = int(Config.PORTAL_PORT)
 baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
-serviceport = 5014 #= int(app.root_path.rsplit("_")[1]) + baseport
+serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 
 servicename = "Trading"  
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
