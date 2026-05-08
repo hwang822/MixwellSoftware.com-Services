@@ -156,12 +156,321 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
-        let charts = {}
+        //let charts = {}
+        //let legendState = {};   // 保存 symbol ON/OFF 状态
+        
+        let charts = {};
+        let legendState = {};   // 保存 symbol ON/OFF 状态
+
         function renderLine(data, chartName) {
+
+            //---------------------------------------------------
+            // chart init only once
+            //---------------------------------------------------
             let chart = charts[chartName];
-            console.log("update chart for comming data: ", chartName)
+
             if (!chart) {
-                console.log("create new chart: ", chartName)
+
+                chart = echarts.init(
+                    document.getElementById(chartName)
+                );
+
+                charts[chartName] = chart;
+            }
+
+            //---------------------------------------------------
+            // parse node json
+            //---------------------------------------------------
+            data.forEach(sym => {
+
+                sym.series.forEach(p => {
+
+                    if (p.node && typeof p.node === "string") {
+
+                        try {
+                            p.node = JSON.parse(p.node);
+
+                        } catch(e) {
+
+                            p.node = null;
+                        }
+                    }
+                });
+            });
+
+            //---------------------------------------------------
+            // build series
+            //---------------------------------------------------
+            let series = [];
+            let xAxis = [];
+
+            const colors = data.map(d => d.color);
+
+            data.forEach((sym, idx) => {
+
+                //-----------------------------------------------
+                // xAxis only once
+                //-----------------------------------------------
+                if (idx === 0) {
+
+                    xAxis = sym.series.map(p => p.x);
+                }
+
+                //-----------------------------------------------
+                // current symbol visible ?
+                //-----------------------------------------------
+                const visible =
+                    legendState[sym.symbol] ?? true;
+
+                //-----------------------------------------------
+                // hidden => empty data
+                //-----------------------------------------------
+                const lineData = visible
+                    ? sym.series.map(p => {
+
+                        if (!p) return null;
+
+                        return [p.x, p.y];
+                    })
+                    : [];
+
+                //-----------------------------------------------
+                // profit line
+                //-----------------------------------------------
+                series.push({
+
+                    name: sym.symbol,
+
+                    type: 'line',
+
+                    data: visible
+                        ? sym.series.map(p => {
+
+                            if (!p || p.z == 0)
+                                return null;
+
+                            return [p.x, p.y];
+                        })
+                        : [],
+
+                    lineStyle: {
+                        width: 4,
+                        color: "rgba(0, 200, 83, 0.3)"
+                    },
+
+                    showSymbol: false,
+                    z: 6
+                });
+
+                //-----------------------------------------------
+                // loss line
+                //-----------------------------------------------
+                series.push({
+
+                    name: sym.symbol,
+
+                    type: 'line',
+
+                    data: visible
+                        ? sym.series.map(p => {
+
+                            if (!p || p.z == 0)
+                                return null;
+
+                            return [p.x, p.y];
+                        })
+                        : [],
+
+                    lineStyle: {
+                        width: 4,
+                        color: "rgba(255, 82, 82, 0.3)"
+                    },
+
+                    showSymbol: false,
+                    z: 6
+                });
+
+                //-----------------------------------------------
+                // main price line
+                //-----------------------------------------------
+                series.push({
+
+                    name: sym.symbol,
+
+                    type: 'line',
+
+                    data: lineData,
+
+                    lineStyle: {
+                        color: colors[idx],
+                        width: 2
+                    },
+
+                    showSymbol: false,
+                    z: 4
+                });
+
+                //-----------------------------------------------
+                // nodes
+                //-----------------------------------------------
+                series.push({
+
+                    name: sym.symbol,
+
+                    type: 'scatter',
+
+                    data: visible
+                        ? sym.series
+                            .filter(p => p.node)
+                            .map(p => {
+
+                                return {
+
+                                    value: [p.x, p.y],
+
+                                    symbol:
+                                        p.node.icon || "circle",
+
+                                    symbolSize: 14,
+
+                                    itemStyle: {
+                                        color: colors[idx]
+                                    },
+
+                                    node: p.node
+                                };
+                            })
+                        : [],
+
+                    z: 5
+                });
+            });
+
+            //---------------------------------------------------
+            // set option
+            //---------------------------------------------------
+            chart.setOption({
+
+                tooltip: {
+
+                    trigger: 'axis',
+
+                    formatter: function(params) {
+
+                        if (!Array.isArray(params))
+                            params = [params];
+
+                        let res =
+                            params[0].axisValue + "<br/>";
+
+                        params.forEach(p => {
+
+                            if (p.data && p.data.node) {
+
+                                res += `
+                                    ${p.seriesName}
+                                    📝 ${p.data.node.notes}
+                                    <br/>
+                                `;
+                            }
+                        });
+
+                        return res;
+                    }
+                },
+
+                //------------------------------------------------
+                // legend
+                //------------------------------------------------
+                legend: {
+
+                    data: data.map(d => d.symbol),
+
+                    selected: Object.fromEntries(
+
+                        data.map(d => [
+
+                            d.symbol,
+
+                            legendState[d.symbol] ?? true
+                        ])
+                    ),
+
+                    formatter: function(name) {
+
+                        return `{${name}|${name}}`;
+                    },
+
+                    textStyle: {
+
+                        rich: Object.fromEntries(
+
+                            data.map(d => [
+
+                                d.symbol,
+
+                                {
+                                    color: d.color,
+                                    backgroundColor:
+                                        'rgba(0,0,0,0.1)',
+
+                                    padding: [4, 6],
+                                    borderRadius: 4
+                                }
+                            ])
+                        )
+                    }
+                },
+
+                //------------------------------------------------
+                // axis
+                //------------------------------------------------
+                xAxis: {
+
+                    type: "category",
+
+                    data: xAxis
+                },
+
+                yAxis: {
+                    type: "value"
+                },
+
+                //------------------------------------------------
+                // series
+                //------------------------------------------------
+                series: series
+
+            }, true);
+
+            //---------------------------------------------------
+            // IMPORTANT
+            // avoid duplicate listener
+            //---------------------------------------------------
+            chart.off('legendselectchanged');
+
+            //---------------------------------------------------
+            // legend click
+            //---------------------------------------------------
+            chart.on('legendselectchanged', function(params) {
+
+                //------------------------------------------------
+                // save ON/OFF state
+                //------------------------------------------------
+                legendState = params.selected;
+
+                console.log("legendState:", legendState);
+
+                //------------------------------------------------
+                // redraw chart with visibility state
+                //------------------------------------------------
+                renderLine(data, chartName);
+            });
+        }
+
+        function renderLine_1(data, chartName) {
+            let chart = charts[chartName];
+            if (!chart) {
                 chart = echarts.init(
                     document.getElementById(chartName)
                 );
@@ -270,10 +579,6 @@
                 });                
             });            
             chart.setOption({                
-                //series: updatedSeries,
-                //legend: {
-                //    data: data.map(d => d.symbol)
-                //},
                 tooltip: {
                     trigger: 'axis',
                     formatter: function(params) {
