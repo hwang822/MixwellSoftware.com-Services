@@ -510,10 +510,10 @@ def update_symbols_day_prices_test_ui():
                 timestamp = timestamp.split(" ")[1]
                 action = item["action"]
                 notes =  item["notes"]
-                #node = item["node"]
                 mv_change = round(float(item["mv_change($)"]), 2)
                 mv = round(float(item["mv"]), 2)
-                pnl = round(float(item["pnl"]), 2),                                
+                pnl = round(float(item["pnl"]), 2)                               
+                pct = int(item["pct"])
                 qty = int(item["qty"])
                 new_item = {
                     "time" : timestamp,
@@ -524,8 +524,8 @@ def update_symbols_day_prices_test_ui():
                     "mv_ref" : round(float(item["mv_ref"]), 2),
                     "mv_change($)" : mv_change,
                     "cost" : round(float(item["cost"]), 2),
-                    "pnl" : round(float(item["pnl"]), 2),
-                    "pct" : round(float(item["pct"]), 2),
+                    "pnl" : pnl,
+                    "pct" : f"{pct}%",
                     "total_pnl" : round(float(item["total_pnl"]), 2),
                     "action" : action,
                     "notes" : notes
@@ -540,7 +540,7 @@ def update_symbols_day_prices_test_ui():
                         "notes" : notes 
                     }    
 
-                if (qty>0 or last_qty>0):
+                if qty>0:
                     last_qty = qty        
                 time_price = {
                     "x" : timestamp,
@@ -556,8 +556,8 @@ def update_symbols_day_prices_test_ui():
                 p["y"] = (p["y"] - min_y)             
             
             new_items = sorted(new_items, key=lambda x: x["time"], reverse=True)    
-            total_pnl = sum(p["pnl"] for p in new_items)
-            new_items[0]["total_pnl"] = round(total_pnl, 2)
+            total_pnl = sum(p["total_pnl"] for p in new_items)
+            new_items[0]["total_pnl"] = round(float(total_pnl), 2)
 
             new_log_data[symbol] = {
                 "symbol" : symbol,
@@ -659,7 +659,7 @@ def update_symbols_day_prices_test():
                         #execut_order(symbol, acction)                      
                         current_pnl = current_mv - last_cost
                         current_pct = (current_mv - last_cost)/last_cost*100
-                        current_total_pnl += current_pnl                    
+                        #current_total_pnl += current_pnl                    
                         current_notes = f"{current_action}: have to sold out all symbols after 15:55 at mv:{round(current_mv,2)} < ref:{round(last_mv_ref,2)} = {round(current_pnl,2)}  < -3$,  to take win {round(current_pnl, 2)} $ "                       
                         current_cost = 0
                         current_qty = 0
@@ -670,7 +670,7 @@ def update_symbols_day_prices_test():
                             #execut_order(symbol, acction)                      
                             current_pnl = current_mv - last_cost
                             current_pct = (current_mv - last_cost)/last_cost*100
-                            current_total_pnl += current_pnl
+                            #current_total_pnl += current_pnl
                             current_notes = f"{current_action}: current mv: {round(current_mv, 2)} higher last cost {round(last_cost, 2)} = {round(current_mv-last_cost), 2}  than 8$ or lower last_ref {round(last_mv_ref,2)} = {round(current_mv-last_mv_ref),2} than < -3$, to take win {round(current_pnl, 2)} $ "                       
                             current_cost = 0
                             current_qty = 0
@@ -781,7 +781,7 @@ def update_symbols_day_prices_ui(today = True):  # core function
                         "notes" : notes 
                     }    
 
-                if (qty>0 or last_qty>0):
+                if qty>0:
                     last_qty = qty        
                 time_price = {
                     "x" : timestamp,
@@ -887,6 +887,8 @@ def update_symbols_day_prices():  # core function
                     current_mv_ref = current_mv
                 else:
                     current_mv_ref = last_mv_ref
+            if start >= 5:
+
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
                         if current_mv-last_mv_ref > 3 and current_mv-last_mv_ref < 8: # start up from lowest poing 
