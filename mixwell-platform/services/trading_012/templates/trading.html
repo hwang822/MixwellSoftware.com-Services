@@ -161,7 +161,6 @@
         
         let charts = {};
         let legendState = {};   // 保存 symbol ON/OFF 状态
-
         function renderLine(data, chartName) {
 
             //---------------------------------------------------
@@ -368,8 +367,13 @@
                             if (p.data && p.data.node) {
 
                                 res += `
-                                    ${p.seriesName}
-                                    📝 ${p.data.node.notes}
+                                    <span style="
+                                        color:${p.color};
+                                        font-weight:bold;
+                                    ">
+                                        ${p.seriesName}
+                                    </span>                                    
+                                    ${p.data.node.notes}
                                     <br/>
                                 `;
                             }
@@ -468,248 +472,6 @@
             });
         }
 
-        function renderLine_1(data, chartName) {
-            let chart = charts[chartName];
-            if (!chart) {
-                chart = echarts.init(
-                    document.getElementById(chartName)
-                );
-
-                charts[chartName] = chart;
-            }            
-            //const chart = echarts.init(document.getElementById(chartName));
-            data.forEach(sym => {
-                sym.series.forEach(p => {
-                    if (p.node && typeof p.node === "string") {
-                        try {
-                            p.node = JSON.parse(p.node);
-                        } catch(e) {
-                            p.node = null;
-                        }
-                    }
-                });
-            });
-
-            let series = [];
-            let xAxis = [];
-            const colors = data.map(d => d.color);
-
-            data.forEach((sym, idx) => {
-
-                if (idx === 0) {
-                    xAxis = sym.series.map(p => p.x);
-                }       
-
-                // 🟢 盈利
-                series.push({
-                    name: sym.symbol, // + "_profit",
-                    type: 'line',
-                    data: sym.series.map(p => {
-                        if (!p || p.z == 0) return null;
-                        return [p.x, p.y];
-                    }),
-                    lineStyle: {
-                        width: 4,
-                        //color: "#00c853"
-                        color: "rgba(0, 200, 83, 0.3)"
-                    },
-                    showSymbol: false,
-                    z: 6
-                });
-
-                // 🔴 亏损
-                series.push({
-                    name: sym.symbol, // + "_loss",
-                    type: 'line',
-                    data: sym.series.map(p => {
-                        if (!p ||  p.z == 0) return null;
-                        return [p.x, p.y];
-                    }),
-                    lineStyle: {
-                        width: 4,
-                        //color: "#ff5252"
-                        color: "rgba(255, 82, 82, 0.3)"
-                    },
-                    showSymbol: false,
-                    z: 6
-                });
-                // price line, main line
-                //console.log(sym)
-                series.push({
-                    name: sym.symbol,
-                    type: 'line',                    
-                    data: sym.series.map(p =>
-                        {
-                            if (!p) return null;
-                            return [p.x, p.y];                            
-                        } 
-                    ),
-                    lineStyle: {
-                        color: colors[idx],
-                        width: 2
-                    },
-                    showSymbol: false,
-                    z: 4
-                });     
-                //console.log(p),           
-                
-                series.push({
-                    name: sym.symbol,  // + "_nodes",
-                    type: 'scatter',
-                    data: sym.series
-                        .filter(p => p.node)
-                        .map(p => {
-                            const action = p.node.action;
-
-                            return {
-                                value: [p.x, p.y],
-
-                                symbol: p.node.icon || "circle", //getNodeIcon(action),
-                                symbolSize: 14,
-                                //symbolRotate: action === "sell" ? 180 : 0,
-
-                                itemStyle: {
-                                    color: colors[idx] // getNodeColor(action)
-                                },
-
-                                node: p.node   // 👉 给 tooltip 用
-                            };
-                        }),
-                    z: 5
-                });                
-            });            
-            chart.setOption({                
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: function(params) {
-
-                        if (!Array.isArray(params)) params = [params];
-
-                        let res = params[0].axisValue + "<br/>";
-
-                        params.forEach(p => {
-                            if (p.data && p.data.node) {
-                                res += `
-                                ${p.seriesName}
-                                📝 ${p.data.node.notes}
-                                <br/>
-                                `;
-                            }
-                        });
-
-                        return res;
-                    }
-                },
-
-                legend: {
-                    data: data.map(d => d.symbol),
-                    selected: Object.fromEntries(
-                        data.map(d => [d.symbol, true])),
-
-                    formatter: function(name) {
-                        const item = data.find(d => d.symbol === name);
-                        return `{${name}|${name}}`;
-                    },
-                    textStyle: {
-                        rich: Object.fromEntries(
-                            data.map(d => [
-                                d.symbol,
-                                {
-                                    color: d.color,
-                                    backgroundColor: 'rgba(0,0,0,0.1)',
-                                    padding: [4, 6],
-                                    borderRadius: 4
-                                }
-                            ])
-                        )
-                    }
-                },
-
-
-                xAxis: { type: "category", data: xAxis },
-                yAxis: {
-                    type: "value"
-                },
-                series: series
-            });
-        }
-
-        let barChart = {}
-        function renderBar(data, chartName) {
-            let barChart = charts[chartName];
-
-            if (!barChart) {
-
-                barChart = echarts.init(
-                    document.getElementById(chartName)
-                );
-
-                charts[chartName] = barChart;
-            }
-            //barChart = echarts.init(document.getElementById(chartName));    
-            const symbols = data.map(d => d.x);
-            const labels = data.map(d => d.symbol);
-            const values = data.map(d => d.y);
-            const colors = data.map(d => d.color);            
-
-            barChart.setOption({
-                tooltip: {
-                    formatter: (p) => {
-                        return `
-                            ${p.name}<br/>
-                            Change: ${(p.value).toFixed(2)}
-                        `;
-                    }
-                },
-
-                xAxis: {
-                    type: 'category',
-                    data: symbols,
-                    axisLabel: {
-                        formatter: function (value, index) {
-                            return `{color${index}|${value}}`;
-                        },
-                        rich: symbols.reduce((acc, _, i) => {
-                            acc[`color${i}`] = {
-                                color: colors[i]
-                            };
-                            return acc;
-                        }, {})
-                    }
-                },
-                
-                yAxis: {
-                    type: 'value',
-                    axisLabel: {
-                        formatter: (v) => (v).toFixed(2)
-                    }
-                },
-                series: [{
-                    type: 'bar',
-                    data: values,
-                    itemStyle: {
-                        color: (params) => {
-                            return params.value >= 0 ? "#00FF99" : "#FF3366";
-                        }},
-                    // ✅ 参考线（成本 / 0线）
-                    markLine: {
-                        data: [
-                            { yAxis: 0 }
-                        ],
-                        lineStyle: {
-                            width: 2
-                    }}
-                }]
-            });
-        }
-
-        function getNYTime() {
-            return new Date().toLocaleString("en-US", {
-                timeZone: "America/New_York",
-                hour12: false,
-                timeZoneName: "short"
-            });
-        }
         
         updateTradeTime()
         updateAccountData()
