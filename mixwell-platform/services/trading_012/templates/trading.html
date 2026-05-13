@@ -159,7 +159,7 @@
 
         //let charts = {}
         //let legendState = {};   // 保存 symbol ON/OFF 状态
-        
+        tooltipSkip: true;
         let charts = {};
         let legendState = {};   // 保存 symbol ON/OFF 状态
         function renderLine(data, chartName) {
@@ -225,7 +225,7 @@
                 //-----------------------------------------------
                 // hidden => empty data
                 //-----------------------------------------------
-                const lineData = visible
+                const lineData_1 = visible
                     ? sym.series.map(p => {
 
                         if (!p) return null;
@@ -234,61 +234,44 @@
                     })
                     : [];
 
+                const lineData = visible
+                    ? sym.series.map(p => {
+
+                        if (!p) return null;
+
+                        return {
+
+                            value: [p.x, p.y],
+
+                            z: p.z,
+
+                            node: p.node
+                        };
+                    })
+                    : [];                    
+
                 //-----------------------------------------------
                 // profit line
                 //-----------------------------------------------
                 series.push({
-
                     name: sym.symbol,
-
                     type: 'line',
-
+                    tooltipSkip: true,
                     data: visible
                         ? sym.series.map(p => {
-
                             if (!p || p.z == 0)
                                 return null;
-
                             return [p.x, p.y];
                         })
                         : [],
-
                     lineStyle: {
                         width: 4,
-                        color: "rgba(0, 200, 83, 0.3)"
+                        color: colors[idx] // "rgba(0, 200, 83, 0.3)"
                     },
-
                     showSymbol: false,
                     z: 6
                 });
 
-                //-----------------------------------------------
-                // loss line
-                //-----------------------------------------------
-                series.push({
-
-                    name: sym.symbol,
-
-                    type: 'line',
-
-                    data: visible
-                        ? sym.series.map(p => {
-
-                            if (!p || p.z == 0)
-                                return null;
-
-                            return [p.x, p.y];
-                        })
-                        : [],
-
-                    lineStyle: {
-                        width: 4,
-                        color: "rgba(255, 82, 82, 0.3)"
-                    },
-
-                    showSymbol: false,
-                    z: 6
-                });
 
                 //-----------------------------------------------
                 // main price line
@@ -296,11 +279,8 @@
                 series.push({
 
                     name: sym.symbol,
-
                     type: 'line',
-
                     data: lineData,
-
                     lineStyle: {
                         color: colors[idx],
                         width: 2
@@ -350,38 +330,89 @@
             // set option
             //---------------------------------------------------
             chart.setOption({
-
                 tooltip: {
-
                     trigger: 'axis',
-
                     formatter: function(params) {
-
                         if (!Array.isArray(params))
                             params = [params];
-
+                        //----------------------------------------
+                        // time
+                        //----------------------------------------
                         let res =
                             params[0].axisValue + "<br/>";
-
+                        //----------------------------------------
+                        // remove duplicate symbol
+                        //----------------------------------------
+                        const shown = {};
+                        //----------------------------------------
+                        // each series
+                        //----------------------------------------
                         params.forEach(p => {
+                            //------------------------------------
+                            // skip empty
+                            //------------------------------------
+                            if (!p.data)
+                                return;
+                            
+                            if (p.seriesModel?.option?.tooltipSkip)
+                                return;                                
+                            //------------------------------------
+                            // skip scatter
+                            //------------------------------------
+                            if (p.seriesType === 'scatter')
+                                return;
+                            //------------------------------------
+                            // skip duplicate symbol
+                            //------------------------------------
+                            if (shown[p.seriesName])
+                                return;
+                            shown[p.seriesName] = true;
+                            //------------------------------------
+                            // y
+                            //------------------------------------
+                            const y =
+                                p.data.value
+                                    ? p.data.value[1]
+                                    : p.data[1];
 
-                            if (p.data && p.data.node) {
+                            //------------------------------------
+                            // z
+                            //------------------------------------
+                            const z =
+                                p.data.z ?? 0;
 
-                                res += `
-                                    <span style="
-                                        color:${p.color};
-                                        font-weight:bold;
-                                    ">
-                                        ${p.seriesName}
-                                    </span>                                    
+                            //------------------------------------
+                            // line
+                            //------------------------------------
+                            res += `
+                                <span style="
+                                    color:${p.color};
+                                    font-weight:bold;
+                                ">
+                                    ${p.seriesName}
+                                </span>
+                                Price:
+                                ${Number(y).toFixed(2)}
+                                Qty:
+                                ${z}
+                            `;
+
+                            //------------------------------------
+                            // notes
+                            //------------------------------------
+                            if (
+                                p.data &&
+                                p.data.node &&
+                                p.data.node.notes
+                            ) {
+                                res += `                                    
                                     ${p.data.node.notes}
-                                    <br/>
                                 `;
                             }
+                            res += "<br/>";
                         });
-
                         return res;
-                    }
+                    }                    
                 },
 
                 //------------------------------------------------

@@ -391,8 +391,8 @@ def execut_order(symbol, side, test = False):
     if pos:                
         if side == "sell":        
             order_qty = pos.qty
-            #if order_qty > 0:
-            #    api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
+            if order_qty > 0:
+                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
     else:  # to buy
         current_price = get_latest_trade(symbol).p
         order_qty = round(2000/current_price)
@@ -400,7 +400,7 @@ def execut_order(symbol, side, test = False):
             buy_price = pos.current_price
             if buy_price < 0:
                 order_qty = round(2000/buy_price)                
-                #api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")      
+                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")      
     print(
         f"trade done"
         f"{symbol} "
@@ -572,14 +572,14 @@ def update_symbols_day_prices_test():
         if len_log > 0:
             new_tradess = trading_log[symbol]
         #prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
-        prices = get_alpaca_prices_test(symbol)              
-        if TRADING_INDEX >= len(prices):
-            TRADING_INDEX = 0
-            continue
-        else:         
-            trade = should_trade(prices[:TRADING_INDEX+1], new_trades)
-            new_trades.append(trade)
-        trading_log[symbol] = new_trades
+        #prices = get_alpaca_prices_test(symbol)              
+        #if TRADING_INDEX >= len(prices):
+        #    TRADING_INDEX = 0
+        #    continue
+        #else:         
+        #    trade = should_trade(prices[:TRADING_INDEX+1], new_trades)
+        #    new_trades.append(trade)
+        #trading_log[symbol] = new_trades
     save_test_log(trading_log)    
     TRADING_INDEX +=1
     return update_symbols_day_prices_ui_test()
@@ -593,7 +593,7 @@ def update_symbols_day_prices_ui(today = True):  # core function
         for symbol in SYMBOLS:
             v = []
             new_items = []          
-            items = log_data[symbol]["items"]
+            items = log_data[symbol]
             last_qty = 0
             for item in items:
                 timestamp = item["timestamp"]        
@@ -676,9 +676,23 @@ tradelog = {
     "notes" : 0,                
 }
 
+def last_two_moveup(trades):
+    last_one_mv_change = float(trades[-1]["mv_change($)"])
+    last_two_mv_change = float(trades[-2]["mv_change($)"])
+    if last_one_mv_change>0 and last_two_mv_change>0 and last_one_mv_change + last_two_mv_change > 10 :
+        return True
+    else:
+        return False
+    
+def last_two_movedown(trades):
+    last_one_mv_change = float(trades[-1]["mv_change($)"])
+    last_two_mv_change = float(trades[-2]["mv_change($)"])
+    if last_one_mv_change<0 and last_two_mv_change<0 and last_one_mv_change + last_two_mv_change < -10 :
+        return True
+    else:
+        return False        
 
 def update_symbols_day_prices():  # core function        
-    #grouped = {}
     clock = api.get_clock()    
     if clock.is_open:
         grouped_log_new = {}
@@ -691,29 +705,18 @@ def update_symbols_day_prices():  # core function
             last_mv_ref = 0
             last_cost = 0
             last_mv = 0
-            last_total_pnl = 0
-            last_pnl = 0
-            last_qty = 0
             trading_log = []
             if len_log > 0:
-                trading_log = grouped_log[symbol]["items"]            
+                trading_log = grouped_log[symbol]            
                 start = len(trading_log)
                 last_trade = trading_log[-1]
                 last_mv_ref = last_trade["mv_ref"]
                 last_cost = last_trade["cost"]
                 last_mv =  last_trade["mv"]
-                last_pnl = last_trade["pnl"]
-                last_total_pnl = last_trade["total_pnl"]
-                last_qty = last_trade["qty"]
-            #trades = get_alpaca_prices_api(symbol, 1, "5min", 100)
-            #test_trade = get_latest_trade(symbol)                                                
-            #test_trade = trades[start]
-            #timestamp = test_trade["timestamp"]
-            #time = timestamp.split(" ")[1]
-            #current_price = test_trade["price_close"]
+            test_trade = get_latest_trade(symbol)                                                
 
             current_price = test_trade.p
-            test_trade = get_latest_trade(symbol)                        
+            #test_trade = get_latest_trade(symbol)                        
             test_qty = math.ceil(2000/current_price)
             current_mv = current_price * test_qty
             current_mv_ref = current_mv                
@@ -738,11 +741,12 @@ def update_symbols_day_prices():  # core function
                     current_mv_ref = current_mv
                 else:
                     current_mv_ref = last_mv_ref
-            if start >= 5:
+            #if start >= 5:
+            else:
 
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
-                        if current_mv-last_mv_ref > 3 and current_mv-last_mv_ref < 8 or current_mv-last_mv < -8: # start up from lowest poing 
+                        if (current_mv-last_mv_ref > 3 and current_mv-last_mv_ref < 8 or current_mv-last_mv < -8) or last_two_moveup(trading_log) or last_two_movedown(trading_log): # start up from lowest poing 
                             current_action = "buy" 
                             current_notes = f"{current_action} mv:{round(current_mv, 2)} higher ref:{round(last_mv_ref, 2)} = {round(current_mv-last_mv_ref, 2)} than > 3$ or not higher than 8$"
                             current_cost = current_mv
@@ -806,10 +810,7 @@ def update_symbols_day_prices():  # core function
             }
             execut_order(symbol, current_action)
             trading_log.append(tradelog)
-            grouped_log_new[symbol] = {
-                "colors" : SYMBOL_COLORS[symbol], 
-                "items" : trading_log }
-
+            grouped_log_new[symbol] = trading_log
         save_today_log(grouped_log_new)
         return update_symbols_day_prices_ui(True)                
     else:
@@ -1097,10 +1098,10 @@ def manual_trade(symbol):
     if qty <= 0:
         qty = 2000/price
         action = "buy"
-        execut_order(symbol=symbol, side=action)
+        #execut_order(symbol=symbol, side=action)
     else:
         action = "sell"
-        execut_order(symbol=symbol, side=action)
+        #execut_order(symbol=symbol, side=action)
 
     trades = {} 
     log_data = load_test_log()
