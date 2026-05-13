@@ -1,11 +1,11 @@
 import os
 import sys
 
-from flask import Blueprint, Config, Flask, jsonify, render_template
+from flask import Blueprint, Config, Flask, jsonify, render_template, request
 from servicemodels import db
 
 from tradingservice import update_symbols_scan, update_symbols_daily_prices, update_symbols_day_prices, update_symbols_day_prices_test
-from tradingservice import SYMBOL_COLORS, update_symbols_trades, update_symbols_positions, update_user_account
+from tradingservice import SYMBOL_COLORS, update_symbols_trades, update_symbols_positions, update_user_account, manual_trade
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 sys.path.insert(0, f"{base_dir}")
@@ -19,7 +19,7 @@ sys.path.insert(0, f"{base_dir}")
 
 baseport = int(Config.PORTAL_PORT)
 baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
-serviceport = 5014 #= int(app.root_path.rsplit("_")[1]) + baseport
+serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 
 servicename = "Trading"  
 servicedb = f"{Config.SQLALCHEMY_DATABASE_URI}/{servicename}_{serviceport}"
@@ -110,6 +110,12 @@ def api_run_trade():
     #should_trade()
     return jsonify({"status": "ok"})
 
+@tradingService.route("/api/manual_trade", methods=["POST"])
+def api_manual_trade():
+    data = request.json
+    symbol = data["symbol"]
+    return manual_trade(symbol)
+
 def build_table_html(data):
     if len(data) > 0:
         has_expand = False
@@ -191,12 +197,10 @@ def build_table_html(data):
             <tbody>{tbody}</tbody>
         </table>
         """
-
+# =========================
 def create_app():
     app.register_blueprint(tradingService)
     return app
-
-# =========================
 
 if __name__ == "__main__":
     #with app.app_context():    

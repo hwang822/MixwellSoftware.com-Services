@@ -37,6 +37,7 @@
 
     <h3>📈 Today Prices (Prices in Today) <span><button onclick="updateDayPriceData()">Update</button></span></h3>
     <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
+    <div id="symbol_buttons"></div>
     <table id="day_prices_table" border="1"></table>
     <p id="dayPricesUpdated"> </p>
     <hr>
@@ -162,7 +163,7 @@
         let charts = {};
         let legendState = {};   // 保存 symbol ON/OFF 状态
         function renderLine(data, chartName) {
-
+            renderSymbolButtons(data);
             //---------------------------------------------------
             // chart init only once
             //---------------------------------------------------
@@ -471,7 +472,84 @@
                 renderLine(data, chartName);
             });
         }
+        
+        let barChart = {}
+        function renderBar(data, chartName) {
+            let barChart = charts[chartName];
 
+            if (!barChart) {
+
+                barChart = echarts.init(
+                    document.getElementById(chartName)
+                );
+
+                charts[chartName] = barChart;
+            }
+            //barChart = echarts.init(document.getElementById(chartName));    
+            const symbols = data.map(d => d.x);
+            const labels = data.map(d => d.symbol);
+            const values = data.map(d => d.y);
+            const colors = data.map(d => d.color);            
+
+            barChart.setOption({
+                tooltip: {
+                    formatter: (p) => {
+                        return `
+                            ${p.name}<br/>
+                            Change: ${(p.value).toFixed(2)}
+                        `;
+                    }
+                },
+
+                xAxis: {
+                    type: 'category',
+                    data: symbols,
+                    axisLabel: {
+                        formatter: function (value, index) {
+                            return `{color${index}|${value}}`;
+                        },
+                        rich: symbols.reduce((acc, _, i) => {
+                            acc[`color${i}`] = {
+                                color: colors[i]
+                            };
+                            return acc;
+                        }, {})
+                    }
+                },
+                
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: (v) => (v).toFixed(2)
+                    }
+                },
+                series: [{
+                    type: 'bar',
+                    data: values,
+                    itemStyle: {
+                        color: (params) => {
+                            return params.value >= 0 ? "#00FF99" : "#FF3366";
+                        }},
+                    // ✅ 参考线（成本 / 0线）
+                    markLine: {
+                        data: [
+                            { yAxis: 0 }
+                        ],
+                        lineStyle: {
+                            width: 2
+                    }}
+                }]
+            });
+        }
+
+        function getNYTime() {
+            return new Date().toLocaleString("en-US", {
+                timeZone: "America/New_York",
+                hour12: false,
+                timeZoneName: "short"
+            });
+        }
+                
         
         updateTradeTime()
         updateAccountData()
@@ -537,6 +615,92 @@
 
         // ✅ 正确调用
         startPreciseAlignedTimer(5, updateTradeTime);
+
+        async function manualTrade(symbol) {
+
+            console.log("manual trade:", symbol);
+
+            const res = await fetch("/api/manual_trade", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    symbol: symbol
+                })
+            });
+
+            const result = await res.json();
+
+            console.log(result);
+
+            //----------------------------------------
+            // refresh UI
+            //----------------------------------------
+            updateTradeTime();
+
+            //updateAccountData();
+
+            updateDayPriceData();
+
+            //updateDailyPriceData();
+
+            //updateTopSymbolsData();
+
+            //updateTradesData();
+
+            updatePositionsData();
+        }
+
+        function renderSymbolButtons(data) {
+
+            const div =
+                document.getElementById("symbol_buttons");
+
+            div.innerHTML = "";
+
+            data.forEach(sym => {
+
+                const btn = document.createElement("button");
+
+                btn.innerText = sym.symbol;
+
+                //----------------------------------------
+                // style
+                //----------------------------------------
+                btn.style.margin = "4px";
+
+                btn.style.padding = "6px 12px";
+
+                btn.style.borderRadius = "6px";
+
+                btn.style.border = "1px solid #666";
+
+                btn.style.cursor = "pointer";
+
+                btn.style.fontWeight = "bold";
+
+                btn.style.color = sym.color;
+
+                //----------------------------------------
+                // double click
+                //----------------------------------------
+                btn.ondblclick = function() {
+
+                    console.log(
+                        "manual trade:",
+                        sym.symbol
+                    );
+
+                    manualTrade(sym.symbol);
+                };
+
+                div.appendChild(btn);
+            });
+        }        
 
     </script>
 </body>
