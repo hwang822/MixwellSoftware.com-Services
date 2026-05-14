@@ -393,21 +393,14 @@ def execut_order(symbol, side, test = False):
     if pos:                
         if side == "sell":        
             order_qty = pos.qty
-            #if order_qty > 0:
-            #    api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
+            if order_qty > 0:
+                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
     else:  # to buy
         if side == "buy":
             current_price = get_latest_trade(symbol).p
             order_qty = round(2000/current_price)
-            #if order_qty > 0:
-            #    api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")      
-    print(
-        f"trade done "
-        f"{symbol} "
-        f"{side} "
-        f"{order_qty}"
-    )
-    
+            if order_qty > 0:
+                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")          
     return
 
 def should_trade_test(index):
