@@ -37,7 +37,6 @@
 
     <h3>📈 Today Prices (Prices in Today) <span><button onclick="updateDayPriceData()">Update</button></span></h3>
     <div id="day_prices_lineChart" style="width:100%;height:400px;"></div>    
-    <div id="symbol_buttons"></div>
     <table id="day_prices_table" border="1"></table>
     <p id="dayPricesUpdated"> </p>
     <hr>
@@ -157,197 +156,11 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
-        //////////////////////////////////////////
-        //  ✅ Price layer (immutable)
-        //  ✅ Event layer (append-only)
-        //  ✅ No mixed metadata inside ECharts series
-        //  ✅ No tooltip dependency on internal ECharts data
-        //  ✅ Backend becomes the truth for trades
-        //////////////////////////////////////////
-        let priceStore = {};
-        let eventStore = {};
-        let charts_new = {};
-        let legendState_new = {};        
-
-        function renderLine_new(data, chartName) {
-
-            renderSymbolButtons(data);
-
-            let chart = charts[chartName];
-
-            if (!chart) {
-                chart = echarts.init(document.getElementById(chartName));
-                charts[chartName] = chart;
-            }
-
-            let series = [];
-            let xAxis = [];
-
-            const colors = data.map(d => d.color);
-
-            data.forEach((sym, idx) => {
-
-                const visible =
-                    legendState[sym.symbol] ?? true;
-
-                //----------------------------------------
-                // store backend data
-                //----------------------------------------
-                priceStore[sym.symbol] = sym.prices || [];
-                eventStore[sym.symbol] = sym.events || [];
-
-                //----------------------------------------
-                // xAxis (only once)
-                //----------------------------------------
-                if (idx === 0) {
-                    xAxis = sym.prices.map(p => p.x);
-                }
-
-                //----------------------------------------
-                // PRICE LINE (ONLY PRICE)
-                //----------------------------------------
-                series.push({
-                    name: sym.symbol,
-                    type: 'line',
-
-                    data: visible
-                        ? sym.prices.map(p => [p.x, p.y])
-                        : [],
-
-                    lineStyle: {
-                        color: colors[idx],
-                        width: 2
-                    },
-
-                    showSymbol: false,
-                    z: 4
-                });
-
-                //----------------------------------------
-                // EVENTS (BUY/SELL nodes)
-                //----------------------------------------
-                series.push({
-                    name: sym.symbol + "_events",
-                    type: 'scatter',
-
-                    data: visible
-                        ? sym.events.map(e => ({
-                            value: [e.x, e.y],
-                            qty: e.qty,
-                            type: e.type,
-                            notes: e.notes,
-                            symbol: e.icon || "circle",
-                            itemStyle: {
-                                color: colors[idx]
-                            }
-                        }))
-                        : [],
-
-                    z: 10
-                });
-            });
-
-            chart.setOption({
-
-                tooltip: {
-                    trigger: 'axis',
-
-                    formatter: function(params) {
-
-                        if (!Array.isArray(params))
-                            params = [params];
-
-                        let res = params[0].axisValue + "<br/>";
-
-                        const shown = new Set();
-
-                        params.forEach(p => {
-
-                            if (!p.data) return;
-
-                            //--------------------------------
-                            // ignore event duplicates logic
-                            //--------------------------------
-                            const symbol = p.seriesName.replace("_events", "");
-
-                            if (shown.has(symbol)) return;
-                            shown.add(symbol);
-
-                            //--------------------------------
-                            // PRICE LINE
-                            //--------------------------------
-                            if (p.seriesType === 'line') {
-
-                                const y = p.data[1];
-
-                                res += `
-                                    <b style="color:${p.color}">
-                                        ${symbol}
-                                    </b>
-                                    Price: ${Number(y).toFixed(2)}
-                                    <br/>
-                                `;
-                            }
-
-                            //--------------------------------
-                            // EVENT NODE
-                            //--------------------------------
-                            if (p.seriesType === 'scatter') {
-
-                                res += `
-                                    <b style="color:${p.color}">
-                                        ${symbol}
-                                    </b>
-                                    Qty: ${p.data.qty || 0}
-                                    ${p.data.notes ? "📝 " + p.data.notes : ""}
-                                    <br/>
-                                `;
-                            }
-                        });
-
-                        return res;
-                    }
-                },
-
-                legend: {
-                    data: data.map(d => d.symbol),
-
-                    selected: Object.fromEntries(
-                        data.map(d => [
-                            d.symbol,
-                            legendState[d.symbol] ?? true
-                        ])
-                    )
-                },
-
-                xAxis: {
-                    type: "category",
-                    data: xAxis
-                },
-
-                yAxis: {
-                    type: "value"
-                },
-
-                series: series
-
-            }, true);
-
-            chart.off("legendselectchanged");
-
-            chart.on("legendselectchanged", function(params) {
-                legendState = params.selected;
-                renderLine(data, chartName);
-            });
-        }
-
-        //let charts = {}
-        //let legendState = {};   // 保存 symbol ON/OFF 状态
-        tooltipSkip: true;
         let charts = {};
-        let legendState = {};   // 保存 symbol ON/OFF 状态
+        let legendState = {};   // 保存 symbol ON/OFF 状态        
         function renderLine(data, chartName) {
-            renderSymbolButtons(data);
+
+            //renderSymbolButtons(data);
             //---------------------------------------------------
             // chart init only once
             //---------------------------------------------------
@@ -409,41 +222,40 @@
                 //-----------------------------------------------
                 // hidden => empty data
                 //-----------------------------------------------
-
                 const lineData = visible
                     ? sym.series.map(p => {
 
                         if (!p) return null;
 
-                        return {
-
-                            value: [p.x, p.y],
-
-                            z: p.z,
-
-                            node: p.node
-                        };
+                        return [p.x, p.y];
                     })
-                    : [];                    
+                    : [];
 
                 //-----------------------------------------------
                 // profit line
                 //-----------------------------------------------
                 series.push({
+
                     name: sym.symbol,
+
                     type: 'line',
-                    tooltipSkip: true,
+
                     data: visible
                         ? sym.series.map(p => {
+
                             if (!p || p.z == 0)
                                 return null;
+
                             return [p.x, p.y];
                         })
                         : [],
+
                     lineStyle: {
                         width: 4,
-                        color: colors[idx] // "rgba(0, 200, 83, 0.3)"
+                        color: colors[idx]
+                        //color: "rgba(0, 200, 83, 0.3)"
                     },
+
                     showSymbol: false,
                     z: 6
                 });
@@ -455,8 +267,11 @@
                 series.push({
 
                     name: sym.symbol,
+
                     type: 'line',
+
                     data: lineData,
+
                     lineStyle: {
                         color: colors[idx],
                         width: 2
@@ -481,14 +296,10 @@
                             .map(p => {
 
                                 return {
-
                                     value: [p.x, p.y],
-
                                     symbol:
                                         p.node.icon || "circle",
-
-                                    symbolSize: 14,
-
+                                    symbolSize: p.node.icon ? 14 : 2,
                                     itemStyle: {
                                         color: colors[idx]
                                     },
@@ -506,89 +317,47 @@
             // set option
             //---------------------------------------------------
             chart.setOption({
+
                 tooltip: {
+
                     trigger: 'axis',
+
+                    position: function(point) {
+
+                        return [
+                            point[0],
+                            point[1] + 20
+                        ];
+                    },
+
+
                     formatter: function(params) {
+
                         if (!Array.isArray(params))
                             params = [params];
-                        //----------------------------------------
-                        // time
-                        //----------------------------------------
+
                         let res =
                             params[0].axisValue + "<br/>";
-                        //----------------------------------------
-                        // remove duplicate symbol
-                        //----------------------------------------
-                        const shown = {};
-                        //----------------------------------------
-                        // each series
-                        //----------------------------------------
+
                         params.forEach(p => {
-                            //------------------------------------
-                            // skip empty
-                            //------------------------------------
-                            if (!p.data)
-                                return;
-                            
-                            if (p.seriesModel?.option?.tooltipSkip)
-                                return;                                
-                            //------------------------------------
-                            // skip scatter
-                            //------------------------------------
-                            if (p.seriesType === 'scatter')
-                                return;
-                            //------------------------------------
-                            // skip duplicate symbol
-                            //------------------------------------
-                            if (shown[p.seriesName])
-                                return;
-                            shown[p.seriesName] = true;
-                            //------------------------------------
-                            // y
-                            //------------------------------------
-                            const y =
-                                p.data.value
-                                    ? p.data.value[1]
-                                    : p.data[1];
 
-                            //------------------------------------
-                            // z
-                            //------------------------------------
-                            const z =
-                                p.data.z ?? 0;
+                            if (p.data && p.data.node) {
 
-                            //------------------------------------
-                            // line
-                            //------------------------------------
-                            res += `
-                                <span style="
-                                    color:${p.color};
-                                    font-weight:bold;
-                                ">
-                                    ${p.seriesName}
-                                </span>
-                                Price:
-                                ${Number(y).toFixed(2)}
-                                Qty:
-                                ${z}
-                            `;
-
-                            //------------------------------------
-                            // notes
-                            //------------------------------------
-                            if (
-                                p.data &&
-                                p.data.node &&
-                                p.data.node.notes
-                            ) {
-                                res += `                                    
+                                res += `
+                                    <span style="
+                                        color:${p.color};
+                                        font-weight:bold;
+                                    ">
+                                        ${p.seriesName}
+                                    </span>                                    
                                     ${p.data.node.notes}
+                                    <br/>
                                 `;
                             }
-                            res += "<br/>";
                         });
+
                         return res;
-                    }                    
+                    }
                 },
 
                 //------------------------------------------------
@@ -678,8 +447,8 @@
                 //------------------------------------------------
                 renderLine(data, chartName);
             });
-        }
-        
+        }        
+
         let barChart = {}
         function renderBar(data, chartName) {
             let barChart = charts[chartName];
@@ -779,7 +548,7 @@
             updateTopSymbolsData()        
             updateTradesData()
             updatePositionsData()
-            //document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
+            document.getElementById("runTradeUpdated").textContent = "Positions updated at " + getNYTime();
 
             //await loadChart(); // 👉 只有交易才刷新
         }
@@ -848,66 +617,9 @@
             // refresh UI
             //----------------------------------------
             updateTradeTime();
-
-            //updateAccountData();
-
             updateDayPriceData();
-
-            //updateDailyPriceData();
-
-            //updateTopSymbolsData();
-
-            //updateTradesData();
-
             updatePositionsData();
         }
-
-        function renderSymbolButtons(data) {
-
-            const div =
-                document.getElementById("symbol_buttons");
-
-            div.innerHTML = "";
-
-            data.forEach(sym => {
-
-                const btn = document.createElement("button");
-
-                btn.innerText = sym.symbol;
-
-                //----------------------------------------
-                // style
-                //----------------------------------------
-                btn.style.margin = "4px";
-
-                btn.style.padding = "6px 12px";
-
-                btn.style.borderRadius = "6px";
-
-                btn.style.border = "1px solid #666";
-
-                btn.style.cursor = "pointer";
-
-                btn.style.fontWeight = "bold";
-
-                btn.style.color = sym.color;
-
-                //----------------------------------------
-                // double click
-                //----------------------------------------
-                btn.ondblclick = function() {
-
-                    console.log(
-                        "manual trade:",
-                        sym.symbol
-                    );
-
-                    manualTrade(sym.symbol);
-                };
-
-                div.appendChild(btn);
-            });
-        }        
 
     </script>
 </body>
