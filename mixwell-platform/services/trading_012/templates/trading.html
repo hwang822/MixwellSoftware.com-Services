@@ -157,6 +157,190 @@
             btn.innerText = isHidden ? "[-]" : "[+]";
         }
 
+        //////////////////////////////////////////
+        //  ✅ Price layer (immutable)
+        //  ✅ Event layer (append-only)
+        //  ✅ No mixed metadata inside ECharts series
+        //  ✅ No tooltip dependency on internal ECharts data
+        //  ✅ Backend becomes the truth for trades
+        //////////////////////////////////////////
+        let priceStore = {};
+        let eventStore = {};
+        let charts_new = {};
+        let legendState_new = {};        
+
+        function renderLine_new(data, chartName) {
+
+            renderSymbolButtons(data);
+
+            let chart = charts[chartName];
+
+            if (!chart) {
+                chart = echarts.init(document.getElementById(chartName));
+                charts[chartName] = chart;
+            }
+
+            let series = [];
+            let xAxis = [];
+
+            const colors = data.map(d => d.color);
+
+            data.forEach((sym, idx) => {
+
+                const visible =
+                    legendState[sym.symbol] ?? true;
+
+                //----------------------------------------
+                // store backend data
+                //----------------------------------------
+                priceStore[sym.symbol] = sym.prices || [];
+                eventStore[sym.symbol] = sym.events || [];
+
+                //----------------------------------------
+                // xAxis (only once)
+                //----------------------------------------
+                if (idx === 0) {
+                    xAxis = sym.prices.map(p => p.x);
+                }
+
+                //----------------------------------------
+                // PRICE LINE (ONLY PRICE)
+                //----------------------------------------
+                series.push({
+                    name: sym.symbol,
+                    type: 'line',
+
+                    data: visible
+                        ? sym.prices.map(p => [p.x, p.y])
+                        : [],
+
+                    lineStyle: {
+                        color: colors[idx],
+                        width: 2
+                    },
+
+                    showSymbol: false,
+                    z: 4
+                });
+
+                //----------------------------------------
+                // EVENTS (BUY/SELL nodes)
+                //----------------------------------------
+                series.push({
+                    name: sym.symbol + "_events",
+                    type: 'scatter',
+
+                    data: visible
+                        ? sym.events.map(e => ({
+                            value: [e.x, e.y],
+                            qty: e.qty,
+                            type: e.type,
+                            notes: e.notes,
+                            symbol: e.icon || "circle",
+                            itemStyle: {
+                                color: colors[idx]
+                            }
+                        }))
+                        : [],
+
+                    z: 10
+                });
+            });
+
+            chart.setOption({
+
+                tooltip: {
+                    trigger: 'axis',
+
+                    formatter: function(params) {
+
+                        if (!Array.isArray(params))
+                            params = [params];
+
+                        let res = params[0].axisValue + "<br/>";
+
+                        const shown = new Set();
+
+                        params.forEach(p => {
+
+                            if (!p.data) return;
+
+                            //--------------------------------
+                            // ignore event duplicates logic
+                            //--------------------------------
+                            const symbol = p.seriesName.replace("_events", "");
+
+                            if (shown.has(symbol)) return;
+                            shown.add(symbol);
+
+                            //--------------------------------
+                            // PRICE LINE
+                            //--------------------------------
+                            if (p.seriesType === 'line') {
+
+                                const y = p.data[1];
+
+                                res += `
+                                    <b style="color:${p.color}">
+                                        ${symbol}
+                                    </b>
+                                    Price: ${Number(y).toFixed(2)}
+                                    <br/>
+                                `;
+                            }
+
+                            //--------------------------------
+                            // EVENT NODE
+                            //--------------------------------
+                            if (p.seriesType === 'scatter') {
+
+                                res += `
+                                    <b style="color:${p.color}">
+                                        ${symbol}
+                                    </b>
+                                    Qty: ${p.data.qty || 0}
+                                    ${p.data.notes ? "📝 " + p.data.notes : ""}
+                                    <br/>
+                                `;
+                            }
+                        });
+
+                        return res;
+                    }
+                },
+
+                legend: {
+                    data: data.map(d => d.symbol),
+
+                    selected: Object.fromEntries(
+                        data.map(d => [
+                            d.symbol,
+                            legendState[d.symbol] ?? true
+                        ])
+                    )
+                },
+
+                xAxis: {
+                    type: "category",
+                    data: xAxis
+                },
+
+                yAxis: {
+                    type: "value"
+                },
+
+                series: series
+
+            }, true);
+
+            chart.off("legendselectchanged");
+
+            chart.on("legendselectchanged", function(params) {
+                legendState = params.selected;
+                renderLine(data, chartName);
+            });
+        }
+
         //let charts = {}
         //let legendState = {};   // 保存 symbol ON/OFF 状态
         tooltipSkip: true;
@@ -225,14 +409,6 @@
                 //-----------------------------------------------
                 // hidden => empty data
                 //-----------------------------------------------
-                const lineData_1 = visible
-                    ? sym.series.map(p => {
-
-                        if (!p) return null;
-
-                        return [p.x, p.y];
-                    })
-                    : [];
 
                 const lineData = visible
                     ? sym.series.map(p => {
