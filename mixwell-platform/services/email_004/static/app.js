@@ -2,7 +2,7 @@ let emails = [];
 let selected = null;
 
 async function loadEmails() {
-    const res = await fetch("/api/emails");
+    const res = await fetch("/service/email/api/emails");
     emails = await res.json();
 
     const list = document.getElementById("emailList");
@@ -37,7 +37,7 @@ async function sendEmail() {
     const subject = document.getElementById("subjectInput").value;
     const body = document.getElementById("bodyInput").value;
 
-    await fetch("/api/send", {
+    await fetch("/service/email/api/send", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({to, subject, body})
@@ -69,7 +69,7 @@ async function deleteEmail() {
     const confirmDelete = confirm("Delete this email?");
     if (!confirmDelete) return;
 
-    await fetch("/api/delete", {
+    await fetch("/service/email/api/delete", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
