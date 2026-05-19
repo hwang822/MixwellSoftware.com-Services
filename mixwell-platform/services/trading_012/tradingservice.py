@@ -639,12 +639,14 @@ def update_symbols_day_prices():  # core function
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
                         continue_movedown_twice = last_two_movedown(last_mv_change, current_mv_change)
-                        if ((current_mv-last_mv_ref > 3 or current_mv-last_mv < -8)) or continue_movedown_twice: # start up from lowest poing 
-                            current_action = "buy" 
-                            if (current_mv-last_mv_ref) > 3 and not far_higher_lowest(trading_log, current_mv_change) or far_lower_highest(trading_log, current_mv_change):  # verified
-                                current_notes = f"{current_action}, mv:{round(current_mv, 2)} > ref:{round(last_mv_ref, 2)} = {round(current_mv-last_mv_ref, 2)} > 3$"
+                        far_lower_highest = far_lower_highest(trading_log, current_mv_change)
+                        far_higher_lowest = far_higher_lowest(trading_log, current_mv_change)
+                        if (((current_mv-last_mv_ref > 3 or current_mv-last_mv < -8)) or continue_movedown_twice or far_lower_highest) and not far_higher_lowest: # start up from lowest poing 
+                            current_action = "buy"                                                             
+                            if (current_mv-last_mv_ref) > 3 and far_higher_lowest: # verified
+                                current_notes = f"{current_action}, mv:{round(current_mv, 2)} > ref:{round(last_mv_ref, 2)} = {round(current_mv-last_mv_ref, 2)} > 3# and  not far higher lowest > 150$"
                             if (current_mv-last_mv) < -8:
-                                current_notes = f"{current_action}, mv:{round(current_mv, 2)} < ref:{round(last_mv, 2)} = {round(current_mv-last_mv, 2)} < -8$, mv big move down, buy at bootom" 
+                                current_notes = f"{current_action}, mv:{round(current_mv, 2)} < ref:{round(last_mv, 2)} = {round(current_mv-last_mv, 2)} < -8$" 
                             if continue_movedown_twice: # verified
                                 current_notes = f"{current_action}, mv down two times < -10, buy at botom {current_mv}"
                             current_cost = current_mv
@@ -653,6 +655,8 @@ def update_symbols_day_prices():  # core function
                         else:
                             current_action = "skip"                        
                             current_cost = last_cost
+                            if far_higher_lowest:
+                               current_notes = f"Skip mv:{round(current_mv, 2)} far heigher lowser "                    
                             current_notes = f"Skip mv:{round(current_mv, 2)} - ref: {round(last_mv_ref, 2)} = {round(abs(current_mv-last_mv_ref), 2)}  in range 3$ "                    
                             if current_mv < last_mv_ref:
                                 current_mv_ref = current_mv
