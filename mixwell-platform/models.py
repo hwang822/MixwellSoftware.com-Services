@@ -630,10 +630,32 @@ class Utility:
     def service_start(servicename, port, servicepath):
         proc = None
         try:
+            if Utility.is_port_used(port):
+                Utility.kill_port_safe(port)
+
+            app_file = os.path.join(servicepath, "app.py")
+
+            if os.path.exists(app_file):
+
+                proc = subprocess.Popen(
+                    [PYTHON_PATH, app_file],
+                    cwd=servicepath,   # ⭐⭐⭐ 关键修复点
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+
+        except Exception as e:
+            print(f"failed to start {servicename}: {e}")
+            return None
+
+        return proc
+    
+    def service_start_1(servicename, port, servicepath):
+        proc = None
+        try:
             if Utility.is_port_used(port): 
                 Utility.kill_port_safe(port)
             app_file = os.path.join(servicepath, f"app.py")
-            if os.path.exists(app_file):                            
+            if os.path.exists(app_file):            
                 proc = subprocess.Popen([
                         PYTHON_PATH,
                         app_file]                    
