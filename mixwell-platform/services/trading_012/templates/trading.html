@@ -102,7 +102,7 @@
 
         async function updateDayPriceDataTest()
         {
-            const res = await fetch("/service/trading/api/day_prices_test");                              
+            const res = await fetch("/api/day_prices_test");                              
             const data = await res.json() 
             document.getElementById("day_prices_test_table").innerHTML = data.html;                   
             renderLine(data.lines, 'day_prices_test_lineChart');

@@ -49,7 +49,7 @@ if not exist "%PLATFORM_DIR%\venv" (
 REM echo Installing dependencies...
 REM echo Installing dependencies... >> %LOGFILE%
 REM "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
-%PLATFORM_DIR%\venv\Scripts
+REM %PLATFORM_DIR%\venv\Scripts
 
 REM Copy .env file to build directory
 SET SOURCE_ENV=..\mixwell-platform\.env

@@ -385,21 +385,31 @@ def load_test_log():
     with open(src_file, "r", encoding="utf-8") as f:
             return json.load(f)
 
-def last_two_moveup(trades):
-    last_one_mv_change = float(trades[-1]["mv_change($)"])
-    last_two_mv_change = float(trades[-2]["mv_change($)"])
-    if last_one_mv_change>0 and last_two_mv_change>0 and last_one_mv_change + last_two_mv_change > 10 :
+def last_two_moveup(last_mv_change, current_mv_change):
+    if current_mv_change>0 and last_mv_change>0 and current_mv_change + last_mv_change > 10 :
         return True
     else:
         return False
     
-def last_two_movedown(trades):
-    last_one_mv_change = float(trades[-1]["mv_change($)"])
-    last_two_mv_change = float(trades[-2]["mv_change($)"])
-    if last_one_mv_change<0 and last_two_mv_change<0 and last_one_mv_change + last_two_mv_change < -10 :
+def last_two_movedown(last_mv_change, current_mv_change):
+    if current_mv_change<0 and last_mv_change<0 and current_mv_change + last_mv_change < -10 :
         return True
     else:
         return False        
+
+def far_lower_highest(trades, current_mv):
+    max_mv = min(p["mv"] for p in trades)
+    if max_mv - current_mv >150:
+        return True
+    else:
+        return False
+
+def far_higher_lowest(trades, current_mv):
+    min_mv = min(p["mv"] for p in trades)
+    if current_mv - min_mv > 150:
+        return True
+    else:
+        return False
 
 def execut_order(symbol, side, test = False):
     if test: # not execut for test
@@ -409,49 +419,58 @@ def execut_order(symbol, side, test = False):
     if pos:                
         if side == "sell":        
             order_qty = int(pos.qty)
-            if order_qty > 0:
-                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
+            #if order_qty > 0:
+            #    api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day") 
     else:  # to buy
         if side == "buy":
             current_price = get_latest_trade(symbol).p
             order_qty = round(2000/current_price)
-            if order_qty > 0:
-                api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")          
+            #if order_qty > 0:
+            #    api.submit_order(symbol=symbol,qty= order_qty,side= side,type="market",time_in_force="day")          
     return
 
 def should_trade_test(index):
     trading_log = load_test_log()
     return tradelog
 
-TRADING_INDEX = 0
+TRADING_INDEX = 3
 def update_symbols_day_prices_test():    
-    #global TRADING_INDEX
-    #if TRADING_INDEX == 0:
-    trading_log = {}        
-    for symbol in SYMBOLS:                            
-        #prices = get_alpaca_prices_test(symbol)
-        #prices = get_alpaca_prices_api(symbol, 30, "1Day", 30, False)      
-        prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
-        qty = 0
-        last_mv = 0
-        mv_change = 0
-        for index, price in enumerate(prices):        
-            if index == 0:
-                qty = math.ceil(2000/float(price["price_open"]))
-            mv = float(price["price_open"])*qty
-            prices[index]["mv"] = round(mv, 2)            
-            if last_mv >0:
-                mv_change = mv - last_mv
-            last_mv = mv
-            prices[index]["mv_change($)"] = round(mv_change, 2)
-        trading_log[symbol] = prices
-    save_test_log(trading_log) 
-    
-#    should_trade_test(TRADING_INDEX)   
- #   TRADING_INDEX +=1
-#    if TRADING_INDEX >= 76:
-#        TRADING_INDEX == 0
+
     log_data = load_test_log()
+    if len(log_data) == 0:
+        trading_log = {}        
+        for symbol in SYMBOLS:                            
+            #prices = get_alpaca_prices_test(symbol)
+            #prices = get_alpaca_prices_api(symbol, 30, "1Day", 30, False)      
+            prices = get_alpaca_prices_api(symbol, 1, "5min", 100)
+            qty = 0
+            last_mv = 0
+            mv_change = 0
+            for index, price in enumerate(prices):        
+                if index == 0:
+                    qty = math.ceil(2000/float(price["price_open"]))
+                mv = float(price["price_open"])*qty
+                prices[index]["mv"] = round(mv, 2)            
+                if last_mv >0:
+                    mv_change = mv - last_mv
+                last_mv = mv
+                prices[index]["mv_change($)"] = round(mv_change, 2)
+            trading_log[symbol] = prices
+        save_test_log(trading_log) 
+        log_data = load_test_log()
+
+    symbol = SYMBOLS[0]
+    #for symbol in SYMBOLS:                            
+    prices = log_data[symbol] 
+
+    if TRADING_INDEX < len(prices):
+        should_trade_test(TRADING_INDEX) 
+        TRADING_INDEX += 1          
+    else:
+        TRADING_INDEX = 3
+
+    log_data[symbol] = prices
+    save_test_log(trading_log)
     return update_symbols_day_prices_ui(log_data)
 
 def update_symbols_day_prices_ui(log_data):  # core function            
@@ -576,6 +595,7 @@ def update_symbols_day_prices():  # core function
             last_mv_ref = 0
             last_cost = 0
             last_mv = 0
+            last_mv_change = 0
             trading_log = []
             if len_log > 0:
                 trading_log = grouped_log[symbol]            
@@ -583,7 +603,8 @@ def update_symbols_day_prices():  # core function
                 last_trade = trading_log[-1]
                 last_mv_ref = last_trade["mv_ref"]
                 last_cost = last_trade["cost"]
-                last_mv =  last_trade["mv"]
+                last_mv = last_trade["mv"]
+                last_mv_change = last_trade["mv_change($)"]
             test_trade = get_latest_trade(symbol)                                                
 
             current_price = test_trade.p
@@ -605,7 +626,7 @@ def update_symbols_day_prices():  # core function
             else:
                 current_mv_change = current_mv - last_mv
 
-            if start < 5:
+            if start < 3:
                 if last_mv_ref == 0:
                     current_mv_ref = current_mv
                 elif current_mv < last_mv_ref:
@@ -617,10 +638,10 @@ def update_symbols_day_prices():  # core function
 
                 if last_cost == 0:  # buy only                
                     if time <= "15:50": # not buy after nytime 15:50
-                        continue_movedown_twice = last_two_movedown(trading_log)
-                        if (current_mv-last_mv_ref > 3 or current_mv-last_mv < -8) or continue_movedown_twice: # start up from lowest poing 
+                        continue_movedown_twice = last_two_movedown(last_mv_change, current_mv_change)
+                        if ((current_mv-last_mv_ref > 3 or current_mv-last_mv < -8)) or continue_movedown_twice: # start up from lowest poing 
                             current_action = "buy" 
-                            if (current_mv-last_mv_ref) > 3:  # verified
+                            if (current_mv-last_mv_ref) > 3 and not far_higher_lowest(trading_log, current_mv_change) or far_lower_highest(trading_log, current_mv_change):  # verified
                                 current_notes = f"{current_action}, mv:{round(current_mv, 2)} > ref:{round(last_mv_ref, 2)} = {round(current_mv-last_mv_ref, 2)} > 3$"
                             if (current_mv-last_mv) < -8:
                                 current_notes = f"{current_action}, mv:{round(current_mv, 2)} < ref:{round(last_mv, 2)} = {round(current_mv-last_mv, 2)} < -8$, mv big move down, buy at bootom" 
@@ -649,9 +670,9 @@ def update_symbols_day_prices():  # core function
                         current_cost = 0
                         current_qty = 0
                         current_mv_ref = current_mv                         
-                    else:
-                        continue_move_up_twice = last_two_moveup(trading_log)
-                        if (current_mv - last_cost) > 8 or (current_mv - last_mv_ref) < -3 or continue_move_up_twice:   # if mv higher last cost than 8$ or lower heighest last_ref than 3$                                                         
+                    else: 
+                        continue_move_up_twice = last_two_moveup(last_mv_change, current_mv_change)
+                        if ((current_mv - last_cost) > 8 or far_higher_lowest(trading_log, current_mv_change)) or (current_mv - last_mv_ref) < -3 or continue_move_up_twice:   # if mv higher last cost than 8$ or lower heighest last_ref than 3$                                                         
                             current_action = "sell" 
                             current_pnl = current_mv - last_cost
                             if (current_mv - last_cost) > 8:  # verified
