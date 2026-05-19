@@ -11,7 +11,7 @@ set PROJECT_DIR=%BASE_DIR%%REPO_NAME%
 set PLATFORM_DIR=%PROJECT_DIR%\mixwell-platform
 set LOGFILE=%BASE_DIR%deploy.log
 
-set EXE_NAME=ms_trading_service.exe
+set EXE_NAME=mixwellsoftware-services.exe
 set EXE_PATH=%PLATFORM_DIR%\dist\%EXE_NAME%
 
 set REPO_URL=https://github.com/hwang822/MixwellSoftware.com-Services.git
@@ -37,7 +37,7 @@ REM =============================
 echo Stopping old %EXE_NAME% ...
 echo Stopping old %EXE_NAME% ... >> "%LOGFILE%"
 
-taskkill /F /IM %EXE_NAME% /T >> "%LOGFILE%" 2>&1
+REM taskkill /F /IM %EXE_NAME% /T >> "%LOGFILE%" 2>&1
 
 timeout /t 3 >nul
 
@@ -107,10 +107,10 @@ if errorlevel 1 (
 REM =============================
 REM Install PyInstaller
 REM =============================
-echo Installing PyInstaller...
-echo Installing PyInstaller... >> "%LOGFILE%"
+REM echo Installing PyInstaller...
+REM echo Installing PyInstaller... >> "%LOGFILE%"
 
-%PIP% install pyinstaller >> "%LOGFILE%" 2>&1
+REM %PIP% install pyinstaller >> "%LOGFILE%" 2>&1
 
 REM =============================
 REM Copy .env
@@ -134,7 +134,7 @@ cd /d "%PLATFORM_DIR%\portal"
 %PYTHON% -m PyInstaller ^
     --noconfirm ^
     --clean ^
-    --name ms_trading_service ^
+    --name mixwellsoftware-services ^
     --distpath "%PLATFORM_DIR%\dist" ^
     --workpath "%PLATFORM_DIR%\build" ^
     --specpath "%PLATFORM_DIR%\build" ^
@@ -153,7 +153,7 @@ REM =============================
 echo Starting %EXE_NAME% ...
 echo Starting %EXE_NAME% ... >> "%LOGFILE%"
 
-start "MS-TRADING-SERVICE" "%EXE_PATH%"
+start "MIXWLLSOFTWARE-SERVICES" "%EXE_PATH%"
 
 timeout /t 8 >nul
 
