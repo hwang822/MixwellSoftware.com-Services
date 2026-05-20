@@ -670,7 +670,8 @@ def update_symbols_day_prices():  # core function
                             else:
                                 current_mv_ref = last_mv_ref
                     
-                else: # sell only                    
+                else: # sell only
+                    last_cost = float(pos.cost_basis)                    
                     if time >= "15:55": # not sell all after nytime 15:55
                         current_action = "sell" 
                         current_pnl = current_mv - last_cost
@@ -684,7 +685,6 @@ def update_symbols_day_prices():  # core function
                         #continue_move_up_twice = last_two_moveup(last_mv_change, current_mv_change)
                         far_higher_lowest_ex = far_higher_lowest(trading_log, current_mv)
                         far_lower_highest_ex = far_lower_highest(trading_log, current_mv)
-                        last_cost = float(pos.cost_basis)
                         if (((current_mv - last_cost) > 8 ) or ((current_mv - last_mv_ref) < -3)) and (not far_lower_highest_ex):   # if mv higher last cost than 8$ or lower heighest last_ref than 3$                                                         
                             current_action = "sell" 
                             current_pnl = current_mv - last_cost
