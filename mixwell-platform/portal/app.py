@@ -30,6 +30,10 @@ auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/{dbname}"
 SERVICES_PATH = f"{BASE_DIR}\\services"
 app.config['SECRET_KEY'] = 'same-key-for-all-services'
 
+app.config["SESSION_COOKIE_DOMAIN"] = ".mixwellsoftware.com"
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
+
 portalService = Blueprint("portalService", __name__)
 
 @portalService.route("/")

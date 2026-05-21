@@ -28,6 +28,8 @@ auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
 serviceurl = f"{Config.GATEWAY_URL}:{serviceport}"
 
 gatewayService = Blueprint("gatewayService", __name__)
+
+
 @app.route("/service/<servicename>", defaults={"path": ""})
 @app.route("/service/<servicename>/<path:path>")
 def route_service(servicename, path):
