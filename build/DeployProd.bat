@@ -43,40 +43,21 @@ REM =============================
 
 set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe
 
-REM Check if venv python exists and works
-if exist "%PYTHON%" (
-    "%PYTHON%" --version >nul 2>&1
-)
-
-REM If broken or missing, recreate venv
-if errorlevel 1 (
-    echo Broken venv detected. Recreating...
-    echo Broken venv detected. Recreating... >> %LOGFILE%
-
-    rmdir /s /q "%PLATFORM_DIR%\venv"
-
-    py -3.12 -m venv "%PLATFORM_DIR%\venv"
-
-    "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
-)
-
-REM If venv does not exist at all
+REM Create venv if missing
 if not exist "%PYTHON%" (
     echo Creating virtual environment...
     echo Creating virtual environment... >> %LOGFILE%
 
     py -3.12 -m venv "%PLATFORM_DIR%\venv"
-
-    "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
 )
 
-set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe"
+REM Install/update dependencies
+echo Installing dependencies...
+echo Installing dependencies... >> %LOGFILE%
 
-REM echo Installing dependencies...
-REM echo Installing dependencies... >> %LOGFILE%
-REM "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
-REM %PLATFORM_DIR%\venv\Scripts
+"%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
 
+set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe
 REM Copy .env file to build directory
 SET SOURCE_ENV=..\mixwell-platform\.env
 SET TARGET_ENV=%PLATFORM_DIR%\.env
