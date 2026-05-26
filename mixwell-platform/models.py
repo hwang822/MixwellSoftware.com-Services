@@ -16,7 +16,7 @@ import jwt # python -m pip install PyJWT
 import subprocess
 import qrcode
 import psycopg2    
-import webview  
+import webview  # pip install pywebview
 import requests
 
 db = SQLAlchemy()
