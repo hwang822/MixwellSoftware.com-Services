@@ -1,5 +1,5 @@
-aiohappyeyeballs==2.6.2
-aiohttp==3.13.5
+aiohappyeyeballs==2.4.4
+aiohttp==3.10.11
 aiosignal==1.4.0
 alpaca-trade-api==3.2.0
 attrs==26.1.0
