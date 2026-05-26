@@ -36,8 +36,11 @@ pip install pywebview flask pytz
 
 venv\Scripts\pip freeze > requirements.txt and copy to github for build to use build dependentments.
 
+copy .env to mixwell-platform
 
-
+control shift P: type => Python: Select Interpreter 
+=> Browse your file sfystem to find a Python interpereter
+C:\Workarea\MixwellSoftware.com-Services\mixwell-platform\venv\Scripts\Python.exe
 
 
 *******************************************
