@@ -40,11 +40,37 @@ if not exist "%PROJECT_DIR%" (
 REM =============================
 REM Python venv setup
 REM =============================
-if not exist "%PLATFORM_DIR%\venv" (
+
+set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe
+
+REM Check if venv python exists and works
+if exist "%PYTHON%" (
+    "%PYTHON%" --version >nul 2>&1
+)
+
+REM If broken or missing, recreate venv
+if errorlevel 1 (
+    echo Broken venv detected. Recreating...
+    echo Broken venv detected. Recreating... >> %LOGFILE%
+
+    rmdir /s /q "%PLATFORM_DIR%\venv"
+
+    py -3.12 -m venv "%PLATFORM_DIR%\venv"
+
+    "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
+)
+
+REM If venv does not exist at all
+if not exist "%PYTHON%" (
     echo Creating virtual environment...
     echo Creating virtual environment... >> %LOGFILE%
-    python -m venv "%PLATFORM_DIR%\venv"
+
+    py -3.12 -m venv "%PLATFORM_DIR%\venv"
+
+    "%PLATFORM_DIR%\venv\Scripts\pip.exe" install -r "%PLATFORM_DIR%\requirements.txt"
 )
+
+set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe"
 
 REM echo Installing dependencies...
 REM echo Installing dependencies... >> %LOGFILE%

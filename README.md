@@ -1,3 +1,46 @@
+Reinstall mixwellsoftware.com services
+
+cd C:\Workarea
+
+C:\Workarea
+install python 3.12.0 at https://www.python.org/downloads/windows/?utm_source=chatgpt.com
+
+
+git clone 
+
+(venv) C:\Workarea\MixwellSoftware.com-Services\mixwell-platform>python --version
+Python 3.12.0 https://github.com/hwang822/MixwellSoftware.com-Services
+to C:\Workarea\MixwellSoftware.com-Services folder.
+删除 build 目录里的 venv，然后重新创建。
+cd C:\Workarea\MixwellSoftware.com-Services\build\MixwellSoftware.com-Services\mixwell-platform
+rmdir /s /q venv
+
+py -3.12 -m venv venv
+venv\Scripts\python.exe
+就会绑定当前 miniPC 的 Python 3.12。
+
+venv\Scripts\activate
+
+python -m pip install --upgrade pip
+
+pip install -r requirements.txt
+
+may need install some missed item.
+
+pip install pywebview flask pytz
+
+
+✅ 正确生成 requirements.txt
+
+在你的 dev 环境 里运行：
+
+venv\Scripts\pip freeze > requirements.txt and copy to github for build to use build dependentments.
+
+
+
+
+
+*******************************************
 Reinstall Python 11  
 Python 12+ not support Kivy
 
