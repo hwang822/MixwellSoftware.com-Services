@@ -783,7 +783,7 @@ class Utility:
 
     def is_port_used(port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = s.connect_ex(('127.0.0.1', port))
+        result = s.connect_ex((Config.SERVICE_BIND_HOST_INTERNAL, port))
         s.close()
         return result == 0
 

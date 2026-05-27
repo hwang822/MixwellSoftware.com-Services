@@ -23,9 +23,7 @@ serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 #serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 portalport = int(serviceport/1000)*1000
-#portalurl = Config.GATEWAY_URL
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
-#serviceurl = f"{Config.GATEWAY_URL}:{serviceport}"
 portalurl = Config.PORTAL_PUBLIC_URL
 serviceurl = Config.GATEWAY_PUBLIC_URL
 

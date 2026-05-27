@@ -29,5 +29,4 @@ def create_app():
 
 if __name__ == "__main__":
     print (f"start running {app.root_path} at {serviceport}")    
-    create_app().run(host="127.0.0.1", port=serviceport)  
-    # host="127.0.0.1" interal only
+    create_app().run(host=Config.SERVICE_BIND_HOST_INTERNAL, port=serviceport)  

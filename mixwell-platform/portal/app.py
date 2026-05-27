@@ -96,7 +96,9 @@ def login():
             "access_token",
             token,
             httponly=True,
-            samesite="Lax"
+            samesite="Lax",
+            domain=".mixwellsoftware.com",
+            secure=True            
         )         
         return response       
 
@@ -194,4 +196,4 @@ if __name__ == "__main__":
     with app.app_context():        
         home_insital()    
     print (f"run portal poat at {serviceport}")    
-    create_app().run(host="0.0.0.0", port=serviceport)
+    create_app().run(host=Config.SERVICE_BIND_HOST_EXTERNAL, port=serviceport)

@@ -23,9 +23,9 @@ serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 #serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
 
 portalport = int(serviceport/1000)*1000
-portalurl = Config.GATEWAY_URL
+portalurl = Config.SERVICE_BIND_HOST_INTERNAL
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
-serviceurl = f"{Config.GATEWAY_URL}:{serviceport}"
+serviceurl = f"{Config.SERVICE_BIND_HOST_INTERNAL}:{serviceport}"
 
 gatewayService = Blueprint("gatewayService", __name__)
 
@@ -36,8 +36,11 @@ def route_service(servicename, path):
     try:
         user = Utility.user_check(servicename)
         if not user:
-            authusl = f"{portalurl}:{portalport}/login?next={serviceurl}/service/{servicename}"
-            return redirect(authusl)
+            authurl = (
+                f"{Config.PORTAL_PUBLIC_URL}/login"
+                f"?next={Config.GATEWAY_PUBLIC_URL}/service/{servicename}")        
+            #authusl = f"{portalurl}:{portalport}/login?next={serviceurl}/service/{servicename}"
+            return redirect(authurl)
 
         service = Utility.service_get(servicename)
         base_url = service.url.rstrip("/")
@@ -69,5 +72,5 @@ if __name__ == "__main__":
         app.config["SQLALCHEMY_DATABASE_URI"] = auth_db 
         db.init_app(app)    
     print (f"run gateway service at {serviceport}")    
-    create_app().run(host="0.0.0.0", port=serviceport, debug=False, use_reloader=False)
+    create_app().run(host=Config.SERVICE_BIND_HOST_EXTERNAL, port=serviceport, debug=False, use_reloader=False)
     # host="0.0.0.0" for extern expose

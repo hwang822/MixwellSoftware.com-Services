@@ -237,4 +237,4 @@ def create_app():
 if __name__ == "__main__":
     #with app.app_context():        
     #    db.create_all()
-    create_app().run(host="127.0.0.1", port=serviceport)
+    create_app().run(host=Config.SERVICE_BIND_HOST_INTERNAL, port=serviceport)
