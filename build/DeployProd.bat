@@ -59,7 +59,7 @@ echo Installing dependencies... >> %LOGFILE%
 
 set PYTHON=%PLATFORM_DIR%\venv\Scripts\python.exe
 REM Copy .env file to build directory
-SET SOURCE_ENV=..\mixwell-platform\.env
+SET SOURCE_ENV=..\mixwell-platform\.env.prod
 SET TARGET_ENV=%PLATFORM_DIR%\.env
 echo Copying .env file...
 copy /Y "%SOURCE_ENV%" "%TARGET_ENV%"  >> %LOGFILE%
