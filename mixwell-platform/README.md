@@ -11,10 +11,6 @@ BASE_PATH/.env
 
 CMD => cd BASE_PATH
 
-BASE_PATH/.env
-  PORTAL_PORT = "5000"
-  AUTH_PORT = "5003"
-  AUTH_URL = "http://localhost"
 
 BASE_PATH/core/settings.py
   import os

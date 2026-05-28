@@ -37,7 +37,7 @@ app.config["SESSION_COOKIE_SECURE"] = True
 portalService = Blueprint("portalService", __name__)
 
 @portalService.route("/")
-def home(): #insde user visit 5000
+def home():
     services = Utility.services_get_all()
     user = Utility.user_check_only()
     if not user:

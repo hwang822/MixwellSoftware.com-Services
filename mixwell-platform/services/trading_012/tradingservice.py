@@ -401,12 +401,11 @@ def execut_order(symbol, side, qty, test=Config.TEST):
     if test:
         print(f"[TEST MODE] Skip order: {symbol} {side} {qty}")
         return        
-    if qty > 0:                
-        if side == "sell":        
-            api.submit_order(symbol=symbol,qty= qty,side= side,type="market",time_in_force="day") 
-    else:  # to buy
-        if side == "buy":
-            api.submit_order(symbol=symbol,qty= qty,side= side,type="market",time_in_force="day")          
+    if side == "sell":        
+        api.submit_order(symbol=symbol,qty= qty,side= side,type="market",time_in_force="day") 
+    elif side == "buy":  # to buy
+        api.submit_order(symbol=symbol,qty= qty,side= side,type="market",time_in_force="day")    
+    return      
 
 def should_trade_test(index):
     trading_log = load_test_log()
@@ -616,7 +615,9 @@ def update_symbols_day_prices():  # core function
                     current_mv_ref = last_mv_ref
             else:
                 pos = get_symbol_position(symbol)
+                qty = 0
                 if not pos:  # buy only                
+                    qty = current_qty
                     if time <= "15:50": # not buy after nytime 15:50
                         if_last_two_movedown = last_two_movedown(last_mv_change, current_mv_change)
                         #far_lower_highest_ex = far_lower_highest(trading_log, current_mv)
@@ -646,6 +647,7 @@ def update_symbols_day_prices():  # core function
                                 current_mv_ref = last_mv_ref
                     
                 else: # sell only
+                    qty = int(pos.qty)
                     last_cost = float(pos.cost_basis)                    
                     if time >= "15:55": # not sell all after nytime 15:55
                         current_action = "sell" 
@@ -689,7 +691,7 @@ def update_symbols_day_prices():  # core function
                     
                 #if current_action == "sell" or current_action == "buy":
                 #    api.submit_order(symbol=symbol,qty= current_qty,side = current_action,type="market",time_in_force="day")             
-                execut_order(symbol, current_action, current_qty)
+                execut_order(symbol, current_action, qty)
 
             tradelog = {
                 "timestamp" : timestamp,

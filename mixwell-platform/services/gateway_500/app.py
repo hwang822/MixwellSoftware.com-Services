@@ -19,9 +19,6 @@ baseport = int(Config.PORTAL_PORT)
 baseport = int(sys.argv[1]) if len(sys.argv) > 1 else baseport
 serviceport = int(app.root_path.rsplit("_")[1]) + baseport
 
-#serviceport = int(app.root_path.rsplit("_")[1]) + 5000
-#serviceport = int(sys.argv[1]) if len(sys.argv) > 1 else serviceport 
-
 portalport = int(serviceport/1000)*1000
 portalurl = Config.SERVICE_BIND_HOST_INTERNAL
 auth_db = f"{Config.SQLALCHEMY_DATABASE_URI}/auth_{portalport}"
