@@ -255,7 +255,7 @@ class Utility:
         verify_url = Config.VERIFY_URL + f"/{token}"
         html_content = render_template(
             "verify_email.html",
-            user_email=user.email,
+            user_email=user.email, 
             verify_url=verify_url
         )
         # ✅ Create proper MIME message   

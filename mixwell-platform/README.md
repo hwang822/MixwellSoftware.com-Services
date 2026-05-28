@@ -11,7 +11,6 @@ BASE_PATH/.env
 
 CMD => cd BASE_PATH
 
-
 BASE_PATH/core/settings.py
   import os
   from dotenv import load_dotenv

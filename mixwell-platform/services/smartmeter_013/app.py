@@ -284,7 +284,6 @@ def api(name):
 # RUN
 # ------------------------------
 
-
 def create_app():
     app.register_blueprint(smartMeter)
     return app
