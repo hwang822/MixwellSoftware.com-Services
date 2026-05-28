@@ -450,10 +450,17 @@ def update_symbols_day_prices_test():
 
     log_data[symbol] = prices
     save_test_log(trading_log)
-    return update_symbols_day_prices_ui(log_data)
+    return update_symbols_day_prices_ui(True)
 
-def update_symbols_day_prices_ui(log_data):  # core function            
-    #log_data = load_today_log(today)    
+def update_symbols_day_prices_ui(test = False):  # core function            
+    if test:
+        log_data = load_test_log()
+    else:
+        clock = api.get_clock()    
+        if clock.is_open:
+            log_data = load_today_log(True)
+        else:    
+            log_data = load_today_log(False)
     new_log_data = {}
     lines = []        
 
@@ -709,13 +716,8 @@ def update_symbols_day_prices():  # core function
             trading_log.append(tradelog)
             grouped_log_new[symbol] = trading_log
         save_today_log(grouped_log_new)
-
-        log_data = load_today_log(True)
-    else:
-        log_data = load_today_log(False)
-    return update_symbols_day_prices_ui(log_data)
+    return 
         
-
 def update_symbols_daily_prices():  # core function    
     lines = []
     grouped = {}    
@@ -1049,3 +1051,44 @@ def manual_trade(symbol):
         "symbol": symbol,
         "side": action
     })
+
+
+import time
+from datetime import datetime, timedelta
+
+def wait_until_next_5min():
+    now = datetime.now()
+
+    # next 5-minute boundary
+    next_run = now.replace(second=0, microsecond=0)
+
+    minute = (now.minute // 5 + 1) * 5
+
+    if minute >= 60:
+        next_run = next_run.replace(minute=0) + timedelta(hours=1)
+    else:
+        next_run = next_run.replace(minute=minute)
+
+    sleep_seconds = (next_run - now).total_seconds()
+
+    print(f"sleep {sleep_seconds:.1f}s until {next_run}")
+
+    time.sleep(sleep_seconds)
+
+
+def trading_timer():
+    while True:
+        try:
+            update_symbols_day_prices()
+        except Exception as e:
+            print(e)
+        wait_until_next_5min()
+
+import threading
+
+threading.Thread(
+    target=trading_timer,
+    daemon=True
+).start()
+
+
