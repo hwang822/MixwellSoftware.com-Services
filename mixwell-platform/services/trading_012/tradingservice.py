@@ -861,8 +861,23 @@ def get_all_activities():
             break
     return activities 
 
+def get_today_activities():
+    activities = []
+
+    today = datetime.now(timezone.utc).date()
+
+    res = api.get_activities(
+        activity_types="FILL",
+        after=today.isoformat(),
+        direction="desc"
+    )
+    
+    activities.extend(res)
+    return activities 
+
+
 def update_symbols_trades():
-    activities = get_all_activities()
+    activities = get_today_activities() #get_all_activities()
     grouped = {}
     lines = []
 

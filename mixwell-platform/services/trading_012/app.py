@@ -51,6 +51,10 @@ def api_day_prices():
         "lines": lines
     })    
 
+@tradingService.route("/service/trading/api/day_prices")
+def api_day_prices_serv(): 
+    return api_day_prices()           
+
 @tradingService.route("/api/day_prices_test")
 def api_day_prices_test():            
     dayprices, lines = update_symbols_day_prices_test()         
@@ -60,6 +64,9 @@ def api_day_prices_test():
         "lines": lines
     })    
 
+@tradingService.route("/service/trading/api/day_prices_test")
+def api_day_prices_test_serv(): 
+    return api_day_prices_test()           
 
 @tradingService.route("/api/daily_prices")
 def api_daily_prices():
@@ -70,6 +77,11 @@ def api_daily_prices():
         "lines": lines
     })    
 
+@tradingService.route("/service/trading/api/daily_prices")
+def api_daily_prices_serv():
+    return api_daily_prices()
+
+
 @tradingService.route("/api/positions")
 def api_positions():
     positions, bars = update_symbols_positions()  
@@ -78,6 +90,11 @@ def api_positions():
         "html": html,
         "bars": bars
     })    
+
+@tradingService.route("/service/trading/api/positions")
+def api_positions_serv():
+    return api_positions()
+
 
 @tradingService.route("/api/top_symbols")
 def api_topsymbols():
@@ -88,6 +105,10 @@ def api_topsymbols():
         "bars": bars
     })        
 
+@tradingService.route("/service/trading/api/top_symbols")
+def api_topsymbols_serv():
+    return api_topsymbols()
+
 @tradingService.route("/api/trades")
 def api_trades():
     trades, lines = update_symbols_trades()
@@ -97,6 +118,10 @@ def api_trades():
         "lines": lines
     })    
 
+@tradingService.route("/service/trading/api/trades")
+def api_trades_serv():
+    api_trades()
+
 
 @tradingService.route("/api/account")
 def api_account():
@@ -104,17 +129,30 @@ def api_account():
     html = build_table_html(account)
     return html
 
+@tradingService.route("/service/trading/api/account")
+def api_account_serv():
+    return api_account()
+
 # 👉 模拟交易（触发更新）
 @tradingService.route("/api/run_trades")
 def api_run_trade():    
     #should_trade()
     return jsonify({"status": "ok"})
 
+@tradingService.route("/service/trading/api/run_trades")
+def api_run_trade_serv():    
+    return api_run_trade()
+
 @tradingService.route("/api/manual_trade", methods=["POST"])
 def api_manual_trade():
     data = request.json
     symbol = data["symbol"]
     return manual_trade(symbol)
+
+@tradingService.route("/service/trading/api/manual_trade", methods=["POST"])
+def api_manual_trade_serv():
+    api_manual_trade()
+
 
 def build_table_html(data):
     if len(data) > 0:
