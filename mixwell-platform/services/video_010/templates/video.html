@@ -1,14 +1,121 @@
-
 {% extends "servicebase.html" %}
+
 {% block content %}
-<!doctype html>
-<title>旅游视频列表</title>
-<h1>旅游视频</h1>
-<ul>
-{% for video in videos %}
-<li>
-  <a href="/service/video/video/{{video}}" target="_blank">{{video}}</a>
-</li>
-{% endfor %}
-</ul>
+
+<h1>🎬 Family Video Portal</h1>
+
+<hr>
+
+<h2>👨‍👩‍👧 家庭视频</h2>
+
+<button onclick="showLogin('family')">
+进入家庭视频
+</button>
+
+<hr>
+
+<h2>👶 小孩视频</h2>
+
+<button onclick="showLogin('kids')">
+进入小孩视频
+</button>
+
+<hr>
+
+<h2>✈️ 旅游视频</h2>
+
+<button onclick="showLogin('travel')">
+进入旅游视频
+</button>
+
+<hr>
+
+<h2>🎁 分享视频</h2>
+
+<button onclick="showLogin('sharing')">
+进入分享视频
+</button>
+
+<!-- Login Box -->
+
+<div
+    id="loginBox"
+    style="
+        display:none;
+        position:fixed;
+        top:30%;
+        left:40%;
+        background:white;
+        border:1px solid gray;
+        padding:20px;
+        z-index:1000;
+    "
+>
+
+<form
+    action="/login"
+    method="post"
+>
+
+    <input
+        type="hidden"
+        id="category"
+        name="category"
+    >
+
+    <p>
+        Username
+        <br>
+        <input
+            type="text"
+            name="username"
+        >
+    </p>
+
+    <p>
+        Password
+        <br>
+        <input
+            type="password"
+            name="password"
+        >
+    </p>
+
+    <button type="submit">
+        Login
+    </button>
+
+    <button
+        type="button"
+        onclick="closeLogin()"
+    >
+        Cancel
+    </button>
+
+</form>
+
+</div>
+
+<script>
+
+function showLogin(category){
+
+    document.getElementById(
+        "category"
+    ).value = category;
+
+    document.getElementById(
+        "loginBox"
+    ).style.display = "block";
+}
+
+function closeLogin(){
+
+    document.getElementById(
+        "loginBox"
+    ).style.display = "none";
+}
+
+</script>
+
 {% endblock %}

@@ -1,0 +1,26 @@
+{% extends "servicebase.html" %}
+
+{% block content %}
+
+<h1>{{ category|capitalize }} Videos</h1>
+
+<hr>
+
+<ul>
+
+{% for video in videos %}
+
+<li>
+    <a
+        href="/video/{{ category }}/{{ video.filename }}"
+        target="_blank"
+    >
+        {{ video.filename }}
+    </a>
+</li>
+
+{% endfor %}
+
+</ul>
+
+{% endblock %}
