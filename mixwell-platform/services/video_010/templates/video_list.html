@@ -2,7 +2,9 @@
 
 {% block content %}
 
-<h1>{{ category|capitalize }} Videos</h1>
+<h1>
+🎬 {{ category|capitalize }} Videos
+</h1>
 
 <hr>
 
@@ -11,16 +13,26 @@
 {% for video in videos %}
 
 <li>
-    <a
-        href="/video/{{ category }}/{{ video.filename }}"
-        target="_blank"
-    >
-        {{ video.filename }}
-    </a>
+
+<a
+    href="/video/{{ category }}/{{ video.folder_id }}/{{ video.name }}"
+    target="_blank"
+>
+
+{{ video.name }}
+
+</a>
+
 </li>
 
 {% endfor %}
 
 </ul>
+
+<br>
+
+<a href="/">
+🏠 Home
+</a>
 
 {% endblock %}
