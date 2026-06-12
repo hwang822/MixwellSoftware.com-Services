@@ -1,0 +1,86 @@
+{% extends "servicebase.html" %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ video_name }}</title>
+
+    <!-- FIXED version (stable, not latest) -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15"></script>
+
+    <style>
+        body {
+            background: #111;
+            color: white;
+            text-align: center;
+            font-family: Arial;
+        }
+
+        video {
+            margin-top: 20px;
+            max-width: 100%;
+            background: black;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>{{ video_name }}</h2>
+
+<video id="video" controls autoplay width="1200"></video>
+
+<script>
+console.log("=== HLS START ===");
+
+const video = document.getElementById("video");
+const src = "{{ src }}";
+
+console.log("SOURCE:", src);
+
+if (Hls.isSupported()) {
+
+    console.log("HLS.js supported");
+
+    const hls = new Hls({
+        debug: true
+    });
+
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        console.log("MEDIA_ATTACHED OK");
+    });
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log("MANIFEST PARSED OK");
+
+        video.muted = true;
+
+        video.play().then(() => {
+            console.log("PLAY STARTED");
+        }).catch(err => {
+            console.error("PLAY BLOCKED:", err);
+        });
+    });
+
+    hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error("HLS ERROR:", data);
+    });
+
+    hls.loadSource(src);
+    hls.attachMedia(video);
+
+} else {
+    console.log("NO HLS SUPPORT → fallback to native");
+
+    video.src = src;
+}
+
+</script>
+
+</body>
+</html>
+
+{% endblock %}
+

@@ -1,3 +1,4 @@
+
 import os
 import sys
 
@@ -77,62 +78,23 @@ videoService = Blueprint(
 VIDEO_FOLDERS = {
 
     "kids": [
-
-        {
-            "name": "Bowen_1",
-            "video_name": "Bowen_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_1"
-        },
-
-        {
-            "name": "Bowen_2_1",
-            "video_name": "Bowen_2_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_2_1"
-        },
-
-        {
-            "name": "Bowen_2_2",
-            "video_name": "Bowen_2_2",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_2_2"
-        },
-
-        {
-            "name": "Bowen_3_1",
-            "video_name": "Bowen_3_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_3_1"
-        },
-
+        r"D:\Videos\199701_Bowen\1997_Bowen_1",
+        r"D:\Videos\199701_Bowen\1997_Bowen_2_1",
+        r"D:\Videos\199701_Bowen\1997_Bowen_2_2"
     ],
 
     "family": [
-        {
-            "name": "family_1",
-            "video_name": "family_1",
-            "hls_root": r"D:\family\mp4\hls",
-            "hls_folder": r"family_1"
-        },
+        r"D:\Videos\videos_family"
     ],
 
     "travel": [
-        {
-            "name": "Germany & Switzerland 2015",
-            "video_name": "201509_Germney_Swiss_VivoVidio",
-            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
-            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
-        },
+        r"D:\Videos\201509_Germney_Swiss_VivoVidio",
+        r"D:\Videos\200709_Bahama",
+        r"D:\Videos\201606_Seattle"
     ],
 
     "sharing": [
-        {
-            "name": "sharing_1",
-            "video_name": "sharing_1",
-            "hls_root": r"D:\sharing\mp4\hls",
-            "hls_folder": r"sharing_1"
-        },
+        r"D:\Videos\videos_sharing"
     ]
 }
 
@@ -162,6 +124,17 @@ VIDEO_USERS = {
         "password": "123"
     }
 }
+# *********************************************
+import os
+import sys
+import json
+import pandas as pd
+
+from geopy.geocoders import Nominatim
+
+
+
+
 
 # ---------------------------------------------------
 # Home
@@ -217,21 +190,58 @@ def video_login():
 # Video List
 # ---------------------------------------------------
 
-@videoService.route("/list/<category>")
-@videoService.route("/list/<category>")
+@videoService.route(
+    "/list/<category>"
+)
 def video_list(category):
 
-    videos = VIDEO_FOLDERS.get(category)
+    folders = VIDEO_FOLDERS.get(
+        category
+    )
 
-    if not videos:
+    if not folders:
         return "Invalid Category"
+
+    videos = []
+
+    for folder_id, folder in enumerate(
+        folders
+    ):
+
+        if not os.path.exists(folder):
+            continue
+
+        for f in os.listdir(folder):
+
+            if f.lower().endswith(
+                (
+                    ".mp4",
+                    ".mov",
+                    ".mkv"
+                )
+            ):
+
+                videos.append({
+                    "name": f,
+                    "folder_id": folder_id
+                })
+
+    videos.sort(
+        key=lambda x:
+        x["name"].lower()
+    )
+
+    print(
+        category,
+        len(videos)
+    )
 
     return render_template(
         "video_list.html",
         category=category,
-        videos=videos
+        videos=videos,
+        servicename="Video Service"
     )
-
 
 # ---------------------------------------------------
 # Stream Video
@@ -274,32 +284,6 @@ def serve_video(
         folder,
         filename
     )
-
-# --------------------------------------------------
-# Create hls play
-#---------------------------------------------------
-@videoService.route("/hls/<category>/<int:video_id>/<path:filename>")
-def hls(category, video_id, filename):
-
-    video = VIDEO_FOLDERS[category][video_id]
-
-    folder = os.path.join(
-        video["hls_root"],
-        video["hls_folder"]
-    )
-
-    return send_from_directory(folder, filename)
-
-@videoService.route("/play_hls/<category>/<int:video_id>")
-def play_hls(category, video_id):
-    video = VIDEO_FOLDERS[category][video_id]
-
-    return render_template(
-        "video_hls.html",
-        src=f"/hls/{category}/{video_id}/index.m3u8",
-        video_name=video["video_name"]
-    )
-
 
 # ---------------------------------------------------
 # Create App
