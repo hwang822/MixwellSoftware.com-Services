@@ -82,28 +82,28 @@ VIDEO_FOLDERS = {
             "name": "Bowen_1",
             "video_name": "Bowen_1",
             "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_1"
+            "hls_folder": r"bowen_1"
         },
 
         {
             "name": "Bowen_2_1",
             "video_name": "Bowen_2_1",
             "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_2_1"
+            "hls_folder": r"bowen_2_1"
         },
 
         {
             "name": "Bowen_2_2",
             "video_name": "Bowen_2_2",
             "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_2_2"
+            "hls_folder": r"bowen_2_2"
         },
 
         {
             "name": "Bowen_3_1",
             "video_name": "Bowen_3_1",
             "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
-            "hls_folder": r"Bowen_3_1"
+            "hls_folder": r"bowen_3_1"
         },
 
     ],
