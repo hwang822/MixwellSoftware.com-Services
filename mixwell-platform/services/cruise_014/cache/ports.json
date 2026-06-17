@@ -1,0 +1,524 @@
+{
+  "Papeete|French Polynesia": {
+    "lat": -17.5373835,
+    "lon": -149.5659964
+  },
+  "Fakarava|French Polynesia": {
+    "lat": -16.0563818,
+    "lon": -145.6185919
+  },
+  "Nuku Hiva (Marquesas Islands)|French Polynesia": {
+    "lat": -8.8733104,
+    "lon": -140.1245635
+  },
+  "Tahuata or Hiva Oa (Marquesas Islands)|French Polynesia": null,
+  "Ua Huka or Fatu Hiva|French Polynesia": null,
+  "Rangiroa|French Polynesia": {
+    "lat": -15.1224461,
+    "lon": -147.546209
+  },
+  "Moorea|French Polynesia": {
+    "lat": -17.533306,
+    "lon": -149.8386006
+  },
+  "???????|???????": null,
+  "Neiafu|Tonga": {
+    "lat": -18.6515538,
+    "lon": -173.9833124
+  },
+  "Nuku'Alofa|Tonga": {
+    "lat": -21.1343401,
+    "lon": -175.201808
+  },
+  "Port Vila|Vanuatu": {
+    "lat": -17.7414972,
+    "lon": 168.3150163
+  },
+  "Cairns|Australia": {
+    "lat": -16.9206657,
+    "lon": 145.7721854
+  },
+  "Townsville|Australia": {
+    "lat": -19.2569391,
+    "lon": 146.8239537
+  },
+  "Sydney|Australia": {
+    "lat": -33.8698439,
+    "lon": 151.2082848
+  },
+  "Tauranga|New Zealand": {
+    "lat": -37.6859006,
+    "lon": 176.167505
+  },
+  "Tauranga Offshore|New Zealand": null,
+  "Wellington|New Zealand": {
+    "lat": -41.2887953,
+    "lon": 174.7772114
+  },
+  "Lyttleton|New Zealand": {
+    "lat": -41.1338013,
+    "lon": 174.8408061
+  },
+  "Dunedin|New Zealand": {
+    "lat": -45.8740984,
+    "lon": 170.5035755
+  },
+  "Melbourne|Australia": {
+    "lat": -37.8142454,
+    "lon": 144.9631732
+  },
+  "Hobart (Tasmania)|Australia": {
+    "lat": -42.9986182,
+    "lon": 147.3190373
+  },
+  "Adelaide|Australia": {
+    "lat": -34.9281805,
+    "lon": 138.5999312
+  },
+  "Fremantle|Australia": {
+    "lat": -32.0534086,
+    "lon": 115.7586172
+  },
+  "Port of Benoa (Denpasar)|Indonesia": null,
+  "Waingapu (Sumba)|Indonesia": {
+    "lat": -9.6495832,
+    "lon": 120.2626153
+  },
+  "Dili|Timor Leste": {
+    "lat": -8.5536809,
+    "lon": 125.5784093
+  },
+  "Labuan Bajo (Komodo  Island)|Indonesia": null,
+  "Surabaya|Indonesia": {
+    "lat": -7.2462836,
+    "lon": 112.7377674
+  },
+  "Semarang|Indonesia": {
+    "lat": -6.9903988,
+    "lon": 110.4229104
+  },
+  "Singapore|Singapore": {
+    "lat": 1.2899175,
+    "lon": 103.8519072
+  },
+  "Kuching, Sarawak, Borneo|Malaysia": {
+    "lat": 1.5573739,
+    "lon": 110.3509548
+  },
+  "Kota Kinabalu, Borneo|Malaysia": null,
+  "Coron|Philippines": {
+    "lat": 11.9985507,
+    "lon": 120.2051611
+  },
+  "Boracay Island|Philippines": {
+    "lat": 11.9693692,
+    "lon": 121.9227339
+  },
+  "Manila|Philippines": {
+    "lat": 14.5904492,
+    "lon": 120.9803621
+  },
+  "Puerto Princesa|Philippines": {
+    "lat": 9.7398561,
+    "lon": 118.7438187
+  },
+  "Tarempa, Anambas Islands|Indonesia": {
+    "lat": 3.2153949,
+    "lon": 106.2174763
+  },
+  "Bintan Island (Tanjung Pinang), Riau Islands|Indonesia": null,
+  "Tioman Island|Malaysia": {
+    "lat": 2.8065444,
+    "lon": 104.1721564
+  },
+  "Koh Samui|Thailand": {
+    "lat": 9.5013945,
+    "lon": 99.9956193
+  },
+  "Laem Chabang (Bangkok)|Thailand": null,
+  "Ao Sapparot (Pineapple Bay), Koh Chang|Thailand": null,
+  "Bandar Seri Begawan|Brunei": {
+    "lat": 4.8895453,
+    "lon": 114.9417574
+  },
+  "Nha Trang|Vietnam": {
+    "lat": 12.2084991,
+    "lon": 109.2871204
+  },
+  "Chan May|Vietnam": {
+    "lat": 16.2949056,
+    "lon": 108.0431433
+  },
+  "Ha Long|Vietnam": {
+    "lat": 20.9488856,
+    "lon": 107.1035074
+  },
+  "Hong Kong|Hong Kong": {
+    "lat": 22.2818333,
+    "lon": 114.1582831
+  },
+  "Ho Chi Minh City|Vietnam": {
+    "lat": 10.8186965,
+    "lon": 106.6518346
+  },
+  "Sihanoukville|Cambodia": {
+    "lat": 10.6220485,
+    "lon": 103.5223365
+  },
+  "Kuantan|Malaysia": {
+    "lat": 3.7974493,
+    "lon": 103.3219191
+  },
+  "Sandakan, Borneo|Malaysia": null,
+  "Labuan, Borneo|Malaysia": null,
+  "Malacca|Malaysia": {
+    "lat": 2.3293744,
+    "lon": 102.2880962
+  },
+  "Port Klang (Kuala Lumpur)|Malaysia": {
+    "lat": 3.0285589,
+    "lon": 101.4281058
+  },
+  "Penang|Malaysia": {
+    "lat": 5.4065013,
+    "lon": 100.2559077
+  },
+  "Langkawi|Malaysia": {
+    "lat": 6.3700386,
+    "lon": 99.7928634
+  },
+  "Phuket|Thailand": {
+    "lat": 7.9366015,
+    "lon": 98.3529292
+  },
+  "Kolkata|India": {
+    "lat": 22.5726459,
+    "lon": 88.3638953
+  },
+  "Visakhapatnam|India": {
+    "lat": 17.6935526,
+    "lon": 83.2921297
+  },
+  "Chennai|India": {
+    "lat": 13.0836939,
+    "lon": 80.270186
+  },
+  "Pondicherry|India": {
+    "lat": 10.9156489,
+    "lon": 79.8069488
+  },
+  "Trincomalee|Sri Lanka": {
+    "lat": 8.576425,
+    "lon": 81.2344952
+  },
+  "Hambantota|Sri Lanka": {
+    "lat": 6.1249126,
+    "lon": 81.1242563
+  },
+  "Colombo|Sri Lanka": {
+    "lat": 6.9388614,
+    "lon": 79.8542005
+  },
+  "Kochi|India": {
+    "lat": 9.9679032,
+    "lon": 76.2444378
+  },
+  "Mangalore|India": {
+    "lat": 12.8698101,
+    "lon": 74.8430082
+  },
+  "Mumbai|India": {
+    "lat": 19.054999,
+    "lon": 72.8692035
+  },
+  "Goa|India": {
+    "lat": 15.3004543,
+    "lon": 74.0855134
+  },
+  "Galle|Sri Lanka": {
+    "lat": 6.0328139,
+    "lon": 80.214955
+  },
+  "Uligamu / Haa Alif|Maldives": {
+    "lat": 7.0889076,
+    "lon": 72.9246121
+  },
+  "Dhonfanu Beyru, Baa Atoll|Maldives": null,
+  "Rasdhoo Atoll|Maldives": {
+    "lat": 4.2631532,
+    "lon": 72.9933105
+  },
+  "Addu Atoll|Maldives": {
+    "lat": -0.6414934,
+    "lon": 73.1629978
+  },
+  "Male|Maldives": {
+    "lat": 4.1779879,
+    "lon": 73.5107387
+  },
+  "Nilandhoo|Maldives": {
+    "lat": 0.6364925,
+    "lon": 73.4465449
+  },
+  "Kalaidhoo|Maldives": {
+    "lat": 1.9885692,
+    "lon": 73.5369299
+  },
+  "Addu City|Maldives": {
+    "lat": -0.6263536,
+    "lon": 73.1791075
+  },
+  "Port Victoria (Mah\u00e9)|Seychelles": null,
+  "Silhouette Island|Seychelles": {
+    "lat": -4.4889345,
+    "lon": 55.2328584
+  },
+  "Curieuse Island|Seychelles": {
+    "lat": -4.2842772,
+    "lon": 55.7210423
+  },
+  "Praslin (Baie Sainte Anne) - La Digue|Seychelles": null,
+  "Port Louis Harbour|Mauritius": null,
+  "Port R\u00e9union (Pointe-des-Galets / Le Port)|Reunion": {
+    "lat": -20.9527739,
+    "lon": 55.3030207
+  },
+  "Morondava|Madagascar": {
+    "lat": -20.2951102,
+    "lon": 44.2786121
+  },
+  "Nosy Be (Hell-Ville)|Madagascar": {
+    "lat": -13.3958164,
+    "lon": 48.2657835
+  },
+  "Mamoudzou|Mayotte": {
+    "lat": -12.7804136,
+    "lon": 45.2279761
+  },
+  "Zanzibar|Tanzania": {
+    "lat": -6.0999709,
+    "lon": 39.3209535
+  },
+  "Maputo|Mozambique": {
+    "lat": -25.966213,
+    "lon": 32.56745
+  },
+  "Richards Bay|South Africa": {
+    "lat": -28.7707857,
+    "lon": 32.0577775
+  },
+  "Durban|South Africa": {
+    "lat": -29.861825,
+    "lon": 31.009909
+  },
+  "East London|South Africa": {
+    "lat": -33.0191604,
+    "lon": 27.8998573
+  },
+  "Port Elizabeth \u2013 Nelson Mandela Bay|South Africa": {
+    "lat": -33.9641833,
+    "lon": 25.6167966
+  },
+  "Cape Town|South Africa": {
+    "lat": -33.9288301,
+    "lon": 18.4172197
+  },
+  "WALVIS BAY|NAMIBIA": {
+    "lat": -22.9557607,
+    "lon": 14.5071125
+  },
+  "Luanda|Angola": {
+    "lat": -8.8272699,
+    "lon": 13.2439512
+  },
+  "Pointe-Noire|Republic of Congo": null,
+  "Sao Tome|Sao Tome & Principe": {
+    "lat": 0.3264119,
+    "lon": 6.7300945
+  },
+  "Lome|Togo": {
+    "lat": 6.130419,
+    "lon": 1.215829
+  },
+  "Tema (Accra)|Ghana": {
+    "lat": 5.6371059,
+    "lon": -0.0010401
+  },
+  "Abidjan|Cote D\u2019Ivoire": {
+    "lat": 5.320357,
+    "lon": -4.016107
+  },
+  "Freetown|Sierra Leone": {
+    "lat": 8.479004,
+    "lon": -13.26795
+  },
+  "Banjul|Gambia": {
+    "lat": 13.45535,
+    "lon": -16.575646
+  },
+  "Dakar|Senegal": {
+    "lat": 14.693425,
+    "lon": -17.447938
+  },
+  "Agadir|Morocco": {
+    "lat": 30.4205162,
+    "lon": -9.5838532
+  },
+  "Casablanca (Rabat gateway)|Morocco": null,
+  "Malaga|Spain": {
+    "lat": 36.7647913,
+    "lon": -4.4422005
+  },
+  "nan|nan": {
+    "lat": 18.7778874,
+    "lon": 100.773732
+  },
+  "Cadiz|Spain": {
+    "lat": 36.5297438,
+    "lon": -6.2928976
+  },
+  "Tangier|Morocco": {
+    "lat": 35.7696302,
+    "lon": -5.8033522
+  },
+  "Palma de Mallorca|The Balearic Islands (Spain)": null,
+  "Marseille|France": {
+    "lat": 43.2963986,
+    "lon": 5.3777888
+  },
+  "Villefranche-sur-Mer, C\u00f4te d\u2019Azur (for Monte Carlo, Nice, Cannes)|France": null,
+  "La Goulette (Tunis)|Tunisia": {
+    "lat": 36.8460803,
+    "lon": 10.279389
+  },
+  "Lisbon|Portugal": {
+    "lat": 38.7077507,
+    "lon": -9.1365919
+  },
+  "Falmouth|UK": {
+    "lat": 50.1553311,
+    "lon": -5.072296
+  },
+  "Ijmuiden (for Amsterdam)|Netherlands": null,
+  "Gothenburg|Sweden": {
+    "lat": 57.7072326,
+    "lon": 11.9670171
+  },
+  "Copenhagen|Denmark": {
+    "lat": 55.6867243,
+    "lon": 12.5700724
+  },
+  "Stockholm|Sweden": {
+    "lat": 59.3251172,
+    "lon": 18.0710935
+  },
+  "Helsinki|Finland": {
+    "lat": 60.1666204,
+    "lon": 24.9435408
+  },
+  "Tallinn|Estonia": {
+    "lat": 59.437242,
+    "lon": 24.7572693
+  },
+  "Riga|Latvia": {
+    "lat": 56.9493977,
+    "lon": 24.1051846
+  },
+  "Liepaja|Latvia": {
+    "lat": 56.5048435,
+    "lon": 21.0070903
+  },
+  "Gdynia|Poland": {
+    "lat": 54.5164982,
+    "lon": 18.5402738
+  },
+  "Kiel (ETD 4 Sept at 5:00)|Germany": null,
+  "Kiel Canal|Germany": {
+    "lat": 54.2081189,
+    "lon": 9.5721775
+  },
+  "Hamburg|Germany": {
+    "lat": 53.5501721,
+    "lon": 10.0013165
+  },
+  "St Peter Port (Guernsey)|UK": {
+    "lat": 49.4573092,
+    "lon": -2.5355814
+  },
+  "Gibraltar|Gibraltar": {
+    "lat": 36.140807,
+    "lon": -5.3541295
+  },
+  "Barcelona|Spain": {
+    "lat": 41.3825802,
+    "lon": 2.177073
+  },
+  "Mah\u00f3n (Menorca)|The Balearic Islands (Spain)": null,
+  "Olbia, Sardinia|italy": {
+    "lat": 40.9232659,
+    "lon": 9.5027442
+  },
+  "Catania|Italy": {
+    "lat": 37.5023612,
+    "lon": 15.0873718
+  },
+  "Katakolon (Peloponnese)|Greece": {
+    "lat": 37.6572588,
+    "lon": 21.3168958
+  },
+  "Iraklion (Heraklion)|Greece": {
+    "lat": 35.3418789,
+    "lon": 25.1316096
+  },
+  "Santorini|Greece": {
+    "lat": 36.4071112,
+    "lon": 25.4566637
+  },
+  "Nafplion (Peloponnese)|Greece": {
+    "lat": 37.5669516,
+    "lon": 22.8023303
+  },
+  "Piraeus (Athens)|Greece": {
+    "lat": 37.9868097,
+    "lon": 23.7608432
+  },
+  "Thessaloniki|Greece": {
+    "lat": 40.6403167,
+    "lon": 22.9352716
+  },
+  "Istanbul|Turkey": {
+    "lat": 41.006381,
+    "lon": 28.9758715
+  },
+  "\u00c7anakkale|Turkey": {
+    "lat": 40.0549886,
+    "lon": 26.9278292
+  },
+  "Izmir|Turkey": {
+    "lat": 38.4192537,
+    "lon": 27.128469
+  },
+  "Ku?adas?|Turkey": {
+    "lat": 41.0874423,
+    "lon": 28.9943506
+  },
+  "Bodrum|Turkey": {
+    "lat": 37.0343987,
+    "lon": 27.430651
+  },
+  "Valletta|Malta": {
+    "lat": 35.8989979,
+    "lon": 14.5136607
+  },
+  "Ponta Delgada (S\u00e3o Miguel)|The Azores (Portugal)": null,
+  "Praia da Vit\u00f3ria (Terceira)|The Azores (Portugal)": null,
+  "Horta (Faial)|The Azores (Portugal)": null,
+  "Hamilton|Bermuda": {
+    "lat": 32.2942679,
+    "lon": -64.7853167
+  },
+  "Boston|USA": {
+    "lat": 42.3588336,
+    "lon": -71.0578303
+  }
+}
