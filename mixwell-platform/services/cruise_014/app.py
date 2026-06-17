@@ -1,4 +1,5 @@
 
+import json
 import os
 import sys
 from cruise_map import build_map
@@ -106,7 +107,6 @@ def cruise_home():
 
 
 @cruiseService.route("/view/<name>")
-@cruiseService.route("/view/<name>")
 def cruise_view(name):
 
     print("VIEW =", name)
@@ -117,21 +117,23 @@ def cruise_view(name):
         f"cruise_map_{name}.html"
     )
 
+    json_file = os.path.join(
+        app.root_path,
+        "cache",
+        f"{name}.json"
+    )
+
     csv_file = os.path.join(
         app.root_path,
         "data",
         f"{name}.csv"
     )
 
-    print("csv_file =", csv_file)
-    print("csv exists =", os.path.exists(csv_file))
-
-    print("html_file =", html_file)
-    print("html exists =", os.path.exists(html_file))
-
     if not os.path.exists(csv_file):
         print("CSV NOT FOUND")
         abort(404)
+    
+    itinerary = []
 
     if (
         not os.path.exists(html_file)
@@ -139,14 +141,23 @@ def cruise_view(name):
            > os.path.getmtime(html_file)
     ):
         print("Building map...")
-        build_map(app.root_path, csv_file, html_file)
+        build_map(app.root_path, csv_file, json_file, html_file)
 
-    print("Rendering template")
+
+        if os.path.exists(json_file):
+
+            with open(
+                json_file,
+                encoding="utf-8"
+            ) as f:
+
+                itinerary = json.load(f)
 
     return render_template(
         "cruises_view.html",
         map_file=os.path.basename(html_file),
         cruise_name=name,
+        itinerary=itinerary,
         servicename="Cruise Service"
     )
 
@@ -167,23 +178,11 @@ def create_app():
     app.register_blueprint(
         cruiseService
     )
-
-    print("\n========== ROUTES ==========")
-    print(app.url_map)
-    print("============================\n")
-    
     return app
 
 # ---------------------------------------------------
 
 if __name__ == "__main__":
-
-    print(
-        f"start running "
-        f"{app.root_path} "
-        f"at {serviceport}"
-    )
-
     create_app().run(
         host=Config.SERVICE_BIND_HOST_EXTERNAL,
         port=serviceport,

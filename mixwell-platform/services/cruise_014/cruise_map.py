@@ -9,6 +9,7 @@ from geopy.geocoders import Nominatim
 def build_map(
     base_dir,
     csv_file,
+    json_file,
     html_file
 ):
     # --------------------------------------------------
@@ -20,7 +21,7 @@ def build_map(
     CSV_FILE = csv_file # os.path.join(BASE_DIR, "data", "itinerary.csv")
     CACHE_DIR = os.path.join(BASE_DIR, "cache")
 
-    ITINERARY_JSON = os.path.join(CACHE_DIR, "itinerary.json")
+    ITINERARY_JSON = json_file # os.path.join(CACHE_DIR, "itinerary.json")
     PORT_CACHE_JSON = os.path.join(CACHE_DIR, "ports.json")
     HTML_GENERATED = os.path.join(BASE_DIR, "generated")
 
@@ -244,3 +245,5 @@ def build_map(
     m.save(output_file)
 
     print("DONE:", output_file)
+
+    return
