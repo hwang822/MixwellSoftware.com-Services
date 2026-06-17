@@ -68,8 +68,8 @@
     "lon": 144.9631732
   },
   "Hobart (Tasmania)|Australia": {
-    "lat": -42.9986182,
-    "lon": 147.3190373
+    "lat": -42.8924764,
+    "lon": 147.3160643
   },
   "Adelaide|Australia": {
     "lat": -34.9281805,
@@ -102,8 +102,8 @@
     "lon": 103.8519072
   },
   "Kuching, Sarawak, Borneo|Malaysia": {
-    "lat": 1.5573739,
-    "lon": 110.3509548
+    "lat": 1.5574609,
+    "lon": 110.3508321
   },
   "Kota Kinabalu, Borneo|Malaysia": null,
   "Coron|Philippines": {
@@ -176,8 +176,8 @@
     "lon": 102.2880962
   },
   "Port Klang (Kuala Lumpur)|Malaysia": {
-    "lat": 3.0285589,
-    "lon": 101.4281058
+    "lat": 3.0276899,
+    "lon": 101.4263074
   },
   "Penang|Malaysia": {
     "lat": 5.4065013,
@@ -288,8 +288,8 @@
     "lon": 44.2786121
   },
   "Nosy Be (Hell-Ville)|Madagascar": {
-    "lat": -13.3958164,
-    "lon": 48.2657835
+    "lat": -13.4052087,
+    "lon": 48.2760592
   },
   "Mamoudzou|Mayotte": {
     "lat": -12.7804136,
@@ -369,10 +369,6 @@
     "lat": 36.7647913,
     "lon": -4.4422005
   },
-  "nan|nan": {
-    "lat": 18.7778874,
-    "lon": 100.773732
-  },
   "Cadiz|Spain": {
     "lat": 36.5297438,
     "lon": -6.2928976
@@ -388,8 +384,8 @@
   },
   "Villefranche-sur-Mer, C\u00f4te d\u2019Azur (for Monte Carlo, Nice, Cannes)|France": null,
   "La Goulette (Tunis)|Tunisia": {
-    "lat": 36.8460803,
-    "lon": 10.279389
+    "lat": 36.8477955,
+    "lon": 10.2791107
   },
   "Lisbon|Portugal": {
     "lat": 38.7077507,
@@ -467,8 +463,8 @@
     "lon": 21.3168958
   },
   "Iraklion (Heraklion)|Greece": {
-    "lat": 35.3418789,
-    "lon": 25.1316096
+    "lat": 35.3409948,
+    "lon": 25.1343153
   },
   "Santorini|Greece": {
     "lat": 36.4071112,
@@ -479,8 +475,8 @@
     "lon": 22.8023303
   },
   "Piraeus (Athens)|Greece": {
-    "lat": 37.9868097,
-    "lon": 23.7608432
+    "lat": 37.9756523,
+    "lon": 23.7253785
   },
   "Thessaloniki|Greece": {
     "lat": 40.6403167,
@@ -499,8 +495,8 @@
     "lon": 27.128469
   },
   "Ku?adas?|Turkey": {
-    "lat": 41.0874423,
-    "lon": 28.9943506
+    "lat": 41.0625892,
+    "lon": 29.0730673
   },
   "Bodrum|Turkey": {
     "lat": 37.0343987,

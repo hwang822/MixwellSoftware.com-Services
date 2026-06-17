@@ -225,8 +225,8 @@
     "port": "Hobart (Tasmania)",
     "country": "Australia",
     "date": "16-Mar-26",
-    "lat": -42.9986182,
-    "lon": 147.3190373,
+    "lat": -42.8924764,
+    "lon": 147.3160643,
     "google": "https://www.google.com/maps/search/?api=1&query=Hobart (Tasmania)+Australia"
   },
   {
@@ -345,8 +345,8 @@
     "port": "Kuching, Sarawak, Borneo",
     "country": "Malaysia",
     "date": "21-May-26",
-    "lat": 1.5573739,
-    "lon": 110.3509548,
+    "lat": 1.5574609,
+    "lon": 110.3508321,
     "google": "https://www.google.com/maps/search/?api=1&query=Kuching, Sarawak, Borneo+Malaysia"
   },
   {
@@ -655,8 +655,8 @@
     "port": "Kuching, Sarawak, Borneo",
     "country": "Malaysia",
     "date": "31-Oct-26",
-    "lat": 1.5573739,
-    "lon": 110.3509548,
+    "lat": 1.5574609,
+    "lon": 110.3508321,
     "google": "https://www.google.com/maps/search/?api=1&query=Kuching, Sarawak, Borneo+Malaysia"
   },
   {
@@ -695,8 +695,8 @@
     "port": "Port Klang (Kuala Lumpur)",
     "country": "Malaysia",
     "date": "14-Nov-26",
-    "lat": 3.0285589,
-    "lon": 101.4281058,
+    "lat": 3.0276899,
+    "lon": 101.4263074,
     "google": "https://www.google.com/maps/search/?api=1&query=Port Klang (Kuala Lumpur)+Malaysia"
   },
   {
@@ -1055,8 +1055,8 @@
     "port": "Nosy Be (Hell-Ville)",
     "country": "Madagascar",
     "date": "1-Apr-27",
-    "lat": -13.3958164,
-    "lon": 48.2657835,
+    "lat": -13.4052087,
+    "lon": 48.2760592,
     "google": "https://www.google.com/maps/search/?api=1&query=Nosy Be (Hell-Ville)+Madagascar"
   },
   {
@@ -1325,8 +1325,8 @@
     "port": "La Goulette (Tunis)",
     "country": "Tunisia",
     "date": "28-Jul-27",
-    "lat": 36.8460803,
-    "lon": 10.279389,
+    "lat": 36.8477955,
+    "lon": 10.2791107,
     "google": "https://www.google.com/maps/search/?api=1&query=La Goulette (Tunis)+Tunisia"
   },
   {
@@ -1555,8 +1555,8 @@
     "port": "Iraklion (Heraklion)",
     "country": "Greece",
     "date": "25-Sep-27",
-    "lat": 35.3418789,
-    "lon": 25.1316096,
+    "lat": 35.3409948,
+    "lon": 25.1343153,
     "google": "https://www.google.com/maps/search/?api=1&query=Iraklion (Heraklion)+Greece"
   },
   {
@@ -1585,8 +1585,8 @@
     "port": "Piraeus (Athens)",
     "country": "Greece",
     "date": "28-Sep-27",
-    "lat": 37.9868097,
-    "lon": 23.7608432,
+    "lat": 37.9756523,
+    "lon": 23.7253785,
     "google": "https://www.google.com/maps/search/?api=1&query=Piraeus (Athens)+Greece"
   },
   {
@@ -1635,8 +1635,8 @@
     "port": "Ku?adas?",
     "country": "Turkey",
     "date": "8-Oct-27",
-    "lat": 41.0874423,
-    "lon": 28.9943506,
+    "lat": 41.0625892,
+    "lon": 29.0730673,
     "google": "https://www.google.com/maps/search/?api=1&query=Ku?adas?+Turkey"
   },
   {

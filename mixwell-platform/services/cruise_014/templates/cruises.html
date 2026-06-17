@@ -1,0 +1,16 @@
+{% extends "servicebase.html" %}
+
+{% block content %}
+
+<h2>Cruises</h2>
+
+<ul>
+{% for c in cruises %}
+    <li>
+        <a href="/view/{{ c }}">
+            {{ c }}
+        </a>
+    </li>
+{% endfor %}
+</ul>
+{% endblock %}

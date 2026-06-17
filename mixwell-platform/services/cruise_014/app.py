@@ -1,6 +1,7 @@
 
 import os
 import sys
+from cruise_map import build_map
 
 from flask import (
     Blueprint,
@@ -66,73 +67,10 @@ serviceport = (
     + baseport
 )
 
-videoService = Blueprint(
-    "videoService",
+cruiseService = Blueprint(
+    "cruiseService",
     __name__
 )
-
-# ---------------------------------------------------
-# Video Folders
-# ---------------------------------------------------
-
-VIDEO_FOLDERS = {
-
-    "kids": [
-        r"D:\Videos\199701_Bowen\1997_Bowen_1",
-        r"D:\Videos\199701_Bowen\1997_Bowen_2_1",
-        r"D:\Videos\199701_Bowen\1997_Bowen_2_2"
-    ],
-
-    "family": [
-        r"D:\Videos\videos_family"
-    ],
-
-    "travel": [
-        r"D:\Videos\201509_Germney_Swiss_VivoVidio",
-        r"D:\Videos\200709_Bahama",
-        r"D:\Videos\201606_Seattle"
-    ],
-
-    "sharing": [
-        r"D:\Videos\videos_sharing"
-    ]
-}
-
-# ---------------------------------------------------
-# Users
-# ---------------------------------------------------
-
-VIDEO_USERS = {
-
-    "family": {
-        "username": "family",
-        "password": "123"
-    },
-
-    "kids": {
-        "username": "kids",
-        "password": "123"
-    },
-
-    "travel": {
-        "username": "travel",
-        "password": "123"
-    },
-
-    "sharing": {
-        "username": "guest",
-        "password": "123"
-    }
-}
-# *********************************************
-import os
-import sys
-import json
-import pandas as pd
-
-from geopy.geocoders import Nominatim
-
-
 
 
 
@@ -140,173 +78,100 @@ from geopy.geocoders import Nominatim
 # Home
 # ---------------------------------------------------
 
-@videoService.route("/")
-def video_home():
+@cruiseService.route("/")
+def cruise_home():
+
+    cruises = []
+
+    data_dir = os.path.join(
+        app.root_path,
+        "data"
+    )
+
+    for f in os.listdir(data_dir):
+
+        if f.lower().endswith(".csv"):
+
+            cruises.append(
+                os.path.splitext(f)[0]
+            )
+
+    cruises.sort()
 
     return render_template(
-        "video.html",
-        servicename="Video Service"
+        "cruises.html",
+        cruises=cruises,
+        servicename="Cruise Service"
     )
 
-# ---------------------------------------------------
-# Login
-# ---------------------------------------------------
 
-@videoService.route(
-    "/login",
-    methods=["POST"]
-)
-def video_login():
+@cruiseService.route("/view/<name>")
+@cruiseService.route("/view/<name>")
+def cruise_view(name):
 
-    category = request.form.get(
-        "category"
+    print("VIEW =", name)
+
+    html_file = os.path.join(
+        app.root_path,
+        "generated",
+        f"cruise_map_{name}.html"
     )
 
-    username = request.form.get(
-        "username"
+    csv_file = os.path.join(
+        app.root_path,
+        "data",
+        f"{name}.csv"
     )
 
-    password = request.form.get(
-        "password"
-    )
+    print("csv_file =", csv_file)
+    print("csv exists =", os.path.exists(csv_file))
 
-    cfg = VIDEO_USERS.get(category)
+    print("html_file =", html_file)
+    print("html exists =", os.path.exists(html_file))
 
-    if not cfg:
-        return "Invalid Category"
+    if not os.path.exists(csv_file):
+        print("CSV NOT FOUND")
+        abort(404)
 
     if (
-        username == cfg["username"]
-        and password == cfg["password"]
+        not os.path.exists(html_file)
+        or os.path.getmtime(csv_file)
+           > os.path.getmtime(html_file)
     ):
+        print("Building map...")
+        build_map(app.root_path, csv_file, html_file)
 
-        return redirect(
-            f"/list/{category}"
-        )
-
-    return "Login Failed"
-
-# ---------------------------------------------------
-# Video List
-# ---------------------------------------------------
-
-@videoService.route(
-    "/list/<category>"
-)
-def video_list(category):
-
-    folders = VIDEO_FOLDERS.get(
-        category
-    )
-
-    if not folders:
-        return "Invalid Category"
-
-    videos = []
-
-    for folder_id, folder in enumerate(
-        folders
-    ):
-
-        if not os.path.exists(folder):
-            continue
-
-        for f in os.listdir(folder):
-
-            if f.lower().endswith(
-                (
-                    ".mp4",
-                    ".mov",
-                    ".mkv"
-                )
-            ):
-
-                videos.append({
-                    "name": f,
-                    "folder_id": folder_id
-                })
-
-    videos.sort(
-        key=lambda x:
-        x["name"].lower()
-    )
-
-    print(
-        category,
-        len(videos)
-    )
+    print("Rendering template")
 
     return render_template(
-        "video_list.html",
-        category=category,
-        videos=videos,
-        servicename="Video Service"
+        "cruises_view.html",
+        map_file=os.path.basename(html_file),
+        cruise_name=name,
+        servicename="Cruise Service"
     )
 
-# ---------------------------------------------------
-# Stream Video
-# ---------------------------------------------------
 
-@videoService.route(
-    "/video/<category>/<int:folder_id>/<path:filename>"
-)
-def serve_video(
-    category,
-    folder_id,
-    filename
-):
-
-    folders = VIDEO_FOLDERS.get(
-        category
-    )
-
-    if not folders:
-        abort(404)
-
-    if folder_id >= len(folders):
-        abort(404)
-
-    folder = folders[
-        folder_id
-    ]
-
-    full_path = os.path.join(
-        folder,
-        filename
-    )
-
-    if not os.path.isfile(
-        full_path
-    ):
-        abort(404)
+@cruiseService.route("/generated/<path:filename>")
+def generated_file(filename):
 
     return send_from_directory(
-        folder,
+        os.path.join(app.root_path, "generated"),
         filename
     )
 
 # ---------------------------------------------------
 # Create App
 # ---------------------------------------------------
-
 def create_app():
 
     app.register_blueprint(
-        videoService
+        cruiseService
     )
 
-    print(
-        "\n========== ROUTES =========="
-    )
-
-    print(
-        app.url_map
-    )
-
-    print(
-        "============================\n"
-    )
-
+    print("\n========== ROUTES ==========")
+    print(app.url_map)
+    print("============================\n")
+    
     return app
 
 # ---------------------------------------------------
@@ -325,3 +190,6 @@ if __name__ == "__main__":
         debug=False,
         use_reloader=False
     )
+
+
+    
