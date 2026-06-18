@@ -105,6 +105,9 @@ def cruise_home():
         servicename="Cruise Service"
     )
 
+#@cruiseService.route("/service/cruise/view/<name>")
+#def cruise_view_serv(name):
+#    return cruise_view(name)
 
 @cruiseService.route("/view/<name>")
 def cruise_view(name):
@@ -144,15 +147,15 @@ def cruise_view(name):
         build_map(app.root_path, csv_file, json_file, html_file)
 
 
-        if os.path.exists(json_file):
+    if os.path.exists(json_file):
 
-            with open(
-                json_file,
-                encoding="utf-8"
-            ) as f:
+        with open(
+            json_file,
+            encoding="utf-8"
+        ) as f:
 
-                itinerary = json.load(f)
-
+            itinerary = json.load(f)
+    print("html_file = ", html_file)
     return render_template(
         "cruises_view.html",
         map_file=os.path.basename(html_file),
