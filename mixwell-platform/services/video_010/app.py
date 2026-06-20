@@ -136,16 +136,16 @@ VIDEO_FOLDERS = {
         {
             "name": "20251027 江西安徽",
             "video_name": "20251027 江西安徽",
-            "mp4_path": r"D:\Photos\20251006 China\20251027 江西安徽\20251027 江西安徽.mp4",
-            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
-            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
+            "mp4_path": r"D:\Photos\20251006_China\20251027_江西安徽\20251027_江西安徽.mp4",
+            "hls_root": r"D:\Videos\20251006_China\20251027_江西安徽\hls",
+            "hls_folder": r"20251027_江西安徽"
         },
         {
             "name": "20251210 新疆",
             "video_name": "20251210 新疆",
-            "mp4_path": r"D:\Photos\20251006 China\20251210 新疆\20251210 新疆.mp4",
-            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
-            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
+            "mp4_path": r"D:\Photos\20251006_China\20251210_新疆\20251210_新疆.mp4",
+            "hls_root": r"D:\20251006_China\20251210_新疆\hls",
+            "hls_folder": r"20251210_新疆"
         },
         
     ]
