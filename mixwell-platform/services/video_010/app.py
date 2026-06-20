@@ -81,28 +81,32 @@ VIDEO_FOLDERS = {
         {
             "name": "Bowen_1",
             "video_name": "Bowen_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
+            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_1\Bowen_1.mp4",
+            "hls_root": r"D:\Videos\199701_Bowen\hls",
             "hls_folder": r"bowen_1"
         },
 
         {
             "name": "Bowen_2_1",
             "video_name": "Bowen_2_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
+            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_2_1\Bowen_2_1.mp4",
+            "hls_root": r"D:\Videos\199701_Bowen\hls",
             "hls_folder": r"bowen_2_1"
         },
 
         {
             "name": "Bowen_2_2",
             "video_name": "Bowen_2_2",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
+            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_2_2\Bowen_2_2.mp4",
+            "hls_root": r"D:\Videos\kids\199701_Bowen\hls",
             "hls_folder": r"bowen_2_2"
         },
 
         {
             "name": "Bowen_3_1",
             "video_name": "Bowen_3_1",
-            "hls_root": r"D:\Videos\199701_Bowen\mp4\hls",
+            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_3_1\Bowen_3_1.mp4",
+            "hls_root": r"D:\Videos\199701_Bowen\hls",
             "hls_folder": r"bowen_3_1"
         },
 
@@ -112,15 +116,17 @@ VIDEO_FOLDERS = {
         {
             "name": "family_1",
             "video_name": "family_1",
-            "hls_root": r"D:\family\mp4\hls",
+            "mp4_path": r"C:\Videos\family\family.mp4",
+            "hls_root": r"D:\Videos\family\family\hls",
             "hls_folder": r"family_1"
         },
     ],
 
     "travel": [
         {
-            "name": "Germany & Switzerland 2015",
-            "video_name": "201509_Germney_Swiss_VivoVidio",
+            "name": "20251027 江西安徽",
+            "video_name": "20251027 江西安徽",
+            "mp4_path": r"D:\Photos\20251006 China\20251027 江西安徽.mp4",
             "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
             "hls_folder": r"201509_Germney_Swiss_VivoVidio"
         },
@@ -128,11 +134,20 @@ VIDEO_FOLDERS = {
 
     "sharing": [
         {
-            "name": "sharing_1",
-            "video_name": "sharing_1",
-            "hls_root": r"D:\sharing\mp4\hls",
-            "hls_folder": r"sharing_1"
+            "name": "20251027 江西安徽",
+            "video_name": "20251027 江西安徽",
+            "mp4_path": r"D:\Photos\20251006 China\20251027 江西安徽\20251027 江西安徽.mp4",
+            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
+            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
         },
+        {
+            "name": "20251210 新疆",
+            "video_name": "20251210 新疆",
+            "mp4_path": r"D:\Photos\20251006 China\20251210 新疆\20251210 新疆.mp4",
+            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
+            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
+        },
+        
     ]
 }
 
@@ -218,7 +233,6 @@ def video_login():
 # ---------------------------------------------------
 
 @videoService.route("/list/<category>")
-@videoService.route("/list/<category>")
 def video_list(category):
 
     videos = VIDEO_FOLDERS.get(category)
@@ -229,18 +243,37 @@ def video_list(category):
     return render_template(
         "video_list.html",
         category=category,
-        videos=videos
+        videos=videos,
+        servicename="Video Service"
     )
 
 
 # ---------------------------------------------------
 # Stream Video
 # ---------------------------------------------------
+from flask import send_file
+@videoService.route("/video/<category>/<int:video_id>")
+def serve_video(category, video_id):
+
+    videos = VIDEO_FOLDERS.get(category)
+
+    if not videos:
+        abort(404)
+
+    if video_id >= len(videos):
+        abort(404)
+
+    video = videos[video_id]
+
+    return send_file(
+        video["mp4_path"],
+        conditional=True
+    )
 
 @videoService.route(
     "/video/<category>/<int:folder_id>/<path:filename>"
 )
-def serve_video(
+def serve_video_hls(
     category,
     folder_id,
     filename
@@ -297,9 +330,30 @@ def play_hls(category, video_id):
     return render_template(
         "video_hls.html",
         src=f"/hls/{category}/{video_id}/index.m3u8",
-        video_name=video["video_name"]
+        video_name=video["video_name"],
+        servicename="Video Service"
     )
 
+@videoService.route("/play_video/<category>/<int:video_id>")
+def play_video(category, video_id):
+
+    videos = VIDEO_FOLDERS.get(category)
+
+    if not videos:
+        abort(404)
+
+    if video_id >= len(videos):
+        abort(404)
+
+    video = videos[video_id]
+
+    return render_template(
+        "video_player.html",
+        category=category,
+        video_id=video_id,
+        video_name=video["video_name"],
+        servicename="Video Service"
+    )
 
 # ---------------------------------------------------
 # Create App

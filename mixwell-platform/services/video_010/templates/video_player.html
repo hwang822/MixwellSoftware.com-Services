@@ -1,0 +1,27 @@
+{% extends "servicebase.html" %}
+
+{% block content %}
+
+<h2>{{ video_name }}</h2>
+
+<video
+    controls
+    autoplay
+    width="1200">
+
+    <source
+        src="/video/{{ category }}/{{ video_id }}"
+        type="video/mp4">
+
+    Your browser does not support video.
+
+</video>
+
+<br><br>
+
+<a href="/list/{{ category }}">
+    ← Back to List
+</a>
+
+{% endblock %}
+
