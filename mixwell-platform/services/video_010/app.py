@@ -126,7 +126,7 @@ VIDEO_FOLDERS = {
         {
             "name": "20251027 江西安徽",
             "video_name": "20251027 江西安徽",
-            "mp4_path": r"D:\Photos\20251006 China\20251027 江西安徽.mp4",
+            "mp4_path": r"D:\Photos\20251006_China\20251027_江西安徽.mp4",
             "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
             "hls_folder": r"201509_Germney_Swiss_VivoVidio"
         },
