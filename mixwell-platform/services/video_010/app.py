@@ -1,5 +1,11 @@
+import glob
 import os
+import shutil
 import sys
+import time
+import uuid
+import subprocess
+
 
 from flask import (
     Blueprint,
@@ -11,16 +17,36 @@ from flask import (
     redirect
 )
 
-import uuid
-import subprocess
-import os
-
 LIVE_ROOT = r"C:\Temp\live_hls"
 
 os.makedirs(
     LIVE_ROOT,
     exist_ok=True
 )
+
+LIVE_ROOT = r"C:\Temp\live_hls"
+
+for name in os.listdir(LIVE_ROOT):
+
+    folder = os.path.join(LIVE_ROOT, name)
+
+    if not os.path.isdir(folder):
+        continue
+
+    age_hours = (
+        time.time()
+        - os.path.getmtime(folder)
+    ) / 3600
+
+    if age_hours > 10:
+
+        print("Delete old session:", folder)
+
+        shutil.rmtree(
+            folder,
+            ignore_errors=True
+        )
+
 
 # ---------------------------------------------------
 # Base
@@ -129,7 +155,7 @@ VIDEO_FOLDERS = {
         {
             "name": "family_1",
             "video_name": "family_1",
-            "mp4_path": r"C:\Videos\family\family.mp4",
+            "mp4_path": r"D:\Videos\family\family.mp4",
             "hls_root": r"D:\Videos\family\family\hls",
             "hls_folder": r"family_1"
         },
@@ -320,6 +346,20 @@ def play_live(category, video_id):
         print("SESSION=", session_id)
         print("PLAYLIST=", playlist)                
         
+        for i in range(150):
+
+            ts_count = len(
+                glob.glob(
+                    os.path.join(folder,"*.ts")
+                )
+            )
+
+            if ts_count >= 4:
+                break
+
+            time.sleep(0.1)
+
+
         return render_template(
             "video_hls.html",
             src=f"/live/{session_id}/index.m3u8",
