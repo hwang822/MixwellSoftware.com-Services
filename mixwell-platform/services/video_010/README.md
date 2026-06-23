@@ -52,6 +52,38 @@ unzip and save to D:\Videos\Tools\ffmpeg
 set even path to D:\Videos\Tools\ffmpeg\bin
 
 
+🥈 方案二：HLS（更专业，但稍复杂）
+
+适合：
+
+视频很大
+网络波动
+多个家人同时看
+原理
+MP4 → 切成很多 .ts 小片段
+用 .m3u8 播放列表
+客户端按需加载
+一次性预处理（FFmpeg）
+
+C:\Photos\20251006_China\20251027_江西安徽\hls
+
+ffmpeg -i "C:\Photos\20251006_China\20251027_江西安徽\20251027_江西安徽.mp4" ^
+-c copy ^
+-f hls ^
+-hls_time 15 ^
+-hls_list_size 0 ^
+index.m3u8
+
+生成：
+
+output.m3u8
+output0.ts
+output1.ts
+...
+
+
+
+
 ffmpeg -i 201509_Germney_Swiss_VivoVidio.mp4 ^
 -c:v libx264 ^
 -preset medium ^

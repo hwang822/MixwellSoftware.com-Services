@@ -9,25 +9,25 @@
 <hr>
 
 <ul>
-
 {% for video in videos %}
+<!--li>
+    <a href="/play_hls/{{ category }}/{{ loop.index0 }}">
+        {{ video.name }} HLS
+    </a>
+</li>
+<li>
+    <a href="/play_video/{{ category }}/{{ loop.index0 }}">
+        {{ video.name }} MP4
+    </a>
+</li-->
 
 <li>
-
-
-<!--a href="/play_hls/{{ video.name }}">
-    {{ video.name }}
-</a-->
-<a href="/play_video/{{ category }}/{{ loop.index0 }}">
-    {{ video.name }}
-</a>
-
+    <a href="/play_live/{{ category }}/{{ loop.index0 }}">
+        {{ video.name }}
+    </a>
 </li>
-
 {% endfor %}
-
 </ul>
-
 <br>
 
 <a href="/">

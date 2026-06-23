@@ -1,0 +1,48 @@
+{% extends "servicebase.html" %}
+
+{% block content %}
+
+<h2>{{ video_name }}</h2>
+
+<video id="video" controls autoplay muted style="width:1200px;background:black;"></video>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<script>
+const video = document.getElementById('video');
+const src = "/live/{{ session_id }}/index.m3u8";
+
+if (Hls.isSupported()) {
+
+    const hls = new Hls({
+
+        // 🔥 CRITICAL FOR LIVE STREAM
+        liveSyncDuration: 3,
+        liveMaxLatencyDuration: 10,
+
+        lowLatencyMode: true,
+
+        // IMPORTANT: prevents buffering freeze
+        backBufferLength: 0
+    });
+
+    hls.loadSource(src);
+    hls.attachMedia(video);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play();
+    });
+
+    // 🔥 CRITICAL FIX: auto-refresh playlist
+    setInterval(() => {
+        hls.startLoad();   // forces m3u8 reload
+    }, 1000);
+
+}
+else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = src;
+    video.play();
+}
+</script>
+
+{% endblock %}

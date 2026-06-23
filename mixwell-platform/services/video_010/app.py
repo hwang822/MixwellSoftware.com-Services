@@ -11,6 +11,17 @@ from flask import (
     redirect
 )
 
+import uuid
+import subprocess
+import os
+
+LIVE_ROOT = r"C:\Temp\live_hls"
+
+os.makedirs(
+    LIVE_ROOT,
+    exist_ok=True
+)
+
 # ---------------------------------------------------
 # Base
 # ---------------------------------------------------
@@ -70,9 +81,11 @@ videoService = Blueprint(
     __name__
 )
 
+
 # ---------------------------------------------------
 # Video Folders
 # ---------------------------------------------------
+
 
 VIDEO_FOLDERS = {
 
@@ -247,14 +260,96 @@ def video_list(category):
         servicename="Video Service"
     )
 
+# ---------------------------------------------------
+# play living
+# ---------------------------------------------------
+@videoService.route("/play_live/<category>/<int:video_id>")
+def play_live(category, video_id):
+    try:
+        videos = VIDEO_FOLDERS.get(category)
+        if not videos:
+            abort(404)
+        video = videos[video_id]
+        session_id = uuid.uuid4().hex
+        folder = os.path.join(
+            LIVE_ROOT,
+            session_id
+        )
+        os.makedirs(folder, exist_ok=True)
+        playlist = os.path.join(
+            folder,
+            "index.m3u8"
+        )
+        segment_pattern = os.path.join(
+            folder,
+            "index%03d.ts"
+        )
+        cmd = [
+            "ffmpeg",
+            "-re",
+            "-i", video["mp4_path"],
 
+            "-c:v", "libx264",
+            "-preset", "veryfast",
+            "-vf", "scale=1920:-2",
+            "-pix_fmt", "yuv420p",
+
+            "-g", "60",
+            "-keyint_min", "60",
+            "-sc_threshold", "0",
+
+            "-c:a", "aac",
+            "-b:a", "128k",
+
+            "-f", "hls",
+            "-hls_time", "2",
+
+            # 🔥 THIS is the sliding window size
+            "-hls_list_size", "30",
+
+            # 🔥 THIS enables deletion of old segments
+            "-hls_flags", "delete_segments+independent_segments",
+
+            "-hls_segment_filename", segment_pattern,
+            playlist
+        ]
+
+        print("START FFMPEG")
+        print(cmd)
+        subprocess.Popen(cmd)
+        print("SESSION=", session_id)
+        print("PLAYLIST=", playlist)                
+        
+        return render_template(
+            "video_hls.html",
+            src=f"/live/{session_id}/index.m3u8",
+            video_name=video["video_name"],
+            servicename="Video Service"
+        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return str(e)
+
+@videoService.route("/live/<session_id>/<path:filename>")
+def serve_live(session_id, filename):
+    folder = os.path.join(
+        LIVE_ROOT,
+        session_id
+    )
+    return send_from_directory(
+        folder,
+        filename
+    )
+
+#
 # ---------------------------------------------------
 # Stream Video
 # ---------------------------------------------------
 from flask import send_file
 @videoService.route("/video/<category>/<int:video_id>")
 def serve_video(category, video_id):
-
     videos = VIDEO_FOLDERS.get(category)
 
     if not videos:
@@ -326,13 +421,16 @@ def hls(category, video_id, filename):
 @videoService.route("/play_hls/<category>/<int:video_id>")
 def play_hls(category, video_id):
     video = VIDEO_FOLDERS[category][video_id]
-
     return render_template(
         "video_hls.html",
         src=f"/hls/{category}/{video_id}/index.m3u8",
         video_name=video["video_name"],
         servicename="Video Service"
     )
+
+# --------------------------------------------------
+# Create mp4 play
+#---------------------------------------------------
 
 @videoService.route("/play_video/<category>/<int:video_id>")
 def play_video(category, video_id):
@@ -368,11 +466,9 @@ def create_app():
     print(
         "\n========== ROUTES =========="
     )
-
     print(
         app.url_map
     )
-
     print(
         "============================\n"
     )
@@ -382,7 +478,6 @@ def create_app():
 # ---------------------------------------------------
 
 if __name__ == "__main__":
-
     print(
         f"start running "
         f"{app.root_path} "
