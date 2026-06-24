@@ -111,8 +111,9 @@ videoService = Blueprint(
 # ---------------------------------------------------
 # Video Folders
 # ---------------------------------------------------
-
-
+VIDEO_DRIVE = "D:"
+if Config.TEST:    
+    VIDEO_DRIVE = "C:"
 VIDEO_FOLDERS = {
 
     "kids": [
@@ -120,33 +121,25 @@ VIDEO_FOLDERS = {
         {
             "name": "Bowen_1",
             "video_name": "Bowen_1",
-            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_1\Bowen_1.mp4",
-            "hls_root": r"D:\Videos\199701_Bowen\hls",
-            "hls_folder": r"bowen_1"
+            "mp4_path": VIDEO_DRIVE + r"\Videos\199701_Bowen\1997_Bowen_1\Bowen_1.mp4",
         },
 
         {
             "name": "Bowen_2_1",
             "video_name": "Bowen_2_1",
-            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_2_1\Bowen_2_1.mp4",
-            "hls_root": r"D:\Videos\199701_Bowen\hls",
-            "hls_folder": r"bowen_2_1"
+            "mp4_path": VIDEO_DRIVE + r"\Videos\\199701_Bowen\1997_Bowen_2_1\Bowen_2_1.mp4",
         },
-
+    
         {
             "name": "Bowen_2_2",
             "video_name": "Bowen_2_2",
-            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_2_2\Bowen_2_2.mp4",
-            "hls_root": r"D:\Videos\kids\199701_Bowen\hls",
-            "hls_folder": r"bowen_2_2"
+            "mp4_path": VIDEO_DRIVE + r"\Videos\199701_Bowen\1997_Bowen_2_2\Bowen_2_2.mp4",
         },
 
         {
             "name": "Bowen_3_1",
             "video_name": "Bowen_3_1",
-            "mp4_path": r"D:\Videos\199701_Bowen\1997_Bowen_3_1\Bowen_3_1.mp4",
-            "hls_root": r"D:\Videos\199701_Bowen\hls",
-            "hls_folder": r"bowen_3_1"
+            "mp4_path": VIDEO_DRIVE + r"\Videos\199701_Bowen\1997_Bowen_3_1\Bowen_3_1.mp4",
         },
 
     ],
@@ -155,9 +148,7 @@ VIDEO_FOLDERS = {
         {
             "name": "family_1",
             "video_name": "family_1",
-            "mp4_path": r"D:\Videos\family\family.mp4",
-            "hls_root": r"D:\Videos\family\family\hls",
-            "hls_folder": r"family_1"
+            "mp4_path": VIDEO_DRIVE + r"\family\family.mp4",
         },
     ],
 
@@ -165,26 +156,31 @@ VIDEO_FOLDERS = {
         {
             "name": "20251027 江西安徽",
             "video_name": "20251027 江西安徽",
-            "mp4_path": r"D:\Photos\20251006_China\20251027_江西安徽.mp4",
-            "hls_root": r"D:\Videos\201509_Germney_Swiss_VivoVidio\hls",
-            "hls_folder": r"201509_Germney_Swiss_VivoVidio"
+            "mp4_path": VIDEO_DRIVE + r"\Photos\20251006_China\20251027_江西安徽\20251027_江西安徽.mp4",
         },
+        {
+            "name": "20251210 新疆",
+            "video_name": "20251210 新疆",
+            "mp4_path": VIDEO_DRIVE + r"\Photos\20251006_China\20251210_新疆\20251210_新疆.mp4",
+        },
+        {
+            "name": "201509 Germney Swiss",
+            "video_name": "201509 Germney Swiss",
+            "mp4_path": VIDEO_DRIVE + r"\Photos\201509_Germney_Swiss_VivoVidio\201509_Germney_Swiss_VivoVidio.mp4",
+        },
+
     ],
 
     "sharing": [
         {
             "name": "20251027 江西安徽",
             "video_name": "20251027 江西安徽",
-            "mp4_path": r"D:\Photos\20251006_China\20251027_江西安徽\20251027_江西安徽.mp4",
-            "hls_root": r"D:\Videos\20251006_China\20251027_江西安徽\hls",
-            "hls_folder": r"20251027_江西安徽"
+            "mp4_path": VIDEO_DRIVE + r"\Photos\20251006_China\20251027_江西安徽\20251027_江西安徽.mp4",
         },
         {
             "name": "20251210 新疆",
             "video_name": "20251210 新疆",
-            "mp4_path": r"D:\Photos\20251006_China\20251210_新疆\20251210_新疆.mp4",
-            "hls_root": r"D:\20251006_China\20251210_新疆\hls",
-            "hls_folder": r"20251210_新疆"
+            "mp4_path": VIDEO_DRIVE + r"\Photos\20251006_China\20251210_新疆\20251210_新疆.mp4",
         },
         
     ]

@@ -27,6 +27,8 @@ if (Hls.isSupported()) {
     });
 
     hls.loadSource(src);
+    console.log("HLS source loaded", src);
+    
     hls.attachMedia(video);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -41,6 +43,7 @@ if (Hls.isSupported()) {
 }
 else if (video.canPlayType('application/vnd.apple.mpegurl')) {
     video.src = src;
+    console.log("mp4 source loaded", src);
     video.play();
 }
 </script>
